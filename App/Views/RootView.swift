@@ -2,8 +2,10 @@ import SwiftUI
 
 struct RootView: View {
     @StateObject private var viewModel: ProfileSelectionViewModel
+    private let repository: GolfBagRepository
 
     init(repository: GolfBagRepository) {
+        self.repository = repository
         _viewModel = StateObject(wrappedValue: ProfileSelectionViewModel(repository: repository))
     }
 
@@ -11,8 +13,9 @@ struct RootView: View {
         NavigationStack {
             Group {
                 if let selectedProfile = viewModel.selectedProfile {
-                    YardageDashboardPlaceholderView(
+                    YardageDashboardView(
                         profile: selectedProfile,
+                        repository: repository,
                         switchProfile: viewModel.clearSelectedProfile
                     )
                 } else {
@@ -25,4 +28,3 @@ struct RootView: View {
         }
     }
 }
-
