@@ -6,7 +6,7 @@ An Apple-native iOS app for quickly checking golf club yardages on the course.
 
 Phase 3: Iterative Execution.
 
-Module 1 is focused on the local model and logic layer. The project is using a state-gated process, so UI work will wait for explicit approval after the logic layer is reviewed.
+Modules 1 and 2 are focused on the local model, logic, and persistence layers. The project is using a state-gated process, so UI work will wait for explicit approval after these foundations are reviewed.
 
 ## V1 Goal
 

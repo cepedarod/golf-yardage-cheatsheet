@@ -23,6 +23,11 @@ GolfYardageCheatsheet/
     YardageMatcher.swift
     ClubDisplayNameFormatter.swift
     ClubValidator.swift
+  Persistence/
+    GolfBagData.swift
+    GolfBagStore.swift
+    FileGolfBagStore.swift
+    GolfBagRepository.swift
   ViewModels/
     ProfileSelectionViewModel.swift
     YardageDashboardViewModel.swift
