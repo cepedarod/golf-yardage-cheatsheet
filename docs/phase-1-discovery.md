@@ -95,6 +95,7 @@ Likely fields:
 - profileId
 - nickname
 - clubType
+- wedgeLoft
 - shotType
 - isActive
 - distanceFull
@@ -119,10 +120,12 @@ For non-putter clubs, the app uses the swing distance fields. For putters, the a
 - Non-putters do not use long, medium, or short stroke labels.
 - Shot type defaults to Normal.
 - Wedges can be Normal or Flop.
+- Wedges may optionally store a whole-number loft from 30 to 80 degrees.
 - Non-wedge, non-putter clubs can be Normal or Punch.
 - Putters do not have a shot type.
 - Normal clubs display as the club type unless a nickname exists.
-- Flop or Punch clubs display as "Club type (Flop)" or "Club type (Punch)" unless we later decide nickname should override that display.
+- If a wedge has a loft value and no nickname, the displayed base name is the loft plus "° Wedge", such as "54° Wedge".
+- Flop or Punch clubs display as "Club type (Flop)" or "Club type (Punch)" unless the club has a nickname. If a nickname exists, the nickname overrides the club type or loft-based name while keeping the shot type in parentheses, such as "Stinger 4 Iron (Punch)".
 - Inactive clubs are hidden from the main yardage screen.
 
 ### Distance Matching Logic
@@ -161,4 +164,3 @@ Phase 2 should define the project blueprint:
 - coding standards
 
 We should not begin implementation until the Phase 2 blueprint is approved.
-
