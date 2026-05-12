@@ -212,11 +212,12 @@ When the user enters a target yardage:
 1. Start with active clubs for the selected profile.
 2. If the Punch filter is on, only include clubs with Punch shot type.
 3. Compare the target against every filled distance value.
-4. Sort matches by smallest difference from the target.
-5. Return two matches.
-6. If more than two matches tie, prefer the entries whose club full-swing distance is closest to the target.
-7. If still tied, keep the older club first based on creation order.
-8. Clear the target yardage automatically after two minutes.
+4. Keep only the best match for each club, so one club cannot occupy both result slots.
+5. Sort matches by smallest difference from the target.
+6. Return two matches.
+7. If more than two matches tie, prefer the entries whose club full-swing distance is closest to the target.
+8. If still tied, keep the older club first based on creation order.
+9. Clear the target yardage automatically after two minutes.
 
 ## Coding Standards
 

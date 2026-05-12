@@ -4,9 +4,9 @@ An Apple-native iOS app for quickly checking golf club yardages on the course.
 
 ## Current Phase
 
-Phase 2: Modular Blueprinting.
+Phase 3: Iterative Execution.
 
-No implementation code has been written yet. The project is using a state-gated process, so we will only move from blueprinting to implementation after explicit approval.
+Module 1 is focused on the local model and logic layer. The project is using a state-gated process, so UI work will wait for explicit approval after the logic layer is reviewed.
 
 ## V1 Goal
 
