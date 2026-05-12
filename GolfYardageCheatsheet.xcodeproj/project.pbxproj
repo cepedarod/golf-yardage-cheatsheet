@@ -1,0 +1,450 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		15620CE59DCCE338A12A86BF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA91D8731B12729B7B498A /* RootView.swift */; };
+		19FE6CBB1D50D9E094176372 /* ProfileSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */; };
+		1F79C134CFEDB03BB53CE21F /* GolfYardageCheatsheetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */; };
+		254B6C988932BD6E63178B35 /* PutterDistanceSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A932ADC68C45A41CD0793C /* PutterDistanceSet.swift */; };
+		446183DE4919B0564A9E67CC /* PreviewGolfBagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A2B798841A3400F34FA87B /* PreviewGolfBagStore.swift */; };
+		4DDE8EC517C79EB70C0F63CE /* ClubDisplayNameFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */; };
+		501D1DD1962F74D4EC74F375 /* YardageMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E2CD273326BC70F5E5CAAF /* YardageMatcher.swift */; };
+		56428CF59BFF4986BE9A70D0 /* YardageDashboardPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEBEA781DAF6FD5F5B79627 /* YardageDashboardPlaceholderView.swift */; };
+		5D3716DB147557025991266D /* Club.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7004039AD549955D5330BA4 /* Club.swift */; };
+		61066043B0B5A48FE1C52A52 /* GolfBagRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF4C64AEE6802EB10E89A54 /* GolfBagRepository.swift */; };
+		784211DA2E7B23551D7351DF /* ClubValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */; };
+		852242B99C32C25C2229FED3 /* ProfileSelectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CECCE10EF40CA28AA97D2C65 /* ProfileSelectionViewModel.swift */; };
+		8FB6D896167101990DA105E4 /* ClubType.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE63CDFFDF74B6C8C2A83D28 /* ClubType.swift */; };
+		933E990C4D159241173BFE45 /* YardageMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9E5DDD30DA9F358F70AA43 /* YardageMatch.swift */; };
+		9DD75F031FE837A6FD429A79 /* SwingDistanceSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44B45C3623DC39DAB64EE2B0 /* SwingDistanceSet.swift */; };
+		A416BA1157F9B938B7850AEA /* DistanceLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1680CAD3CDB50DD8A7C9C0 /* DistanceLabel.swift */; };
+		AFF64A9F035EEDD9F7ABDB73 /* GolfBagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30217AF791DE1307E1C5DB9C /* GolfBagStore.swift */; };
+		BBC36FE04A72F4A5E366ADD7 /* CreateProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868C9716DC779A37ED9B2520 /* CreateProfileView.swift */; };
+		BCB562A815538F1F61E91617 /* ShotFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECD268F84F079F082767E3C /* ShotFilter.swift */; };
+		E8820059D88D20F7A416A484 /* GolferProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32DE2A05A02A87FC16E14B16 /* GolferProfile.swift */; };
+		F70A07FFB90C912411878F7B /* GolfBagData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7688AAF68CC150D755B4DF5C /* GolfBagData.swift */; };
+		F90FAA760CFE8DD9D9EE22E1 /* FileGolfBagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4AE8CCE821E80AA9CF0D55 /* FileGolfBagStore.swift */; };
+		F9CBFF6E3CDEF67DB877AF9D /* ShotType.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCDFE2A06B036E0CD9EF6D26 /* ShotType.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubValidator.swift; sourceTree = "<group>"; };
+		14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GolfYardageCheatsheet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfYardageCheatsheetApp.swift; sourceTree = "<group>"; };
+		1AEBEA781DAF6FD5F5B79627 /* YardageDashboardPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YardageDashboardPlaceholderView.swift; sourceTree = "<group>"; };
+		2CF4C64AEE6802EB10E89A54 /* GolfBagRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagRepository.swift; sourceTree = "<group>"; };
+		30217AF791DE1307E1C5DB9C /* GolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagStore.swift; sourceTree = "<group>"; };
+		32DE2A05A02A87FC16E14B16 /* GolferProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolferProfile.swift; sourceTree = "<group>"; };
+		44B45C3623DC39DAB64EE2B0 /* SwingDistanceSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingDistanceSet.swift; sourceTree = "<group>"; };
+		4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubDisplayNameFormatter.swift; sourceTree = "<group>"; };
+		7688AAF68CC150D755B4DF5C /* GolfBagData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagData.swift; sourceTree = "<group>"; };
+		868C9716DC779A37ED9B2520 /* CreateProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateProfileView.swift; sourceTree = "<group>"; };
+		9E9E5DDD30DA9F358F70AA43 /* YardageMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YardageMatch.swift; sourceTree = "<group>"; };
+		A6E2CD273326BC70F5E5CAAF /* YardageMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YardageMatcher.swift; sourceTree = "<group>"; };
+		AB1680CAD3CDB50DD8A7C9C0 /* DistanceLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceLabel.swift; sourceTree = "<group>"; };
+		AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionView.swift; sourceTree = "<group>"; };
+		B9A2B798841A3400F34FA87B /* PreviewGolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewGolfBagStore.swift; sourceTree = "<group>"; };
+		BECD268F84F079F082767E3C /* ShotFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotFilter.swift; sourceTree = "<group>"; };
+		C7004039AD549955D5330BA4 /* Club.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Club.swift; sourceTree = "<group>"; };
+		C8A932ADC68C45A41CD0793C /* PutterDistanceSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PutterDistanceSet.swift; sourceTree = "<group>"; };
+		CECCE10EF40CA28AA97D2C65 /* ProfileSelectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionViewModel.swift; sourceTree = "<group>"; };
+		CF4AE8CCE821E80AA9CF0D55 /* FileGolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileGolfBagStore.swift; sourceTree = "<group>"; };
+		D0DA91D8731B12729B7B498A /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		DCDFE2A06B036E0CD9EF6D26 /* ShotType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotType.swift; sourceTree = "<group>"; };
+		EE63CDFFDF74B6C8C2A83D28 /* ClubType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubType.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		020A8431348A8FB602AE20B5 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */,
+				8F6638309BB2E6A566206CC6 /* Support */,
+				F4080C25492866E7FD85E363 /* ViewModels */,
+				F48763B6009907D17310230F /* Views */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		1D26CF47E13ABD3B3B54870B /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */,
+				0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */,
+				BECD268F84F079F082767E3C /* ShotFilter.swift */,
+				A6E2CD273326BC70F5E5CAAF /* YardageMatcher.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		2F0B056EE87E20303471996F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4DDC46319F8AB6F052836905 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				C7004039AD549955D5330BA4 /* Club.swift */,
+				EE63CDFFDF74B6C8C2A83D28 /* ClubType.swift */,
+				AB1680CAD3CDB50DD8A7C9C0 /* DistanceLabel.swift */,
+				32DE2A05A02A87FC16E14B16 /* GolferProfile.swift */,
+				C8A932ADC68C45A41CD0793C /* PutterDistanceSet.swift */,
+				DCDFE2A06B036E0CD9EF6D26 /* ShotType.swift */,
+				44B45C3623DC39DAB64EE2B0 /* SwingDistanceSet.swift */,
+				9E9E5DDD30DA9F358F70AA43 /* YardageMatch.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		75FB548F94BFFF1108DD0ABE /* GolfYardageCheatsheet */ = {
+			isa = PBXGroup;
+			children = (
+				4DDC46319F8AB6F052836905 /* Models */,
+				7BD0DB9276458EE767BC712F /* Persistence */,
+				1D26CF47E13ABD3B3B54870B /* Services */,
+			);
+			path = GolfYardageCheatsheet;
+			sourceTree = "<group>";
+		};
+		7BD0DB9276458EE767BC712F /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				CF4AE8CCE821E80AA9CF0D55 /* FileGolfBagStore.swift */,
+				7688AAF68CC150D755B4DF5C /* GolfBagData.swift */,
+				2CF4C64AEE6802EB10E89A54 /* GolfBagRepository.swift */,
+				30217AF791DE1307E1C5DB9C /* GolfBagStore.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		8F6638309BB2E6A566206CC6 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				B9A2B798841A3400F34FA87B /* PreviewGolfBagStore.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		A570827A0902AF6A164D8E46 = {
+			isa = PBXGroup;
+			children = (
+				020A8431348A8FB602AE20B5 /* App */,
+				B15341338541EB72FF370E6B /* Sources */,
+				2F0B056EE87E20303471996F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B15341338541EB72FF370E6B /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				75FB548F94BFFF1108DD0ABE /* GolfYardageCheatsheet */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		F4080C25492866E7FD85E363 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				CECCE10EF40CA28AA97D2C65 /* ProfileSelectionViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		F48763B6009907D17310230F /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				868C9716DC779A37ED9B2520 /* CreateProfileView.swift */,
+				AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */,
+				D0DA91D8731B12729B7B498A /* RootView.swift */,
+				1AEBEA781DAF6FD5F5B79627 /* YardageDashboardPlaceholderView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DBAAAD8626B90EF06134BDBA /* GolfYardageCheatsheet */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C057252850610E8271AF88CA /* Build configuration list for PBXNativeTarget "GolfYardageCheatsheet" */;
+			buildPhases = (
+				89956D5C85E0C76B8439EA37 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GolfYardageCheatsheet;
+			packageProductDependencies = (
+			);
+			productName = GolfYardageCheatsheet;
+			productReference = 14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A24534C0739E10205922DFC4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 6B1037C28CD32F19D6CB68F0 /* Build configuration list for PBXProject "GolfYardageCheatsheet" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = A570827A0902AF6A164D8E46;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2F0B056EE87E20303471996F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DBAAAD8626B90EF06134BDBA /* GolfYardageCheatsheet */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		89956D5C85E0C76B8439EA37 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D3716DB147557025991266D /* Club.swift in Sources */,
+				4DDE8EC517C79EB70C0F63CE /* ClubDisplayNameFormatter.swift in Sources */,
+				8FB6D896167101990DA105E4 /* ClubType.swift in Sources */,
+				784211DA2E7B23551D7351DF /* ClubValidator.swift in Sources */,
+				BBC36FE04A72F4A5E366ADD7 /* CreateProfileView.swift in Sources */,
+				A416BA1157F9B938B7850AEA /* DistanceLabel.swift in Sources */,
+				F90FAA760CFE8DD9D9EE22E1 /* FileGolfBagStore.swift in Sources */,
+				F70A07FFB90C912411878F7B /* GolfBagData.swift in Sources */,
+				61066043B0B5A48FE1C52A52 /* GolfBagRepository.swift in Sources */,
+				AFF64A9F035EEDD9F7ABDB73 /* GolfBagStore.swift in Sources */,
+				1F79C134CFEDB03BB53CE21F /* GolfYardageCheatsheetApp.swift in Sources */,
+				E8820059D88D20F7A416A484 /* GolferProfile.swift in Sources */,
+				446183DE4919B0564A9E67CC /* PreviewGolfBagStore.swift in Sources */,
+				19FE6CBB1D50D9E094176372 /* ProfileSelectionView.swift in Sources */,
+				852242B99C32C25C2229FED3 /* ProfileSelectionViewModel.swift in Sources */,
+				254B6C988932BD6E63178B35 /* PutterDistanceSet.swift in Sources */,
+				15620CE59DCCE338A12A86BF /* RootView.swift in Sources */,
+				BCB562A815538F1F61E91617 /* ShotFilter.swift in Sources */,
+				F9CBFF6E3CDEF67DB877AF9D /* ShotType.swift in Sources */,
+				9DD75F031FE837A6FD429A79 /* SwingDistanceSet.swift in Sources */,
+				56428CF59BFF4986BE9A70D0 /* YardageDashboardPlaceholderView.swift in Sources */,
+				933E990C4D159241173BFE45 /* YardageMatch.swift in Sources */,
+				501D1DD1962F74D4EC74F375 /* YardageMatcher.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0DBE4D7505EB8E03DA59415E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		6285928F007DF62C6C0D0658 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cepedarod.GolfYardageCheatsheet;
+				PRODUCT_MODULE_NAME = GolfYardageCheatsheet;
+				PRODUCT_NAME = "Golf Yardage";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A39F341E2769A10A568DA470 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A9F3A6A9AE74C4EFB29E6D2E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cepedarod.GolfYardageCheatsheet;
+				PRODUCT_MODULE_NAME = GolfYardageCheatsheet;
+				PRODUCT_NAME = "Golf Yardage";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6B1037C28CD32F19D6CB68F0 /* Build configuration list for PBXProject "GolfYardageCheatsheet" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A39F341E2769A10A568DA470 /* Debug */,
+				0DBE4D7505EB8E03DA59415E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C057252850610E8271AF88CA /* Build configuration list for PBXNativeTarget "GolfYardageCheatsheet" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6285928F007DF62C6C0D0658 /* Debug */,
+				A9F3A6A9AE74C4EFB29E6D2E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A24534C0739E10205922DFC4 /* Project object */;
+}

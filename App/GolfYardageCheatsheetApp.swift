@@ -1,0 +1,19 @@
+import SwiftUI
+
+@main
+struct GolfYardageCheatsheetApp: App {
+    private let repository: GolfBagRepository
+
+    init() {
+        let storeURL = (try? FileGolfBagStore.defaultStoreURL()) ??
+            FileManager.default.temporaryDirectory.appendingPathComponent("golf-bag-data.json")
+        repository = GolfBagRepository(store: FileGolfBagStore(fileURL: storeURL))
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            RootView(repository: repository)
+        }
+    }
+}
+
