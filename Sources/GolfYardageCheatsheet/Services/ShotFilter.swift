@@ -1,7 +1,6 @@
 import Foundation
 
-public enum ShotFilter: Equatable, Sendable {
+public enum ShotFilter: Hashable, Sendable {
     case all
     case punchOnly
 }
-

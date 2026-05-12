@@ -18,6 +18,55 @@ struct YardageDashboardView: View {
     var body: some View {
         List {
             Section {
+                HStack {
+                    Text("Target")
+                    Spacer()
+                    NumericTextField(title: "Yards", text: $viewModel.targetYardageText)
+                        .font(.title2.weight(.semibold))
+                        .frame(maxWidth: 120)
+                }
+
+                Picker("Shot Filter", selection: $viewModel.shotFilter) {
+                    Text("All").tag(ShotFilter.all)
+                    Text("Punch").tag(ShotFilter.punchOnly)
+                }
+                .pickerStyle(.segmented)
+
+                if viewModel.hasTargetYardage {
+                    Button("Clear", action: viewModel.clearTargetYardage)
+                }
+            }
+
+            if viewModel.hasTargetYardage {
+                Section("Closest") {
+                    if viewModel.matches.isEmpty {
+                        ContentUnavailableView("No Matches", systemImage: "scope", description: Text("Add active clubs or change the filter."))
+                            .frame(maxWidth: .infinity)
+                            .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(viewModel.matches) { match in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(formatter.displayName(for: match.club))
+                                    .font(.headline)
+
+                                HStack {
+                                    Text("\(match.label.rawValue) \(match.distance)")
+                                        .font(.title3.weight(.semibold))
+
+                                    Spacer()
+
+                                    Text(differenceSummary(for: match))
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    }
+                }
+            }
+
+            Section {
                 if viewModel.activeClubs.isEmpty {
                     ContentUnavailableView("No Clubs", systemImage: "figure.golf", description: Text("Add your first club."))
                         .frame(maxWidth: .infinity)
@@ -36,7 +85,7 @@ struct YardageDashboardView: View {
                     }
                 }
             } header: {
-                Text(profile.name)
+                Text("\(profile.name)'s Clubs")
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -85,6 +134,20 @@ struct YardageDashboardView: View {
 
         return entries.map { "\($0.label.rawValue) \($0.distance)" }
             .joined(separator: " \u{00B7} ")
+    }
+
+    private func differenceSummary(for match: YardageMatch) -> String {
+        if match.differenceFromTarget == 0 {
+            return "Exact"
+        }
+
+        let targetYardage = Int(viewModel.targetYardageText) ?? match.distance
+
+        if match.distance < targetYardage {
+            return "\(match.differenceFromTarget) short"
+        }
+
+        return "\(match.differenceFromTarget) long"
     }
 }
 
