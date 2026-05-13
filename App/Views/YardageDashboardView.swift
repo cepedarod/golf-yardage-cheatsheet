@@ -69,7 +69,7 @@ struct YardageDashboardView: View {
 
             if viewModel.hasTargetYardage == false {
                 Section {
-                    if viewModel.activeClubs.isEmpty {
+                    if viewModel.visibleActiveClubs.isEmpty {
                         VStack(spacing: 14) {
                             ContentUnavailableView(
                                 emptyClubsTitle,
@@ -88,7 +88,7 @@ struct YardageDashboardView: View {
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
                     } else {
-                        ForEach(viewModel.activeClubs) { club in
+                        ForEach(viewModel.visibleActiveClubs) { club in
                             ClubSummaryRow(club: club)
                                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                     Button {
@@ -109,7 +109,7 @@ struct YardageDashboardView: View {
                         }
                     }
                 } header: {
-                    Text("\(profile.name)'s Clubs")
+                    Text(activeClubSectionTitle)
                 }
             }
 
@@ -178,15 +178,36 @@ struct YardageDashboardView: View {
     }
 
     private var emptyClubsTitle: String {
-        viewModel.inactiveClubs.isEmpty ? "No Clubs" : "No Active Clubs"
+        if viewModel.shotFilter == .punchOnly, viewModel.activeClubs.isEmpty == false {
+            return "No Punch Clubs"
+        }
+
+        return viewModel.inactiveClubs.isEmpty ? "No Clubs" : "No Active Clubs"
     }
 
     private var emptyClubsDescription: String {
-        viewModel.inactiveClubs.isEmpty ? "Add your first club." : "Restore one from Inactive Clubs or add a new club."
+        if viewModel.shotFilter == .punchOnly, viewModel.activeClubs.isEmpty == false {
+            return "Switch to All or add a punch club."
+        }
+
+        return viewModel.inactiveClubs.isEmpty ? "Add your first club." : "Restore one from Inactive Clubs or add a new club."
     }
 
     private var emptyClubsActionTitle: String {
-        viewModel.inactiveClubs.isEmpty ? "Add First Club" : "Add Club"
+        if viewModel.shotFilter == .punchOnly, viewModel.activeClubs.isEmpty == false {
+            return "Add Club"
+        }
+
+        return viewModel.inactiveClubs.isEmpty ? "Add First Club" : "Add Club"
+    }
+
+    private var activeClubSectionTitle: String {
+        switch viewModel.shotFilter {
+        case .all:
+            return "\(profile.name)'s Clubs"
+        case .punchOnly:
+            return "Punch Clubs"
+        }
     }
 
     private func offerInitialBagSetupIfNeeded() {

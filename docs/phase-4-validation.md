@@ -9,6 +9,7 @@
 5. Local file-store failures: tests cover missing files, corrupt JSON, and creating missing directories while saving.
 6. App reload failures: profile and dashboard view models clear stale screen state on load failure and clear old errors after a successful reload.
 7. Target lookup mode: the dashboard now hides the full active club list while a valid target is entered, so target mode shows only the closest club recommendations.
+8. Punch-only filtering: target lookup and the normal dashboard club list now share the same Punch-only filter rule.
 
 ## Tests Added
 
@@ -28,6 +29,9 @@
 - App state hardening
   - Profile loading clears stale profiles and selection when loading fails.
   - Dashboard club loading clears stale clubs and matches when loading fails.
+- `ShotFilterTests`
+  - All mode includes normal, punch, and putter clubs.
+  - Punch-only mode includes only clubs marked as Punch.
 
 ## Performance Notes
 

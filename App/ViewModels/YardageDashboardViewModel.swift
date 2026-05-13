@@ -90,6 +90,10 @@ final class YardageDashboardViewModel: ObservableObject {
         targetYardage != nil
     }
 
+    var visibleActiveClubs: [Club] {
+        activeClubs.filter(shotFilter.includes)
+    }
+
     private var targetYardage: Int? {
         guard let targetYardage = Int(targetYardageText), targetYardage > 0 else {
             return nil

@@ -15,9 +15,7 @@ public struct YardageMatcher: Sendable {
 
         let bestMatchByClub = clubs
             .filter { $0.isActive }
-            .filter { club in
-                filter == .all || club.shotType == .punch
-            }
+            .filter(filter.includes)
             .compactMap { bestMatch(for: $0, targetYardage: targetYardage) }
 
         return bestMatchByClub
@@ -77,4 +75,3 @@ public struct YardageMatcher: Sendable {
         return abs(fullSwingDistance - targetYardage)
     }
 }
-
