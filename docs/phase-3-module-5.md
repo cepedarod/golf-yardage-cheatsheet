@@ -11,5 +11,5 @@
 ## Notes
 
 - Match rows display club name, matched swing or stroke label, saved distance, and whether the result is short, long, or exact.
-- The full active club list remains visible below lookup results for quick reference.
+- When target yardage is active, the full active club list is hidden so only the closest matches are shown.
 - The next focused module should add inactive-club management.

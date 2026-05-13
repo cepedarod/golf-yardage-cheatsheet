@@ -66,34 +66,36 @@ struct YardageDashboardView: View {
                 }
             }
 
-            Section {
-                if viewModel.activeClubs.isEmpty {
-                    ContentUnavailableView("No Clubs", systemImage: "figure.golf", description: Text("Add your first club."))
-                        .frame(maxWidth: .infinity)
-                        .listRowBackground(Color.clear)
-                } else {
-                    ForEach(viewModel.activeClubs) { club in
-                        ClubSummaryRow(club: club)
-                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                Button {
-                                    clubForm = .edit(club)
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
+            if viewModel.hasTargetYardage == false {
+                Section {
+                    if viewModel.activeClubs.isEmpty {
+                        ContentUnavailableView("No Clubs", systemImage: "figure.golf", description: Text("Add your first club."))
+                            .frame(maxWidth: .infinity)
+                            .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(viewModel.activeClubs) { club in
+                            ClubSummaryRow(club: club)
+                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                    Button {
+                                        clubForm = .edit(club)
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
                                 }
-                                .tint(.blue)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button {
-                                    viewModel.deactivateClub(club)
-                                } label: {
-                                    Label("Deactivate", systemImage: "archivebox")
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button {
+                                        viewModel.deactivateClub(club)
+                                    } label: {
+                                        Label("Deactivate", systemImage: "archivebox")
+                                    }
+                                    .tint(.orange)
                                 }
-                                .tint(.orange)
-                            }
+                        }
                     }
+                } header: {
+                    Text("\(profile.name)'s Clubs")
                 }
-            } header: {
-                Text("\(profile.name)'s Clubs")
             }
 
             if let errorMessage = viewModel.errorMessage {

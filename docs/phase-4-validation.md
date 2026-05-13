@@ -8,6 +8,7 @@
 4. Missing club mutations: repository returns `clubNotFound` for restore, deactivate, or delete actions against an unknown club ID.
 5. Local file-store failures: tests cover missing files, corrupt JSON, and creating missing directories while saving.
 6. App reload failures: profile and dashboard view models clear stale screen state on load failure and clear old errors after a successful reload.
+7. Target lookup mode: the dashboard now hides the full active club list while a valid target is entered, so target mode shows only the closest club recommendations.
 
 ## Tests Added
 
