@@ -12,6 +12,7 @@
 8. Punch-only filtering: target lookup and the normal dashboard club list now share the same Punch-only filter rule.
 9. Permanent deletion safety: inactive club deletion now requires confirmation before removing stored data.
 10. First-launch smoke coverage: XCUITest verifies profile creation opens the add-club flow for a brand-new bag.
+11. Add-club save paths: XCUITest verifies `Finish` saves a club and `Save & Add Another` saves multiple clubs in sequence.
 
 ## Tests Added
 
@@ -36,6 +37,8 @@
   - Punch-only mode includes only clubs marked as Punch.
 - `GolfYardageCheatsheetUITests`
   - Fresh launch creates a profile and opens the add-club flow.
+  - Add-club `Finish` saves a club and returns to the dashboard.
+  - `Save & Add Another` saves one club, resets the form, and allows saving a second club.
 
 ## Performance Notes
 

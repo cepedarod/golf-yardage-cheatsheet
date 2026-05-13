@@ -75,16 +75,16 @@ struct AddClubView: View {
                 }
 
                 Section("Distances (Yards)") {
-                    distanceRow("Full", text: $fullDistance)
-                    distanceRow("3/4", text: $threeQuarterDistance)
-                    distanceRow("Half", text: $halfDistance)
-                    distanceRow("Quarter", text: $quarterDistance)
+                    distanceRow("Full", identifier: "full-distance-field", text: $fullDistance)
+                    distanceRow("3/4", identifier: "three-quarter-distance-field", text: $threeQuarterDistance)
+                    distanceRow("Half", identifier: "half-distance-field", text: $halfDistance)
+                    distanceRow("Quarter", identifier: "quarter-distance-field", text: $quarterDistance)
                 }
             } else {
                 Section("Distances (Yards)") {
-                    distanceRow("Long", text: $longPutterDistance)
-                    distanceRow("Medium", text: $mediumPutterDistance)
-                    distanceRow("Short", text: $shortPutterDistance)
+                    distanceRow("Long", identifier: "long-putter-distance-field", text: $longPutterDistance)
+                    distanceRow("Medium", identifier: "medium-putter-distance-field", text: $mediumPutterDistance)
+                    distanceRow("Short", identifier: "short-putter-distance-field", text: $shortPutterDistance)
                 }
             }
 
@@ -101,6 +101,7 @@ struct AddClubView: View {
                     Button(action: saveAndAddAnother) {
                         Label("Save & Add Another", systemImage: "plus.circle")
                     }
+                    .accessibilityIdentifier("save-and-add-another-button")
                 }
             }
         }
@@ -116,6 +117,7 @@ struct AddClubView: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button(existingClub == nil ? "Finish" : "Save", action: saveAndFinish)
+                    .accessibilityIdentifier(existingClub == nil ? "finish-club-button" : "save-club-button")
             }
         }
         .onChange(of: clubType) { _, newValue in
@@ -137,11 +139,12 @@ struct AddClubView: View {
         return clubType.isWedge ? [.normal, .flop] : [.normal, .punch]
     }
 
-    private func distanceRow(_ title: String, text: Binding<String>) -> some View {
+    private func distanceRow(_ title: String, identifier: String, text: Binding<String>) -> some View {
         HStack {
             Text(title)
             Spacer()
             NumericTextField(title: "Yards", text: text)
+                .accessibilityIdentifier(identifier)
                 .frame(maxWidth: 96)
         }
     }
