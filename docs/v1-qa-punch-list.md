@@ -40,7 +40,10 @@ Screenshots were captured locally under `qa/screenshots/`.
 
 ## Suggested V1 Fixes Before Release
 
-1. Add delete confirmation for inactive club deletion.
-2. Add a small smoke UI test target for first launch, profile creation, and add-club navigation.
-3. Add app icon assets before any TestFlight or device install.
-4. Run one real-device readability pass outdoors or near bright light.
+1. Add a small smoke UI test target for first launch, profile creation, and add-club navigation.
+2. Add app icon assets before any TestFlight or device install.
+3. Run one real-device readability pass outdoors or near bright light.
+
+## Completed V1 Fixes
+
+- Added delete confirmation for inactive club deletion.

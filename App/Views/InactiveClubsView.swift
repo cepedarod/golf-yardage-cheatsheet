@@ -3,6 +3,9 @@ import SwiftUI
 struct InactiveClubsView: View {
     @ObservedObject var viewModel: YardageDashboardViewModel
     @State private var clubBeingEdited: Club?
+    @State private var clubPendingDeletion: Club?
+
+    private let formatter = ClubDisplayNameFormatter()
 
     var body: some View {
         List {
@@ -31,7 +34,7 @@ struct InactiveClubsView: View {
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
-                                    viewModel.deleteClub(club)
+                                    clubPendingDeletion = club
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -53,6 +56,39 @@ struct InactiveClubsView: View {
                 AddClubView(profile: viewModel.profile, club: club, onSave: viewModel.saveClub)
             }
         }
+        .confirmationDialog(
+            "Delete \(deleteConfirmationClubName)?",
+            isPresented: isConfirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Club", role: .destructive) {
+                if let clubPendingDeletion {
+                    viewModel.deleteClub(clubPendingDeletion)
+                    self.clubPendingDeletion = nil
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+                clubPendingDeletion = nil
+            }
+        } message: {
+            Text("This permanently removes the club data.")
+        }
+    }
+
+    private var deleteConfirmationClubName: String {
+        clubPendingDeletion.map { formatter.displayName(for: $0) } ?? "Club"
+    }
+
+    private var isConfirmingDelete: Binding<Bool> {
+        Binding(
+            get: { clubPendingDeletion != nil },
+            set: { isPresented in
+                if isPresented == false {
+                    clubPendingDeletion = nil
+                }
+            }
+        )
     }
 }
 
