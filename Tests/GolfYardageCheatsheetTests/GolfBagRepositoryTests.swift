@@ -51,6 +51,35 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.clubs(for: profile.id), [club])
     }
 
+    func testSaveClubUpdatesExistingClubWithoutDuplicating() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let createdAt = Date(timeIntervalSince1970: 100)
+        let original = Club(
+            profileID: profile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155),
+            createdAt: createdAt,
+            updatedAt: createdAt
+        )
+        let edited = Club(
+            id: original.id,
+            profileID: profile.id,
+            nickname: "Knockdown",
+            clubType: .sevenIron,
+            shotType: .punch,
+            swingDistances: SwingDistanceSet(full: 145, threeQuarter: 132),
+            createdAt: createdAt,
+            updatedAt: Date(timeIntervalSince1970: 200)
+        )
+
+        try repository.saveClub(original)
+        try repository.saveClub(edited)
+
+        XCTAssertEqual(try repository.clubs(for: profile.id), [edited])
+    }
+
     func testSaveClubRejectsInvalidClub() throws {
         let store = InMemoryGolfBagStore()
         let repository = GolfBagRepository(store: store)
@@ -114,4 +143,3 @@ private final class InMemoryGolfBagStore: GolfBagStore {
         self.data = data
     }
 }
-

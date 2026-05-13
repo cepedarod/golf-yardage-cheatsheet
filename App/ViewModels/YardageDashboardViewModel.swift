@@ -22,7 +22,7 @@ final class YardageDashboardViewModel: ObservableObject {
     }
     @Published var errorMessage: String?
 
-    private let profile: GolferProfile
+    let profile: GolferProfile
     private let repository: GolfBagRepository
     private let matcher: YardageMatcher
     private var clearTargetTask: Task<Void, Never>?

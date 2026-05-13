@@ -5,7 +5,7 @@ struct YardageDashboardView: View {
     let switchProfile: () -> Void
 
     @StateObject private var viewModel: YardageDashboardViewModel
-    @State private var isShowingAddClub = false
+    @State private var clubForm: ClubForm?
 
     private let formatter = ClubDisplayNameFormatter()
 
@@ -74,6 +74,14 @@ struct YardageDashboardView: View {
                 } else {
                     ForEach(viewModel.activeClubs) { club in
                         ClubSummaryRow(club: club)
+                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                Button {
+                                    clubForm = .edit(club)
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button {
                                     viewModel.deactivateClub(club)
@@ -114,7 +122,7 @@ struct YardageDashboardView: View {
                     .accessibilityLabel("Inactive Clubs")
 
                     Button {
-                        isShowingAddClub = true
+                        clubForm = .add
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -122,9 +130,14 @@ struct YardageDashboardView: View {
                 }
             }
         }
-        .sheet(isPresented: $isShowingAddClub) {
+        .sheet(item: $clubForm) { form in
             NavigationStack {
-                AddClubView(profile: profile, onSave: viewModel.saveClub)
+                switch form {
+                case .add:
+                    AddClubView(profile: profile, onSave: viewModel.saveClub)
+                case .edit(let club):
+                    AddClubView(profile: profile, club: club, onSave: viewModel.saveClub)
+                }
             }
         }
         .task {
@@ -144,6 +157,20 @@ struct YardageDashboardView: View {
         }
 
         return "\(match.differenceFromTarget) long"
+    }
+
+    private enum ClubForm: Identifiable {
+        case add
+        case edit(Club)
+
+        var id: String {
+            switch self {
+            case .add:
+                return "add"
+            case .edit(let club):
+                return club.id.uuidString
+            }
+        }
     }
 }
 

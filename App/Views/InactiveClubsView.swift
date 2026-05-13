@@ -2,6 +2,7 @@ import SwiftUI
 
 struct InactiveClubsView: View {
     @ObservedObject var viewModel: YardageDashboardViewModel
+    @State private var clubBeingEdited: Club?
 
     var body: some View {
         List {
@@ -13,7 +14,14 @@ struct InactiveClubsView: View {
                 } else {
                     ForEach(viewModel.inactiveClubs) { club in
                         ClubSummaryRow(club: club)
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                Button {
+                                    clubBeingEdited = club
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+
                                 Button {
                                     viewModel.restoreClub(club)
                                 } label: {
@@ -40,6 +48,11 @@ struct InactiveClubsView: View {
             }
         }
         .navigationTitle("Inactive Clubs")
+        .sheet(item: $clubBeingEdited) { club in
+            NavigationStack {
+                AddClubView(profile: viewModel.profile, club: club, onSave: viewModel.saveClub)
+            }
+        }
     }
 }
 

@@ -6,7 +6,7 @@ An Apple-native iOS app for quickly checking golf club yardages on the course.
 
 Phase 3: Iterative Execution.
 
-Modules 1 through 6 cover the local model, logic, persistence, first iOS app shell, add-club flow, target-yardage lookup, and inactive-club management. The project is using a state-gated process, so richer club editing will wait for explicit approval after inactive-club management is reviewed.
+Modules 1 through 7 cover the local model, logic, persistence, first iOS app shell, add-club flow, target-yardage lookup, inactive-club management, and club editing. The project is using a state-gated process, so the next step after club-edit review should be either final V1 polish or Phase 4 validation and hardening.
 
 ## V1 Goal
 

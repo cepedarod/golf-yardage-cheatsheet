@@ -6,6 +6,9 @@ struct AddClubView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    private let existingClub: Club?
+    private let validator = ClubValidator()
+
     @State private var clubType: ClubType = .driver
     @State private var shotType: ShotType = .normal
     @State private var nickname = ""
@@ -19,7 +22,23 @@ struct AddClubView: View {
     @State private var shortPutterDistance = ""
     @State private var errorMessage: String?
 
-    private let validator = ClubValidator()
+    init(profile: GolferProfile, club: Club? = nil, onSave: @escaping (Club) throws -> Void) {
+        self.profile = profile
+        self.existingClub = club
+        self.onSave = onSave
+
+        _clubType = State(initialValue: club?.clubType ?? .driver)
+        _shotType = State(initialValue: club?.shotType ?? .normal)
+        _nickname = State(initialValue: club?.nickname ?? "")
+        _wedgeLoft = State(initialValue: club?.wedgeLoft.map(String.init) ?? "")
+        _fullDistance = State(initialValue: club?.swingDistances?.full.map(String.init) ?? "")
+        _threeQuarterDistance = State(initialValue: club?.swingDistances?.threeQuarter.map(String.init) ?? "")
+        _halfDistance = State(initialValue: club?.swingDistances?.half.map(String.init) ?? "")
+        _quarterDistance = State(initialValue: club?.swingDistances?.quarter.map(String.init) ?? "")
+        _longPutterDistance = State(initialValue: club?.putterDistances?.long.map(String.init) ?? "")
+        _mediumPutterDistance = State(initialValue: club?.putterDistances?.medium.map(String.init) ?? "")
+        _shortPutterDistance = State(initialValue: club?.putterDistances?.short.map(String.init) ?? "")
+    }
 
     var body: some View {
         Form {
@@ -77,7 +96,7 @@ struct AddClubView: View {
                 }
             }
         }
-        .navigationTitle("Add Club")
+        .navigationTitle(existingClub == nil ? "Add Club" : "Edit Club")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -138,12 +157,16 @@ struct AddClubView: View {
     }
 
     private func makeClub() -> Club {
-        Club(
+        let now = Date()
+
+        return Club(
+            id: existingClub?.id ?? UUID(),
             profileID: profile.id,
             nickname: normalizedNickname,
             clubType: clubType,
             wedgeLoft: normalizedWedgeLoft,
             shotType: clubType == .putter ? nil : shotType,
+            isActive: existingClub?.isActive ?? true,
             swingDistances: clubType == .putter ? nil : SwingDistanceSet(
                 full: distance(from: fullDistance),
                 threeQuarter: distance(from: threeQuarterDistance),
@@ -154,7 +177,9 @@ struct AddClubView: View {
                 long: distance(from: longPutterDistance),
                 medium: distance(from: mediumPutterDistance),
                 short: distance(from: shortPutterDistance)
-            ) : nil
+            ) : nil,
+            createdAt: existingClub?.createdAt ?? now,
+            updatedAt: now
         )
     }
 
