@@ -74,14 +74,14 @@ struct AddClubView: View {
                     .pickerStyle(.segmented)
                 }
 
-                Section("Distances") {
+                Section("Distances (Yards)") {
                     distanceRow("Full", text: $fullDistance)
                     distanceRow("3/4", text: $threeQuarterDistance)
                     distanceRow("Half", text: $halfDistance)
                     distanceRow("Quarter", text: $quarterDistance)
                 }
             } else {
-                Section("Distances") {
+                Section("Distances (Yards)") {
                     distanceRow("Long", text: $longPutterDistance)
                     distanceRow("Medium", text: $mediumPutterDistance)
                     distanceRow("Short", text: $shortPutterDistance)
