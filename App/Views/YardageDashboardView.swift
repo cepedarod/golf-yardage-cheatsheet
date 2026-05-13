@@ -6,6 +6,7 @@ struct YardageDashboardView: View {
 
     @StateObject private var viewModel: YardageDashboardViewModel
     @State private var clubForm: ClubForm?
+    @State private var didOfferInitialBagSetup = false
 
     private let formatter = ClubDisplayNameFormatter()
 
@@ -69,9 +70,23 @@ struct YardageDashboardView: View {
             if viewModel.hasTargetYardage == false {
                 Section {
                     if viewModel.activeClubs.isEmpty {
-                        ContentUnavailableView("No Clubs", systemImage: "figure.golf", description: Text("Add your first club."))
-                            .frame(maxWidth: .infinity)
-                            .listRowBackground(Color.clear)
+                        VStack(spacing: 14) {
+                            ContentUnavailableView(
+                                emptyClubsTitle,
+                                systemImage: "figure.golf",
+                                description: Text(emptyClubsDescription)
+                            )
+
+                            Button {
+                                clubForm = .add
+                            } label: {
+                                Label(emptyClubsActionTitle, systemImage: "plus.circle.fill")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.green)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
                     } else {
                         ForEach(viewModel.activeClubs) { club in
                             ClubSummaryRow(club: club)
@@ -144,6 +159,7 @@ struct YardageDashboardView: View {
         }
         .task {
             viewModel.loadClubs()
+            offerInitialBagSetupIfNeeded()
         }
     }
 
@@ -159,6 +175,30 @@ struct YardageDashboardView: View {
         }
 
         return "\(match.differenceFromTarget) long"
+    }
+
+    private var emptyClubsTitle: String {
+        viewModel.inactiveClubs.isEmpty ? "No Clubs" : "No Active Clubs"
+    }
+
+    private var emptyClubsDescription: String {
+        viewModel.inactiveClubs.isEmpty ? "Add your first club." : "Restore one from Inactive Clubs or add a new club."
+    }
+
+    private var emptyClubsActionTitle: String {
+        viewModel.inactiveClubs.isEmpty ? "Add First Club" : "Add Club"
+    }
+
+    private func offerInitialBagSetupIfNeeded() {
+        guard didOfferInitialBagSetup == false,
+              viewModel.activeClubs.isEmpty,
+              viewModel.inactiveClubs.isEmpty,
+              viewModel.errorMessage == nil else {
+            return
+        }
+
+        didOfferInitialBagSetup = true
+        clubForm = .add
     }
 
     private enum ClubForm: Identifiable {

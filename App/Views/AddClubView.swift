@@ -114,7 +114,7 @@ struct AddClubView: View {
             }
 
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save", action: saveAndFinish)
+                Button(existingClub == nil ? "Finish" : "Save", action: saveAndFinish)
             }
         }
         .onChange(of: clubType) { _, newValue in
