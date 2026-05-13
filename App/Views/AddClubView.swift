@@ -95,6 +95,14 @@ struct AddClubView: View {
                         .foregroundStyle(.red)
                 }
             }
+
+            if existingClub == nil {
+                Section {
+                    Button(action: saveAndAddAnother) {
+                        Label("Save & Add Another", systemImage: "plus.circle")
+                    }
+                }
+            }
         }
         .navigationTitle(existingClub == nil ? "Add Club" : "Edit Club")
         .navigationBarTitleDisplayMode(.inline)
@@ -106,7 +114,7 @@ struct AddClubView: View {
             }
 
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save", action: save)
+                Button("Save", action: saveAndFinish)
             }
         }
         .onChange(of: clubType) { _, newValue in
@@ -137,7 +145,15 @@ struct AddClubView: View {
         }
     }
 
-    private func save() {
+    private func saveAndFinish() {
+        save(shouldDismiss: true)
+    }
+
+    private func saveAndAddAnother() {
+        save(shouldDismiss: false)
+    }
+
+    private func save(shouldDismiss: Bool) {
         let club = makeClub()
         let validationErrors = validator.validate(club)
 
@@ -148,7 +164,11 @@ struct AddClubView: View {
 
         do {
             try onSave(club)
-            dismiss()
+            if shouldDismiss {
+                dismiss()
+            } else {
+                resetForNextClub()
+            }
         } catch GolfBagRepositoryError.invalidClub(let validationErrors) {
             errorMessage = validationMessage(for: validationErrors)
         } catch {
@@ -181,6 +201,32 @@ struct AddClubView: View {
             createdAt: existingClub?.createdAt ?? now,
             updatedAt: now
         )
+    }
+
+    private func resetForNextClub() {
+        clubType = nextClubType(after: clubType)
+        shotType = .normal
+        nickname = ""
+        wedgeLoft = ""
+        fullDistance = ""
+        threeQuarterDistance = ""
+        halfDistance = ""
+        quarterDistance = ""
+        longPutterDistance = ""
+        mediumPutterDistance = ""
+        shortPutterDistance = ""
+        errorMessage = nil
+    }
+
+    private func nextClubType(after clubType: ClubType) -> ClubType {
+        let allClubTypes = ClubType.allCases
+
+        guard let currentIndex = allClubTypes.firstIndex(of: clubType) else {
+            return .driver
+        }
+
+        let nextIndex = allClubTypes.index(after: currentIndex)
+        return nextIndex < allClubTypes.endIndex ? allClubTypes[nextIndex] : clubType
     }
 
     private var normalizedNickname: String? {
