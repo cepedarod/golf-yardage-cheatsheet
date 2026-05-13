@@ -73,6 +73,41 @@ final class YardageMatcherTests: XCTestCase {
         XCTAssertEqual(matches.map(\.club.id), [punchClubID])
     }
 
+    func testInvalidTargetOrLimitReturnsNoMatches() {
+        let clubs = [
+            Club(
+                profileID: profileID,
+                clubType: .sevenIron,
+                swingDistances: SwingDistanceSet(full: 150)
+            )
+        ]
+
+        XCTAssertTrue(matcher.closestMatches(targetYardage: 0, clubs: clubs).isEmpty)
+        XCTAssertTrue(matcher.closestMatches(targetYardage: -1, clubs: clubs).isEmpty)
+        XCTAssertTrue(matcher.closestMatches(targetYardage: 150, clubs: clubs, limit: 0).isEmpty)
+    }
+
+    func testNonPositiveDistancesAreIgnoredWhenMatching() {
+        let validClubID = UUID()
+        let clubs = [
+            Club(
+                profileID: profileID,
+                clubType: .sevenIron,
+                swingDistances: SwingDistanceSet(full: 0)
+            ),
+            Club(
+                id: validClubID,
+                profileID: profileID,
+                clubType: .eightIron,
+                swingDistances: SwingDistanceSet(full: 140)
+            )
+        ]
+
+        let matches = matcher.closestMatches(targetYardage: 150, clubs: clubs)
+
+        XCTAssertEqual(matches.map(\.club.id), [validClubID])
+    }
+
     func testTiesPreferFullSwingDistanceClosestToTarget() {
         let oldest = Date(timeIntervalSince1970: 1)
         let middle = Date(timeIntervalSince1970: 2)
@@ -109,4 +144,3 @@ final class YardageMatcherTests: XCTestCase {
         XCTAssertEqual(matches.map(\.club.id), [closestFullSwingClubID, closeFullSwingClubID])
     }
 }
-

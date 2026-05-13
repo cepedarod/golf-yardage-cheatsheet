@@ -4,9 +4,9 @@ An Apple-native iOS app for quickly checking golf club yardages on the course.
 
 ## Current Phase
 
-Phase 3: Iterative Execution.
+Phase 4: Validation & Hardening.
 
-Modules 1 through 8 cover the local model, logic, persistence, first iOS app shell, add-club flow, target-yardage lookup, inactive-club management, club editing, and bag-entry polish. The project is using a state-gated process, so the next step after V1 polish should be Phase 4 validation and hardening.
+Modules 1 through 8 cover the local model, logic, persistence, first iOS app shell, add-club flow, target-yardage lookup, inactive-club management, club editing, and bag-entry polish. Phase 4 is adding edge-case coverage and final V1 hardening before any broader app polish or release prep.
 
 ## V1 Goal
 

@@ -100,5 +100,30 @@ final class ClubValidatorTests: XCTestCase {
         XCTAssertTrue(errors.contains(.nonPositiveDistance(label: .full)))
         XCTAssertTrue(errors.contains(.nonPositiveDistance(label: .half)))
     }
-}
 
+    func testPutterCannotCarryShotTypeOrSwingDistancesFromCorruptData() {
+        var club = Club(
+            profileID: profileID,
+            clubType: .putter,
+            putterDistances: PutterDistanceSet(short: 3)
+        )
+        club.shotType = .normal
+        club.swingDistances = SwingDistanceSet(full: 10)
+
+        let errors = validator.validate(club)
+
+        XCTAssertTrue(errors.contains(.putterCannotHaveShotType))
+        XCTAssertTrue(errors.contains(.putterCannotHaveSwingDistances))
+    }
+
+    func testNonPutterCannotCarryPutterDistancesFromCorruptData() {
+        let club = Club(
+            profileID: profileID,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155),
+            putterDistances: PutterDistanceSet(short: 3)
+        )
+
+        XCTAssertTrue(validator.validate(club).contains(.nonPutterCannotHavePutterDistances))
+    }
+}

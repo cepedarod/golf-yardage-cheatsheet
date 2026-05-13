@@ -80,6 +80,32 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.clubs(for: profile.id), [edited])
     }
 
+    func testSaveClubRejectsCrossProfileOverwriteAndKeepsOriginal() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let firstProfile = try repository.createProfile(name: "Rod")
+        let secondProfile = try repository.createProfile(name: "Friend")
+        let original = Club(
+            profileID: firstProfile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155)
+        )
+        let crossProfileEdit = Club(
+            id: original.id,
+            profileID: secondProfile.id,
+            clubType: .eightIron,
+            swingDistances: SwingDistanceSet(full: 145)
+        )
+
+        try repository.saveClub(original)
+
+        XCTAssertThrowsError(try repository.saveClub(crossProfileEdit)) { error in
+            XCTAssertEqual(error as? GolfBagRepositoryError, .clubDoesNotBelongToProfile)
+        }
+        XCTAssertEqual(try repository.clubs(for: firstProfile.id), [original])
+        XCTAssertTrue(try repository.clubs(for: secondProfile.id).isEmpty)
+    }
+
     func testSaveClubRejectsInvalidClub() throws {
         let store = InMemoryGolfBagStore()
         let repository = GolfBagRepository(store: store)
@@ -129,6 +155,17 @@ final class GolfBagRepositoryTests: XCTestCase {
         try repository.deleteClub(id: club.id)
 
         XCTAssertTrue(try repository.clubs(for: profile.id).isEmpty)
+    }
+
+    func testMissingClubMutationsThrowClubNotFound() throws {
+        let repository = GolfBagRepository(store: InMemoryGolfBagStore())
+
+        XCTAssertThrowsError(try repository.setClubActive(false, clubID: UUID())) { error in
+            XCTAssertEqual(error as? GolfBagRepositoryError, .clubNotFound)
+        }
+        XCTAssertThrowsError(try repository.deleteClub(id: UUID())) { error in
+            XCTAssertEqual(error as? GolfBagRepositoryError, .clubNotFound)
+        }
     }
 }
 
