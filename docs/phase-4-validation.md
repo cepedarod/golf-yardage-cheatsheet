@@ -17,6 +17,7 @@
 13. Punch dashboard visibility: XCUITest verifies Punch filtering hides normal clubs and keeps Punch clubs visible.
 14. Dashboard edit flow: XCUITest verifies a club can be edited from the dashboard swipe action and the updated distance replaces the old value.
 15. Target-yardage auto-clear: XCUITest verifies the target mode clears itself after the configured delay and returns to the normal club list; production remains set to two minutes.
+16. Inactive-club management: XCUITest verifies deactivating a club, restoring it from the inactive screen, and permanently deleting an inactive club through confirmation.
 
 ## Tests Added
 
@@ -47,6 +48,7 @@
   - Punch filtering shows only Punch clubs and returns normal clubs when reset to All.
   - Dashboard swipe edit opens the edit form, saves an updated distance, and returns the changed value to the dashboard.
   - Target yardage auto-clear removes target mode and restores the normal club list after the configured delay.
+  - Inactive-club restore and delete flows work from the inactive screen, including the delete confirmation.
 
 ## Performance Notes
 

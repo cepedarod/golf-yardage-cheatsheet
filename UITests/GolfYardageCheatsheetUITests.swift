@@ -152,6 +152,49 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["255"].exists)
     }
 
+    func testInactiveClubRestoreAndDeleteFlows() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: true, in: app)
+        saveClub(fullDistance: "230", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        deactivateClub(named: "Driver", in: app)
+
+        openInactiveClubs(in: app)
+        let inactiveDriverRow = app.descendants(matching: .any)["club-row-Driver"]
+        XCTAssertTrue(inactiveDriverRow.waitForExistence(timeout: 2))
+        inactiveDriverRow.swipeRight()
+
+        let restoreButton = app.buttons["Restore"]
+        XCTAssertTrue(restoreButton.waitForExistence(timeout: 2))
+        restoreButton.tap()
+        waitForDisappearance(of: inactiveDriverRow)
+
+        app.navigationBars["Inactive Clubs"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["club-row-Driver"].waitForExistence(timeout: 2))
+
+        deactivateClub(named: "3 Wood", in: app)
+
+        openInactiveClubs(in: app)
+        let inactiveThreeWoodRow = app.descendants(matching: .any)["club-row-3 Wood"]
+        XCTAssertTrue(inactiveThreeWoodRow.waitForExistence(timeout: 2))
+        inactiveThreeWoodRow.swipeLeft()
+
+        let deleteButton = app.buttons["Delete"]
+        if deleteButton.waitForExistence(timeout: 1) {
+            deleteButton.tap()
+        }
+
+        let confirmDeleteButton = app.buttons["Delete Club"]
+        XCTAssertTrue(confirmDeleteButton.waitForExistence(timeout: 2))
+        confirmDeleteButton.tap()
+        XCTAssertTrue(app.staticTexts["No Inactive Clubs"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.descendants(matching: .any)["club-row-3 Wood"].exists)
+    }
+
     private func launchFreshApp(environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-reset-data"]
@@ -210,6 +253,31 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         }
 
         textField.typeText(text)
+    }
+
+    private func deactivateClub(named displayName: String, in app: XCUIApplication) {
+        let clubRow = app.descendants(matching: .any)["club-row-\(displayName)"]
+        XCTAssertTrue(clubRow.waitForExistence(timeout: 2))
+        clubRow.swipeLeft()
+
+        let deactivateButton = app.buttons["Deactivate"]
+        if deactivateButton.waitForExistence(timeout: 1) {
+            deactivateButton.tap()
+        }
+
+        waitForDisappearance(of: clubRow)
+    }
+
+    private func openInactiveClubs(in app: XCUIApplication) {
+        let inactiveClubsButton = app.buttons["Inactive Clubs"]
+        XCTAssertTrue(inactiveClubsButton.waitForExistence(timeout: 2))
+        inactiveClubsButton.tap()
+        XCTAssertTrue(app.navigationBars["Inactive Clubs"].waitForExistence(timeout: 5))
+    }
+
+    private func waitForDisappearance(of element: XCUIElement, timeout: TimeInterval = 2) {
+        let expectation = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: element)
+        wait(for: [expectation], timeout: timeout)
     }
 
     private func saveClub(fullDistance: String, shouldAddAnother: Bool, in app: XCUIApplication) {
