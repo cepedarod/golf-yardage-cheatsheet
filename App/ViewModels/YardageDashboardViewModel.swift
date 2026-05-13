@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class YardageDashboardViewModel: ObservableObject {
     @Published private(set) var activeClubs: [Club] = []
+    @Published private(set) var inactiveClubs: [Club] = []
     @Published private(set) var matches: [YardageMatch] = []
     @Published var targetYardageText = "" {
         didSet {
@@ -38,7 +39,7 @@ final class YardageDashboardViewModel: ObservableObject {
 
     func loadClubs() {
         do {
-            activeClubs = try repository.clubs(for: profile.id, includeInactive: false)
+            let clubs = try repository.clubs(for: profile.id, includeInactive: true)
                 .sorted { lhs, rhs in
                     if lhs.createdAt != rhs.createdAt {
                         return lhs.createdAt < rhs.createdAt
@@ -46,6 +47,8 @@ final class YardageDashboardViewModel: ObservableObject {
 
                     return lhs.id.uuidString < rhs.id.uuidString
                 }
+            activeClubs = clubs.filter(\.isActive)
+            inactiveClubs = clubs.filter { $0.isActive == false }
             updateMatches()
             errorMessage = nil
         } catch {
@@ -56,6 +59,23 @@ final class YardageDashboardViewModel: ObservableObject {
     func saveClub(_ club: Club) throws {
         try repository.saveClub(club)
         loadClubs()
+    }
+
+    func deactivateClub(_ club: Club) {
+        setClub(club, active: false, errorMessage: "Unable to deactivate club.")
+    }
+
+    func restoreClub(_ club: Club) {
+        setClub(club, active: true, errorMessage: "Unable to restore club.")
+    }
+
+    func deleteClub(_ club: Club) {
+        do {
+            try repository.deleteClub(id: club.id)
+            loadClubs()
+        } catch {
+            errorMessage = "Unable to delete club."
+        }
     }
 
     func clearTargetYardage() {
@@ -98,6 +118,15 @@ final class YardageDashboardViewModel: ObservableObject {
         clearTargetTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 120_000_000_000)
             self?.clearTargetYardage()
+        }
+    }
+
+    private func setClub(_ club: Club, active: Bool, errorMessage: String) {
+        do {
+            try repository.setClubActive(active, clubID: club.id)
+            loadClubs()
+        } catch {
+            self.errorMessage = errorMessage
         }
     }
 }

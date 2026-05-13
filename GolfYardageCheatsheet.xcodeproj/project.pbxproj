@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		15620CE59DCCE338A12A86BF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA91D8731B12729B7B498A /* RootView.swift */; };
 		19FE6CBB1D50D9E094176372 /* ProfileSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */; };
+		1C86432BD39FE965589C2FAC /* ClubSummaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C182F74E38637D8F02C6AE /* ClubSummaryRow.swift */; };
 		1F79C134CFEDB03BB53CE21F /* GolfYardageCheatsheetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */; };
 		254B6C988932BD6E63178B35 /* PutterDistanceSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A932ADC68C45A41CD0793C /* PutterDistanceSet.swift */; };
 		446183DE4919B0564A9E67CC /* PreviewGolfBagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A2B798841A3400F34FA87B /* PreviewGolfBagStore.swift */; };
@@ -30,6 +31,7 @@
 		BCB562A815538F1F61E91617 /* ShotFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECD268F84F079F082767E3C /* ShotFilter.swift */; };
 		C722276A053D7EC4BDB7C9E9 /* YardageDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76D967F6E3B93C91C4C4210A /* YardageDashboardView.swift */; };
 		E8820059D88D20F7A416A484 /* GolferProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32DE2A05A02A87FC16E14B16 /* GolferProfile.swift */; };
+		E9187841448DD947D01FED44 /* InactiveClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70648D4851A640DD1BEB7C8 /* InactiveClubsView.swift */; };
 		F70A07FFB90C912411878F7B /* GolfBagData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7688AAF68CC150D755B4DF5C /* GolfBagData.swift */; };
 		F90FAA760CFE8DD9D9EE22E1 /* FileGolfBagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4AE8CCE821E80AA9CF0D55 /* FileGolfBagStore.swift */; };
 		F9CBFF6E3CDEF67DB877AF9D /* ShotType.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCDFE2A06B036E0CD9EF6D26 /* ShotType.swift */; };
@@ -55,7 +57,9 @@
 		AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionView.swift; sourceTree = "<group>"; };
 		B9A2B798841A3400F34FA87B /* PreviewGolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewGolfBagStore.swift; sourceTree = "<group>"; };
 		BECD268F84F079F082767E3C /* ShotFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotFilter.swift; sourceTree = "<group>"; };
+		C1C182F74E38637D8F02C6AE /* ClubSummaryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubSummaryRow.swift; sourceTree = "<group>"; };
 		C7004039AD549955D5330BA4 /* Club.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Club.swift; sourceTree = "<group>"; };
+		C70648D4851A640DD1BEB7C8 /* InactiveClubsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InactiveClubsView.swift; sourceTree = "<group>"; };
 		C8A932ADC68C45A41CD0793C /* PutterDistanceSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PutterDistanceSet.swift; sourceTree = "<group>"; };
 		CECCE10EF40CA28AA97D2C65 /* ProfileSelectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionViewModel.swift; sourceTree = "<group>"; };
 		CF4AE8CCE821E80AA9CF0D55 /* FileGolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileGolfBagStore.swift; sourceTree = "<group>"; };
@@ -170,7 +174,9 @@
 			isa = PBXGroup;
 			children = (
 				676BD79C075F863CF852C95A /* AddClubView.swift */,
+				C1C182F74E38637D8F02C6AE /* ClubSummaryRow.swift */,
 				868C9716DC779A37ED9B2520 /* CreateProfileView.swift */,
+				C70648D4851A640DD1BEB7C8 /* InactiveClubsView.swift */,
 				0E4DE40234983AAFB5CAC5D8 /* NumericTextField.swift */,
 				AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */,
 				D0DA91D8731B12729B7B498A /* RootView.swift */,
@@ -237,6 +243,7 @@
 				4B00932C967AAC250C06C0F4 /* AddClubView.swift in Sources */,
 				5D3716DB147557025991266D /* Club.swift in Sources */,
 				4DDE8EC517C79EB70C0F63CE /* ClubDisplayNameFormatter.swift in Sources */,
+				1C86432BD39FE965589C2FAC /* ClubSummaryRow.swift in Sources */,
 				8FB6D896167101990DA105E4 /* ClubType.swift in Sources */,
 				784211DA2E7B23551D7351DF /* ClubValidator.swift in Sources */,
 				BBC36FE04A72F4A5E366ADD7 /* CreateProfileView.swift in Sources */,
@@ -247,6 +254,7 @@
 				AFF64A9F035EEDD9F7ABDB73 /* GolfBagStore.swift in Sources */,
 				1F79C134CFEDB03BB53CE21F /* GolfYardageCheatsheetApp.swift in Sources */,
 				E8820059D88D20F7A416A484 /* GolferProfile.swift in Sources */,
+				E9187841448DD947D01FED44 /* InactiveClubsView.swift in Sources */,
 				8286928D52DA2FFFEF436F81 /* NumericTextField.swift in Sources */,
 				446183DE4919B0564A9E67CC /* PreviewGolfBagStore.swift in Sources */,
 				19FE6CBB1D50D9E094176372 /* ProfileSelectionView.swift in Sources */,

@@ -73,15 +73,15 @@ struct YardageDashboardView: View {
                         .listRowBackground(Color.clear)
                 } else {
                     ForEach(viewModel.activeClubs) { club in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(formatter.displayName(for: club))
-                                .font(.headline)
-
-                            Text(distanceSummary(for: club))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 6)
+                        ClubSummaryRow(club: club)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button {
+                                    viewModel.deactivateClub(club)
+                                } label: {
+                                    Label("Deactivate", systemImage: "archivebox")
+                                }
+                                .tint(.orange)
+                            }
                     }
                 }
             } header: {
@@ -105,12 +105,21 @@ struct YardageDashboardView: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isShowingAddClub = true
-                } label: {
-                    Image(systemName: "plus")
+                HStack {
+                    NavigationLink {
+                        InactiveClubsView(viewModel: viewModel)
+                    } label: {
+                        Image(systemName: "archivebox")
+                    }
+                    .accessibilityLabel("Inactive Clubs")
+
+                    Button {
+                        isShowingAddClub = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Add Club")
                 }
-                .accessibilityLabel("Add Club")
             }
         }
         .sheet(isPresented: $isShowingAddClub) {
@@ -121,19 +130,6 @@ struct YardageDashboardView: View {
         .task {
             viewModel.loadClubs()
         }
-    }
-
-    private func distanceSummary(for club: Club) -> String {
-        let entries: [(label: DistanceLabel, distance: Int)]
-
-        if club.clubType == .putter {
-            entries = club.putterDistances?.entries() ?? []
-        } else {
-            entries = club.swingDistances?.entries() ?? []
-        }
-
-        return entries.map { "\($0.label.rawValue) \($0.distance)" }
-            .joined(separator: " \u{00B7} ")
     }
 
     private func differenceSummary(for match: YardageMatch) -> String {
