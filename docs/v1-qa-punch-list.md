@@ -4,7 +4,7 @@
 
 - `swift test`: passed with 35 tests.
 - `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17' build`: passed.
-- `xcodebuild test -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17'`: passed with 8 UI smoke tests.
+- `xcodebuild test -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17'`: passed with 9 UI smoke tests.
 - Clean simulator install: passed.
 
 ## Simulator Visual Checks
@@ -26,10 +26,6 @@ Screenshots were captured locally under `qa/screenshots/`.
    - `54° Wedge (Flop)` confirms loft plus Flop suffix formatting.
    - Half and Quarter labels render as words.
 
-## Hands-On QA Still Needed
-
-- Restart the app and confirm saved profiles/clubs persist.
-
 ## Suggested V1 Fixes Before Release
 
 1. Run one real-device readability pass outdoors or near bright light.
@@ -45,3 +41,4 @@ Screenshots were captured locally under `qa/screenshots/`.
 - Added UI smoke coverage for editing a club from the dashboard swipe action.
 - Added UI smoke coverage for target yardage auto-clear using a shortened test delay while production remains two minutes.
 - Added UI smoke coverage for inactive-club restore and permanent delete confirmation flows.
+- Added UI smoke coverage for selected-profile, active-club, and inactive-club persistence across relaunch.

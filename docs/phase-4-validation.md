@@ -18,6 +18,7 @@
 14. Dashboard edit flow: XCUITest verifies a club can be edited from the dashboard swipe action and the updated distance replaces the old value.
 15. Target-yardage auto-clear: XCUITest verifies the target mode clears itself after the configured delay and returns to the normal club list; production remains set to two minutes.
 16. Inactive-club management: XCUITest verifies deactivating a club, restoring it from the inactive screen, and permanently deleting an inactive club through confirmation.
+17. Relaunch persistence: XCUITest verifies the selected profile, active clubs, and inactive clubs remain available after terminating and relaunching the app without the reset test flag.
 
 ## Tests Added
 
@@ -49,6 +50,7 @@
   - Dashboard swipe edit opens the edit form, saves an updated distance, and returns the changed value to the dashboard.
   - Target yardage auto-clear removes target mode and restores the normal club list after the configured delay.
   - Inactive-club restore and delete flows work from the inactive screen, including the delete confirmation.
+  - Selected profile plus active and inactive clubs persist across app relaunch.
 
 ## Performance Notes
 

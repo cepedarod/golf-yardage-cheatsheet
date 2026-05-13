@@ -195,9 +195,38 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["club-row-3 Wood"].exists)
     }
 
+    func testSavedBagPersistsAcrossRelaunch() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: true, in: app)
+        saveClub(fullDistance: "230", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        deactivateClub(named: "3 Wood", in: app)
+        app.terminate()
+
+        let relaunchedApp = launchAppPreservingData()
+        XCTAssertTrue(relaunchedApp.navigationBars["Distance"].waitForExistence(timeout: 5))
+        XCTAssertTrue(relaunchedApp.descendants(matching: .any)["club-row-Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(relaunchedApp.staticTexts["255"].exists)
+        XCTAssertFalse(relaunchedApp.descendants(matching: .any)["club-row-3 Wood"].exists)
+
+        openInactiveClubs(in: relaunchedApp)
+        XCTAssertTrue(relaunchedApp.descendants(matching: .any)["club-row-3 Wood"].waitForExistence(timeout: 2))
+        XCTAssertTrue(relaunchedApp.staticTexts["230"].exists)
+    }
+
     private func launchFreshApp(environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-reset-data"]
+        app.launchEnvironment = environment
+        app.launch()
+        return app
+    }
+
+    private func launchAppPreservingData(environment: [String: String] = [:]) -> XCUIApplication {
+        let app = XCUIApplication()
         app.launchEnvironment = environment
         app.launch()
         return app
