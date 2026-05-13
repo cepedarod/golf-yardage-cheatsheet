@@ -30,8 +30,12 @@ struct YardageDashboardView: View {
                 }
 
                 Picker("Shot Filter", selection: $viewModel.shotFilter) {
-                    Text("All").tag(ShotFilter.all)
-                    Text("Punch").tag(ShotFilter.punchOnly)
+                    Text("All")
+                        .tag(ShotFilter.all)
+                        .accessibilityIdentifier("shot-filter-all")
+                    Text("Punch")
+                        .tag(ShotFilter.punchOnly)
+                        .accessibilityIdentifier("shot-filter-punch")
                 }
                 .pickerStyle(.segmented)
 

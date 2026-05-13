@@ -79,6 +79,33 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Full 255"].exists)
     }
 
+    func testPunchFilterShowsOnlyPunchClubs() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: true, in: app)
+
+        XCTAssertTrue(app.navigationBars["Add Club"].waitForExistence(timeout: 5))
+        app.buttons["shot-type-punch"].tap()
+        saveClub(fullDistance: "230", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["3 Wood (Punch)"].waitForExistence(timeout: 2))
+
+        app.buttons["shot-filter-punch"].tap()
+
+        XCTAssertTrue(app.staticTexts["3 Wood (Punch)"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["230"].exists)
+        XCTAssertFalse(app.staticTexts["Driver"].exists)
+        XCTAssertFalse(app.staticTexts["255"].exists)
+
+        app.buttons["shot-filter-all"].tap()
+
+        XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["3 Wood (Punch)"].exists)
+    }
+
     private func launchFreshApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-reset-data"]

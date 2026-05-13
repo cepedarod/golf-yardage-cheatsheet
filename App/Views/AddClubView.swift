@@ -68,7 +68,9 @@ struct AddClubView: View {
                 Section("Shot") {
                     Picker("Shot", selection: $shotType) {
                         ForEach(availableShotTypes, id: \.self) { shotType in
-                            Text(shotType.rawValue).tag(shotType)
+                            Text(shotType.rawValue)
+                                .tag(shotType)
+                                .accessibilityIdentifier("shot-type-\(shotType.rawValue.lowercased())")
                         }
                     }
                     .pickerStyle(.segmented)
