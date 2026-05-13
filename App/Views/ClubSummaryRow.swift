@@ -6,28 +6,53 @@ struct ClubSummaryRow: View {
     private let formatter = ClubDisplayNameFormatter()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(formatter.displayName(for: club))
                 .font(.headline)
 
-            Text(distanceSummary)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            distanceGrid
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
     }
 
-    private var distanceSummary: String {
-        let entries: [(label: DistanceLabel, distance: Int)]
+    private var distanceGrid: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(distanceEntries.enumerated()), id: \.offset) { index, entry in
+                VStack(spacing: 6) {
+                    Text(entry.label.rawValue)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
 
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text("\(entry.distance)")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.primary)
+
+                        Text("yds")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                }
+                .frame(maxWidth: .infinity)
+
+                if index < distanceEntries.count - 1 {
+                    Divider()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var distanceEntries: [(label: DistanceLabel, distance: Int)] {
         if club.clubType == .putter {
-            entries = club.putterDistances?.entries() ?? []
-        } else {
-            entries = club.swingDistances?.entries() ?? []
+            return club.putterDistances?.entries() ?? []
         }
 
-        return entries.map { "\($0.label.rawValue) \($0.distance)" }
-            .joined(separator: " \u{00B7} ")
+        return club.swingDistances?.entries() ?? []
     }
 }
 

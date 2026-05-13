@@ -95,7 +95,7 @@ struct YardageDashboardView: View {
                 }
             }
         }
-        .navigationTitle("Yardage")
+        .navigationTitle("Distance")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button(action: switchProfile) {
