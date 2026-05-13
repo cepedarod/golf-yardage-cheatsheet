@@ -221,7 +221,9 @@ If multiple V1 entries map to the same field:
 ### Manual Mode
 
 - Display manual distances.
-- Target matching uses manual distances.
+- If no manual distance exists, display the calculated real value in parentheses.
+- Target matching uses manual distances where present.
+- If no manual distance exists for a slot, target matching uses the parenthesized real fallback.
 
 ### Real Mode
 
@@ -259,6 +261,7 @@ The first code module should include:
 - Codable migration from V1 to V2.
 - Repository methods for shot record persistence.
 - Unit tests for migration, validation, and Real average calculation.
+- Unit tests for Manual and Real fallback distance selection.
 - No UI changes beyond whatever is needed to keep existing V1 screens compiling.
 
 ## Implementation Assumptions
@@ -267,3 +270,4 @@ The first code module should include:
 - If no exact merge match exists, preserve the V1 entry as its own club with the relevant V2 category filled.
 - For duplicate merged distance fields, newest `updatedAt` wins.
 - In Real mode target matching, parenthesized manual fallback values participate in recommendations when no calculated average exists for that slot.
+- In Manual mode target matching, parenthesized real fallback values participate in recommendations when no manual value exists for that slot.

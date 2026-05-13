@@ -33,6 +33,7 @@ This phase is based on `Golf app prompt V2.docx`.
 - Real Values should calculate average distances from Pure shots only.
 - Shots without a recorded distance should be excluded from average-distance calculations.
 - Real Values should supplement missing real values with manual values and visually mark supplemented manual values in parentheses.
+- Manual Values should supplement missing manual values with calculated real values and visually mark supplemented real values in parentheses.
 - Add a bottom navigation menu with `Distances` and `Analysis`.
 - Analysis should list active clubs first and inactive clubs afterward.
 - Analysis should show per-club stats by Normal, Low Trajectory, and Flop where applicable.
@@ -165,7 +166,7 @@ The analysis visualizations should be treated as a design gate before implementa
    - Add Manual / Real selector.
    - Update target matching.
    - Add filtered-result display naming.
-   - Mark manual fallback values in Real mode with parentheses.
+   - Mark fallback values in either value mode with parentheses.
 
 4. **Shot Recording**
    - Add `ShotRecord`.
@@ -196,9 +197,10 @@ The analysis visualizations should be treated as a design gate before implementa
 - Recorded shot distance is optional.
 - Shots without a recorded distance do not count toward calculated averages.
 - Manual fallback values in Real mode should be shown in parentheses.
+- Real fallback values in Manual mode should be shown in parentheses.
 - Putters stay visible in Distances and Analysis, but are excluded from shot recording.
 - Low Trajectory is available for wedges.
-- Manual mode target matching should compare manual distances.
+- Manual mode target matching should compare manual distances, using parenthesized real fallback values when no manual value exists.
 - Real mode target matching should compare calculated Pure-shot averages, using parenthesized manual fallback values when no real average exists.
 - Wedge Flop values should participate in target matching when the filter is `Normal`.
 - V1 Punch and Flop entries should merge into a base club when club type, wedge loft, and nickname match.
