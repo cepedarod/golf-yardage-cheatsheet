@@ -1,6 +1,6 @@
-# Golf Yardage Cheatsheet
+# Caddie Cat
 
-An Apple-native iOS app for quickly checking golf club yardages on the course.
+An Apple-native iOS app for quickly checking golf club distances on the course.
 
 ## Current Phase
 

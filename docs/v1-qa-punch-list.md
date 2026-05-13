@@ -39,10 +39,10 @@ Screenshots were captured locally under `qa/screenshots/`.
 
 ## Suggested V1 Fixes Before Release
 
-1. Add app icon assets before any TestFlight or device install.
-2. Run one real-device readability pass outdoors or near bright light.
+1. Run one real-device readability pass outdoors or near bright light.
 
 ## Completed V1 Fixes
 
 - Added delete confirmation for inactive club deletion.
 - Added a small smoke UI test target for first launch, profile creation, and add-club navigation.
+- Added Caddie Cat app icon assets before TestFlight or device install.
