@@ -25,12 +25,19 @@ final class YardageDashboardViewModel: ObservableObject {
     let profile: GolferProfile
     private let repository: GolfBagRepository
     private let matcher: YardageMatcher
+    private let targetClearDelayNanoseconds: UInt64
     private var clearTargetTask: Task<Void, Never>?
 
-    init(profile: GolferProfile, repository: GolfBagRepository, matcher: YardageMatcher = YardageMatcher()) {
+    init(
+        profile: GolferProfile,
+        repository: GolfBagRepository,
+        matcher: YardageMatcher = YardageMatcher(),
+        targetClearDelayNanoseconds: UInt64 = 120_000_000_000
+    ) {
         self.profile = profile
         self.repository = repository
         self.matcher = matcher
+        self.targetClearDelayNanoseconds = targetClearDelayNanoseconds
     }
 
     deinit {
@@ -126,8 +133,14 @@ final class YardageDashboardViewModel: ObservableObject {
             return
         }
 
+        let delay = targetClearDelayNanoseconds
         clearTargetTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 120_000_000_000)
+            do {
+                try await Task.sleep(nanoseconds: delay)
+            } catch {
+                return
+            }
+
             self?.clearTargetYardage()
         }
     }

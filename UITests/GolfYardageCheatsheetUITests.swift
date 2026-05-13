@@ -79,6 +79,27 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Full 255"].exists)
     }
 
+    func testTargetYardageAutoClearsAfterDelay() {
+        let app = launchFreshApp(environment: ["TARGET_YARDAGE_CLEAR_DELAY_NANOSECONDS": "5000000000"])
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        enterTargetYardage("255", in: app)
+
+        let clearButton = app.buttons["Clear"]
+        XCTAssertTrue(clearButton.waitForExistence(timeout: 2))
+
+        let targetCleared = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: clearButton)
+        wait(for: [targetCleared], timeout: 8)
+
+        let targetField = app.textFields["target-yardage-field"]
+        XCTAssertEqual(targetField.value as? String, "Yards")
+        XCTAssertTrue(app.descendants(matching: .any)["club-row-Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["255"].exists)
+    }
+
     func testPunchFilterShowsOnlyPunchClubs() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
@@ -131,9 +152,10 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["255"].exists)
     }
 
-    private func launchFreshApp() -> XCUIApplication {
+    private func launchFreshApp(environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-reset-data"]
+        app.launchEnvironment = environment
         app.launch()
         return app
     }
@@ -159,6 +181,18 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(fullDistanceField.waitForExistence(timeout: 2))
         fullDistanceField.tap()
         fullDistanceField.typeText(distance)
+    }
+
+    private func enterTargetYardage(_ yardage: String, in app: XCUIApplication) {
+        let targetField = app.textFields["target-yardage-field"]
+        XCTAssertTrue(targetField.waitForExistence(timeout: 2))
+        targetField.tap()
+
+        for digit in yardage {
+            app.keys[String(digit)].tap()
+        }
+
+        app.buttons["Done"].tap()
     }
 
     private func replaceText(in textField: XCUIElement, with text: String, in app: XCUIApplication) {

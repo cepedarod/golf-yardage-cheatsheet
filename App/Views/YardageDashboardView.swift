@@ -14,7 +14,16 @@ struct YardageDashboardView: View {
     init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
         self.profile = profile
         self.switchProfile = switchProfile
-        _viewModel = StateObject(wrappedValue: YardageDashboardViewModel(profile: profile, repository: repository))
+        _viewModel = StateObject(wrappedValue: YardageDashboardViewModel(
+            profile: profile,
+            repository: repository,
+            targetClearDelayNanoseconds: Self.targetClearDelayNanoseconds
+        ))
+    }
+
+    private static var targetClearDelayNanoseconds: UInt64 {
+        ProcessInfo.processInfo.environment["TARGET_YARDAGE_CLEAR_DELAY_NANOSECONDS"]
+            .flatMap(UInt64.init) ?? 120_000_000_000
     }
 
     var body: some View {

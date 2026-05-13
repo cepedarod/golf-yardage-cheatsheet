@@ -16,6 +16,7 @@
 12. Target-yardage recommendations: XCUITest verifies target entry switches the dashboard to the two closest visible club matches.
 13. Punch dashboard visibility: XCUITest verifies Punch filtering hides normal clubs and keeps Punch clubs visible.
 14. Dashboard edit flow: XCUITest verifies a club can be edited from the dashboard swipe action and the updated distance replaces the old value.
+15. Target-yardage auto-clear: XCUITest verifies the target mode clears itself after the configured delay and returns to the normal club list; production remains set to two minutes.
 
 ## Tests Added
 
@@ -45,6 +46,7 @@
   - Target yardage entry shows only the two closest club recommendations.
   - Punch filtering shows only Punch clubs and returns normal clubs when reset to All.
   - Dashboard swipe edit opens the edit form, saves an updated distance, and returns the changed value to the dashboard.
+  - Target yardage auto-clear removes target mode and restores the normal club list after the configured delay.
 
 ## Performance Notes
 
