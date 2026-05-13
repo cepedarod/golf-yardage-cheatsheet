@@ -4,7 +4,7 @@
 
 - `swift test`: passed with 35 tests.
 - `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17' build`: passed.
-- `xcodebuild test -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17'`: passed with 3 UI smoke tests.
+- `xcodebuild test -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17'`: passed with 4 UI smoke tests.
 - Clean simulator install: passed.
 
 ## Simulator Visual Checks
@@ -29,7 +29,6 @@ Screenshots were captured locally under `qa/screenshots/`.
 ## Hands-On QA Still Needed
 
 - Edit a club from the dashboard swipe action.
-- Enter a target yardage and confirm only the two closest matches display.
 - Confirm target yardage clears after two minutes.
 - Toggle Punch mode and confirm only Punch clubs remain visible.
 - Open inactive clubs, restore a club, and delete a club.
@@ -45,3 +44,4 @@ Screenshots were captured locally under `qa/screenshots/`.
 - Added a small smoke UI test target for first launch, profile creation, and add-club navigation.
 - Added Caddie Cat app icon assets before TestFlight or device install.
 - Added UI smoke coverage for adding a club with `Finish` and adding multiple clubs with `Save & Add Another`.
+- Added UI smoke coverage for target yardage entry showing only the two closest club matches.

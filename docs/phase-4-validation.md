@@ -13,6 +13,7 @@
 9. Permanent deletion safety: inactive club deletion now requires confirmation before removing stored data.
 10. First-launch smoke coverage: XCUITest verifies profile creation opens the add-club flow for a brand-new bag.
 11. Add-club save paths: XCUITest verifies `Finish` saves a club and `Save & Add Another` saves multiple clubs in sequence.
+12. Target-yardage recommendations: XCUITest verifies target entry switches the dashboard to the two closest visible club matches.
 
 ## Tests Added
 
@@ -39,6 +40,7 @@
   - Fresh launch creates a profile and opens the add-club flow.
   - Add-club `Finish` saves a club and returns to the dashboard.
   - `Save & Add Another` saves one club, resets the form, and allows saving a second club.
+  - Target yardage entry shows only the two closest club recommendations.
 
 ## Performance Notes
 

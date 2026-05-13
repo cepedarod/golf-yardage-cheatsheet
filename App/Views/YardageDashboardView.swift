@@ -7,6 +7,7 @@ struct YardageDashboardView: View {
     @StateObject private var viewModel: YardageDashboardViewModel
     @State private var clubForm: ClubForm?
     @State private var didOfferInitialBagSetup = false
+    @State private var targetYardageText = ""
 
     private let formatter = ClubDisplayNameFormatter()
 
@@ -22,8 +23,9 @@ struct YardageDashboardView: View {
                 HStack {
                     Text("Target")
                     Spacer()
-                    NumericTextField(title: "Yards", text: $viewModel.targetYardageText)
+                    NumericTextField(title: "Yards", text: $targetYardageText)
                         .font(.title2.weight(.semibold))
+                        .accessibilityIdentifier("target-yardage-field")
                         .frame(maxWidth: 120)
                 }
 
@@ -34,7 +36,7 @@ struct YardageDashboardView: View {
                 .pickerStyle(.segmented)
 
                 if viewModel.hasTargetYardage {
-                    Button("Clear", action: viewModel.clearTargetYardage)
+                    Button("Clear", action: clearTargetYardage)
                 }
             }
 
@@ -46,22 +48,7 @@ struct YardageDashboardView: View {
                             .listRowBackground(Color.clear)
                     } else {
                         ForEach(viewModel.matches) { match in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(formatter.displayName(for: match.club))
-                                    .font(.headline)
-
-                                HStack {
-                                    Text("\(match.label.rawValue) \(match.distance)")
-                                        .font(.title3.weight(.semibold))
-
-                                    Spacer()
-
-                                    Text(differenceSummary(for: match))
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .padding(.vertical, 6)
+                            closestMatchRow(for: match)
                         }
                     }
                 }
@@ -161,6 +148,14 @@ struct YardageDashboardView: View {
             viewModel.loadClubs()
             offerInitialBagSetupIfNeeded()
         }
+        .onChange(of: targetYardageText) { _, newValue in
+            viewModel.setTargetYardageText(newValue)
+        }
+        .onChange(of: viewModel.targetYardageText) { _, newValue in
+            if targetYardageText != newValue {
+                targetYardageText = newValue
+            }
+        }
     }
 
     private func differenceSummary(for match: YardageMatch) -> String {
@@ -168,13 +163,44 @@ struct YardageDashboardView: View {
             return "Exact"
         }
 
-        let targetYardage = Int(viewModel.targetYardageText) ?? match.distance
+        let targetYardage = Int(targetYardageText) ?? match.distance
 
         if match.distance < targetYardage {
             return "\(match.differenceFromTarget) short"
         }
 
         return "\(match.differenceFromTarget) long"
+    }
+
+    private func clearTargetYardage() {
+        targetYardageText = ""
+        viewModel.clearTargetYardage()
+    }
+
+    private func closestMatchRow(for match: YardageMatch) -> some View {
+        let displayName = formatter.displayName(for: match.club)
+        let distanceSummary = "\(match.label.rawValue) \(match.distance)"
+
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(displayName)
+                .font(.headline)
+                .accessibilityIdentifier("closest-match-name-\(displayName)")
+
+            HStack {
+                Text(distanceSummary)
+                    .font(.title3.weight(.semibold))
+                    .accessibilityIdentifier("closest-match-distance-\(displayName)")
+
+                Spacer()
+
+                Text(differenceSummary(for: match))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("closest-match-\(displayName)")
     }
 
     private var emptyClubsTitle: String {

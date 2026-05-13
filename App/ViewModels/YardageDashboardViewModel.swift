@@ -5,7 +5,7 @@ final class YardageDashboardViewModel: ObservableObject {
     @Published private(set) var activeClubs: [Club] = []
     @Published private(set) var inactiveClubs: [Club] = []
     @Published private(set) var matches: [YardageMatch] = []
-    @Published var targetYardageText = "" {
+    @Published private(set) var targetYardageText = "" {
         didSet {
             guard targetYardageText != oldValue else {
                 return
@@ -92,6 +92,10 @@ final class YardageDashboardViewModel: ObservableObject {
 
     var visibleActiveClubs: [Club] {
         activeClubs.filter(shotFilter.includes)
+    }
+
+    func setTargetYardageText(_ text: String) {
+        targetYardageText = text
     }
 
     private var targetYardage: Int? {
