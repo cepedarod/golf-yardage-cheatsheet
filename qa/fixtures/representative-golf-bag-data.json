@@ -1,0 +1,98 @@
+{
+  "clubs" : [
+    {
+      "clubType" : "Driver",
+      "createdAt" : "2026-05-13T10:00:00Z",
+      "id" : "10000000-0000-0000-0000-000000000001",
+      "isActive" : true,
+      "profileID" : "00000000-0000-0000-0000-000000000001",
+      "shotType" : "Normal",
+      "swingDistances" : {
+        "full" : 245,
+        "threeQuarter" : 220
+      },
+      "updatedAt" : "2026-05-13T10:00:00Z"
+    },
+    {
+      "clubType" : "7 Iron",
+      "createdAt" : "2026-05-13T10:01:00Z",
+      "id" : "10000000-0000-0000-0000-000000000002",
+      "isActive" : true,
+      "profileID" : "00000000-0000-0000-0000-000000000001",
+      "shotType" : "Normal",
+      "swingDistances" : {
+        "full" : 155,
+        "half" : 95,
+        "quarter" : 55,
+        "threeQuarter" : 135
+      },
+      "updatedAt" : "2026-05-13T10:01:00Z"
+    },
+    {
+      "clubType" : "4 Iron",
+      "createdAt" : "2026-05-13T10:02:00Z",
+      "id" : "10000000-0000-0000-0000-000000000003",
+      "isActive" : true,
+      "nickname" : "Stinger",
+      "profileID" : "00000000-0000-0000-0000-000000000001",
+      "shotType" : "Punch",
+      "swingDistances" : {
+        "full" : 175,
+        "half" : 118,
+        "threeQuarter" : 150
+      },
+      "updatedAt" : "2026-05-13T10:02:00Z"
+    },
+    {
+      "clubType" : "Sand Wedge",
+      "createdAt" : "2026-05-13T10:03:00Z",
+      "id" : "10000000-0000-0000-0000-000000000004",
+      "isActive" : true,
+      "profileID" : "00000000-0000-0000-0000-000000000001",
+      "shotType" : "Flop",
+      "swingDistances" : {
+        "full" : 85,
+        "half" : 45,
+        "quarter" : 25,
+        "threeQuarter" : 65
+      },
+      "updatedAt" : "2026-05-13T10:03:00Z",
+      "wedgeLoft" : 54
+    },
+    {
+      "clubType" : "Putter",
+      "createdAt" : "2026-05-13T10:04:00Z",
+      "id" : "10000000-0000-0000-0000-000000000005",
+      "isActive" : true,
+      "profileID" : "00000000-0000-0000-0000-000000000001",
+      "putterDistances" : {
+        "long" : 15,
+        "medium" : 8,
+        "short" : 3
+      },
+      "updatedAt" : "2026-05-13T10:04:00Z"
+    },
+    {
+      "clubType" : "Gap Wedge",
+      "createdAt" : "2026-05-13T10:05:00Z",
+      "id" : "10000000-0000-0000-0000-000000000006",
+      "isActive" : false,
+      "profileID" : "00000000-0000-0000-0000-000000000001",
+      "shotType" : "Normal",
+      "swingDistances" : {
+        "full" : 105
+      },
+      "updatedAt" : "2026-05-13T10:05:00Z",
+      "wedgeLoft" : 50
+    }
+  ],
+  "profiles" : [
+    {
+      "createdAt" : "2026-05-13T09:59:00Z",
+      "id" : "00000000-0000-0000-0000-000000000001",
+      "name" : "Rod",
+      "updatedAt" : "2026-05-13T09:59:00Z"
+    }
+  ],
+  "selectedProfileID" : "00000000-0000-0000-0000-000000000001"
+}
