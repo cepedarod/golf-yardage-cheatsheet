@@ -52,7 +52,7 @@
 /* Begin PBXFileReference section */
 		0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubValidator.swift; sourceTree = "<group>"; };
 		0E4DE40234983AAFB5CAC5D8 /* NumericTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumericTextField.swift; sourceTree = "<group>"; };
-		14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GolfYardageCheatsheet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		14C5037BE3028841865C65B0 /* Caddie Cat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Caddie Cat.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfYardageCheatsheetApp.swift; sourceTree = "<group>"; };
 		2CF4C64AEE6802EB10E89A54 /* GolfBagRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagRepository.swift; sourceTree = "<group>"; };
 		30217AF791DE1307E1C5DB9C /* GolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagStore.swift; sourceTree = "<group>"; };
@@ -111,7 +111,7 @@
 		2F0B056EE87E20303471996F /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */,
+				14C5037BE3028841865C65B0 /* Caddie Cat.app */,
 				5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */,
 			);
 			name = Products;
@@ -247,7 +247,7 @@
 			packageProductDependencies = (
 			);
 			productName = GolfYardageCheatsheet;
-			productReference = 14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */;
+			productReference = 14C5037BE3028841865C65B0 /* Caddie Cat.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -412,7 +412,9 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6G3D6K987W;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Caddie Cat";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -539,7 +541,9 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6G3D6K987W;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Caddie Cat";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
