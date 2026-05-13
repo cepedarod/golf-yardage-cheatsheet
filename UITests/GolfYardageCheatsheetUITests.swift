@@ -106,6 +106,31 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["3 Wood (Punch)"].exists)
     }
 
+    func testDashboardEditUpdatesExistingClubDistance() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        let driverRow = app.descendants(matching: .any)["club-row-Driver"]
+        XCTAssertTrue(driverRow.waitForExistence(timeout: 2))
+        driverRow.swipeRight()
+        app.buttons["Edit"].tap()
+
+        XCTAssertTrue(app.navigationBars["Edit Club"].waitForExistence(timeout: 5))
+        let fullDistanceField = app.textFields["full-distance-field"]
+        XCTAssertEqual(fullDistanceField.value as? String, "255")
+
+        replaceText(in: fullDistanceField, with: "260", in: app)
+        app.buttons["save-club-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["260"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["255"].exists)
+    }
+
     private func launchFreshApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-reset-data"]
@@ -134,6 +159,23 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(fullDistanceField.waitForExistence(timeout: 2))
         fullDistanceField.tap()
         fullDistanceField.typeText(distance)
+    }
+
+    private func replaceText(in textField: XCUIElement, with text: String, in app: XCUIApplication) {
+        XCTAssertTrue(textField.waitForExistence(timeout: 2))
+        textField.tap()
+        textField.press(forDuration: 1)
+
+        if app.menuItems["Select All"].waitForExistence(timeout: 1) {
+            app.menuItems["Select All"].tap()
+        } else if let value = textField.value as? String {
+            textField.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+            for _ in value.filter(\.isNumber) {
+                app.keys["delete"].tap()
+            }
+        }
+
+        textField.typeText(text)
     }
 
     private func saveClub(fullDistance: String, shouldAddAnother: Bool, in app: XCUIApplication) {

@@ -15,6 +15,7 @@
 11. Add-club save paths: XCUITest verifies `Finish` saves a club and `Save & Add Another` saves multiple clubs in sequence.
 12. Target-yardage recommendations: XCUITest verifies target entry switches the dashboard to the two closest visible club matches.
 13. Punch dashboard visibility: XCUITest verifies Punch filtering hides normal clubs and keeps Punch clubs visible.
+14. Dashboard edit flow: XCUITest verifies a club can be edited from the dashboard swipe action and the updated distance replaces the old value.
 
 ## Tests Added
 
@@ -43,6 +44,7 @@
   - `Save & Add Another` saves one club, resets the form, and allows saving a second club.
   - Target yardage entry shows only the two closest club recommendations.
   - Punch filtering shows only Punch clubs and returns normal clubs when reset to All.
+  - Dashboard swipe edit opens the edit form, saves an updated distance, and returns the changed value to the dashboard.
 
 ## Performance Notes
 

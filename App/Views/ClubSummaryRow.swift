@@ -7,12 +7,18 @@ struct ClubSummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(formatter.displayName(for: club))
+            Text(displayName)
                 .font(.headline)
 
             distanceGrid
         }
         .padding(.vertical, 8)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("club-row-\(displayName)")
+    }
+
+    private var displayName: String {
+        formatter.displayName(for: club)
     }
 
     private var distanceGrid: some View {
