@@ -5,6 +5,7 @@
 - `swift test`: passed with 35 tests.
 - `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17' build`: passed.
 - `xcodebuild test -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17'`: passed with 9 UI smoke tests.
+- `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build`: passed.
 - Clean simulator install: passed.
 
 ## Simulator Visual Checks
@@ -28,7 +29,8 @@ Screenshots were captured locally under `qa/screenshots/`.
 
 ## Suggested V1 Fixes Before Release
 
-1. Run one real-device readability pass outdoors or near bright light.
+1. Complete the physical iPhone install/readability pass in `docs/device-test-plan.md`.
+2. Select a development team in Xcode so the app can be signed for device install.
 
 ## Completed V1 Fixes
 
@@ -42,3 +44,4 @@ Screenshots were captured locally under `qa/screenshots/`.
 - Added UI smoke coverage for target yardage auto-clear using a shortened test delay while production remains two minutes.
 - Added UI smoke coverage for inactive-club restore and permanent delete confirmation flows.
 - Added UI smoke coverage for selected-profile, active-club, and inactive-club persistence across relaunch.
+- Added a physical device test plan and confirmed the app builds against the `iphoneos` SDK when signing is disabled.
