@@ -11,6 +11,7 @@
 7. Target lookup mode: the dashboard now hides the full active club list while a valid target is entered, so target mode shows only the closest club recommendations.
 8. Punch-only filtering: target lookup and the normal dashboard club list now share the same Punch-only filter rule.
 9. Permanent deletion safety: inactive club deletion now requires confirmation before removing stored data.
+10. First-launch smoke coverage: XCUITest verifies profile creation opens the add-club flow for a brand-new bag.
 
 ## Tests Added
 
@@ -33,6 +34,8 @@
 - `ShotFilterTests`
   - All mode includes normal, punch, and putter clubs.
   - Punch-only mode includes only clubs marked as Punch.
+- `GolfYardageCheatsheetUITests`
+  - Fresh launch creates a profile and opens the add-club flow.
 
 ## Performance Notes
 

@@ -104,6 +104,7 @@ struct AddClubView: View {
                 }
             }
         }
+        .accessibilityIdentifier("club-form")
         .navigationTitle(existingClub == nil ? "Add Club" : "Edit Club")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

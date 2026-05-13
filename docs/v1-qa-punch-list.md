@@ -4,6 +4,7 @@
 
 - `swift test`: passed with 35 tests.
 - `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17' build`: passed.
+- `xcodebuild test -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17'`: passed with 1 UI smoke test.
 - Clean simulator install: passed.
 
 ## Simulator Visual Checks
@@ -27,8 +28,6 @@ Screenshots were captured locally under `qa/screenshots/`.
 
 ## Hands-On QA Still Needed
 
-- Create a profile from the fresh install screen.
-- Confirm the add-club sheet opens automatically for a brand-new empty profile.
 - Add a club with `Finish`.
 - Add multiple clubs using `Save & Add Another`.
 - Edit a club from the dashboard swipe action.
@@ -40,10 +39,10 @@ Screenshots were captured locally under `qa/screenshots/`.
 
 ## Suggested V1 Fixes Before Release
 
-1. Add a small smoke UI test target for first launch, profile creation, and add-club navigation.
-2. Add app icon assets before any TestFlight or device install.
-3. Run one real-device readability pass outdoors or near bright light.
+1. Add app icon assets before any TestFlight or device install.
+2. Run one real-device readability pass outdoors or near bright light.
 
 ## Completed V1 Fixes
 
 - Added delete confirmation for inactive club deletion.
+- Added a small smoke UI test target for first launch, profile creation, and add-club navigation.

@@ -21,6 +21,7 @@ struct CreateProfileView: View {
                 .padding(.horizontal, 16)
                 .frame(minHeight: 56)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .accessibilityIdentifier("profile-name-field")
                 .onSubmit(submit)
 
             if let errorMessage {
@@ -37,6 +38,7 @@ struct CreateProfileView: View {
             .buttonStyle(.borderedProminent)
             .tint(.green)
             .disabled(canSubmit == false)
+            .accessibilityIdentifier("create-profile-button")
 
             Spacer()
         }

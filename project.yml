@@ -30,3 +30,28 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+  GolfYardageCheatsheetUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: UITests
+    dependencies:
+      - target: GolfYardageCheatsheet
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cepedarod.GolfYardageCheatsheetUITests
+        PRODUCT_NAME: GolfYardageCheatsheetUITests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: GolfYardageCheatsheet
+
+schemes:
+  GolfYardageCheatsheet:
+    build:
+      targets:
+        GolfYardageCheatsheet: all
+        GolfYardageCheatsheetUITests:
+          - test
+    test:
+      targets:
+        - GolfYardageCheatsheetUITests

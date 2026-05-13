@@ -20,3 +20,8 @@ Build a simple, offline-first iOS app that lets golfers store club distances by 
 - Use Apple-native iOS development tools and patterns.
 - Ask before pushing anything to GitHub.
 - Generate the Xcode project from `project.yml` with XcodeGen when project settings change.
+
+## Validation
+
+- Run unit tests with `swift test`.
+- Run the iOS smoke UI test with `xcodebuild test -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS Simulator,name=iPhone 17'`.

@@ -17,6 +17,7 @@
 		4DDE8EC517C79EB70C0F63CE /* ClubDisplayNameFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */; };
 		501D1DD1962F74D4EC74F375 /* YardageMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E2CD273326BC70F5E5CAAF /* YardageMatcher.swift */; };
 		5D3716DB147557025991266D /* Club.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7004039AD549955D5330BA4 /* Club.swift */; };
+		5D758227771BFAFCC6EFA05E /* GolfYardageCheatsheetUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616D955C6CA571DF28801DE9 /* GolfYardageCheatsheetUITests.swift */; };
 		61066043B0B5A48FE1C52A52 /* GolfBagRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF4C64AEE6802EB10E89A54 /* GolfBagRepository.swift */; };
 		784211DA2E7B23551D7351DF /* ClubValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */; };
 		8286928D52DA2FFFEF436F81 /* NumericTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E4DE40234983AAFB5CAC5D8 /* NumericTextField.swift */; };
@@ -37,6 +38,16 @@
 		F9CBFF6E3CDEF67DB877AF9D /* ShotType.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCDFE2A06B036E0CD9EF6D26 /* ShotType.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		718C2A6CB3B1D361711CCAC0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A24534C0739E10205922DFC4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DBAAAD8626B90EF06134BDBA;
+			remoteInfo = GolfYardageCheatsheet;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubValidator.swift; sourceTree = "<group>"; };
 		0E4DE40234983AAFB5CAC5D8 /* NumericTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumericTextField.swift; sourceTree = "<group>"; };
@@ -47,6 +58,8 @@
 		32DE2A05A02A87FC16E14B16 /* GolferProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolferProfile.swift; sourceTree = "<group>"; };
 		44B45C3623DC39DAB64EE2B0 /* SwingDistanceSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingDistanceSet.swift; sourceTree = "<group>"; };
 		4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubDisplayNameFormatter.swift; sourceTree = "<group>"; };
+		5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GolfYardageCheatsheetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		616D955C6CA571DF28801DE9 /* GolfYardageCheatsheetUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfYardageCheatsheetUITests.swift; sourceTree = "<group>"; };
 		676BD79C075F863CF852C95A /* AddClubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddClubView.swift; sourceTree = "<group>"; };
 		7688AAF68CC150D755B4DF5C /* GolfBagData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagData.swift; sourceTree = "<group>"; };
 		76D967F6E3B93C91C4C4210A /* YardageDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YardageDashboardView.swift; sourceTree = "<group>"; };
@@ -96,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */,
+				5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -149,6 +163,7 @@
 			children = (
 				020A8431348A8FB602AE20B5 /* App */,
 				B15341338541EB72FF370E6B /* Sources */,
+				E04A26E7BD3B2A9EE760EC06 /* UITests */,
 				2F0B056EE87E20303471996F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -159,6 +174,14 @@
 				75FB548F94BFFF1108DD0ABE /* GolfYardageCheatsheet */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		E04A26E7BD3B2A9EE760EC06 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				616D955C6CA571DF28801DE9 /* GolfYardageCheatsheetUITests.swift */,
+			);
+			path = UITests;
 			sourceTree = "<group>";
 		};
 		F4080C25492866E7FD85E363 /* ViewModels */ = {
@@ -188,6 +211,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		125FFA871225234D3F456BE5 /* GolfYardageCheatsheetUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5EBF32CC19F3238B0DF6232B /* Build configuration list for PBXNativeTarget "GolfYardageCheatsheetUITests" */;
+			buildPhases = (
+				426A41B9DB5190A135D87A4E /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				67B68CC0FAB180FBFEFD6535 /* PBXTargetDependency */,
+			);
+			name = GolfYardageCheatsheetUITests;
+			packageProductDependencies = (
+			);
+			productName = GolfYardageCheatsheetUITests;
+			productReference = 5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		DBAAAD8626B90EF06134BDBA /* GolfYardageCheatsheet */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C057252850610E8271AF88CA /* Build configuration list for PBXNativeTarget "GolfYardageCheatsheet" */;
@@ -214,6 +255,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					125FFA871225234D3F456BE5 = {
+						TestTargetID = DBAAAD8626B90EF06134BDBA;
+					};
 				};
 			};
 			buildConfigurationList = 6B1037C28CD32F19D6CB68F0 /* Build configuration list for PBXProject "GolfYardageCheatsheet" */;
@@ -231,11 +275,20 @@
 			projectRoot = "";
 			targets = (
 				DBAAAD8626B90EF06134BDBA /* GolfYardageCheatsheet */,
+				125FFA871225234D3F456BE5 /* GolfYardageCheatsheetUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		426A41B9DB5190A135D87A4E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D758227771BFAFCC6EFA05E /* GolfYardageCheatsheetUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		89956D5C85E0C76B8439EA37 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -272,6 +325,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		67B68CC0FAB180FBFEFD6535 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DBAAAD8626B90EF06134BDBA /* GolfYardageCheatsheet */;
+			targetProxy = 718C2A6CB3B1D361711CCAC0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0DBE4D7505EB8E03DA59415E /* Release */ = {
@@ -354,6 +415,44 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
+		};
+		6B1B971CABD69E98F0FE297A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cepedarod.GolfYardageCheatsheetUITests;
+				PRODUCT_NAME = GolfYardageCheatsheetUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GolfYardageCheatsheet;
+			};
+			name = Debug;
+		};
+		A0B98F947C84C921D42F33BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cepedarod.GolfYardageCheatsheetUITests;
+				PRODUCT_NAME = GolfYardageCheatsheetUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GolfYardageCheatsheet;
+			};
+			name = Release;
 		};
 		A39F341E2769A10A568DA470 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -446,6 +545,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		5EBF32CC19F3238B0DF6232B /* Build configuration list for PBXNativeTarget "GolfYardageCheatsheetUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6B1B971CABD69E98F0FE297A /* Debug */,
+				A0B98F947C84C921D42F33BC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		6B1037C28CD32F19D6CB68F0 /* Build configuration list for PBXProject "GolfYardageCheatsheet" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

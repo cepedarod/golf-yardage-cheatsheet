@@ -7,6 +7,11 @@ struct GolfYardageCheatsheetApp: App {
     init() {
         let storeURL = (try? FileGolfBagStore.defaultStoreURL()) ??
             FileManager.default.temporaryDirectory.appendingPathComponent("golf-bag-data.json")
+
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset-data") {
+            try? FileManager.default.removeItem(at: storeURL)
+        }
+
         repository = GolfBagRepository(store: FileGolfBagStore(fileURL: storeURL))
     }
 
@@ -16,4 +21,3 @@ struct GolfYardageCheatsheetApp: App {
         }
     }
 }
-
