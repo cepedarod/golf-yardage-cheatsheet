@@ -13,12 +13,39 @@ public struct YardageMatcher: Sendable {
             return []
         }
 
-        let bestMatchByClub = clubs
+        let candidates = clubs
             .filter { $0.isActive }
-            .filter(filter.includes)
-            .compactMap { bestMatch(for: $0, targetYardage: targetYardage) }
+            .filter(filter.includesTargetMatch)
+            .flatMap { matches(for: $0, targetYardage: targetYardage) }
 
-        return bestMatchByClub
+        let exactMatches = candidates
+            .filter { $0.distance == targetYardage }
+            .sorted { lhs, rhs in
+                sort(lhs, before: rhs, targetYardage: targetYardage)
+            }
+
+        if exactMatches.isEmpty == false {
+            return exactMatches
+                .prefix(limit)
+                .map { $0 }
+        }
+
+        let closestLong = candidates
+            .filter { $0.distance > targetYardage }
+            .sorted { lhs, rhs in
+                sort(lhs, before: rhs, targetYardage: targetYardage)
+            }
+            .first
+
+        let closestShort = candidates
+            .filter { $0.distance < targetYardage }
+            .sorted { lhs, rhs in
+                sort(lhs, before: rhs, targetYardage: targetYardage)
+            }
+            .first
+
+        return [closestLong, closestShort]
+            .compactMap { $0 }
             .sorted { lhs, rhs in
                 sort(lhs, before: rhs, targetYardage: targetYardage)
             }
@@ -26,7 +53,7 @@ public struct YardageMatcher: Sendable {
             .map { $0 }
     }
 
-    private func bestMatch(for club: Club, targetYardage: Int) -> YardageMatch? {
+    private func matches(for club: Club, targetYardage: Int) -> [YardageMatch] {
         let entries: [(label: DistanceLabel, distance: Int)]
 
         if club.clubType == .putter {
@@ -38,10 +65,6 @@ public struct YardageMatcher: Sendable {
         return entries
             .filter { $0.distance > 0 }
             .map { YardageMatch(club: club, label: $0.label, distance: $0.distance, targetYardage: targetYardage) }
-            .sorted { lhs, rhs in
-                sort(lhs, before: rhs, targetYardage: targetYardage)
-            }
-            .first
     }
 
     private func sort(_ lhs: YardageMatch, before rhs: YardageMatch, targetYardage: Int) -> Bool {

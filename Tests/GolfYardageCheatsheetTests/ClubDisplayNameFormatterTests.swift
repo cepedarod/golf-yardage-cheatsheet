@@ -28,7 +28,7 @@ final class ClubDisplayNameFormatterTests: XCTestCase {
         XCTAssertEqual(formatter.displayName(for: club), "60\u{00B0} Wedge (Flop)")
     }
 
-    func testNicknameOverridesWedgeLoftButKeepsFlopSuffix() {
+    func testNicknamePrefixesWedgeLoftAndKeepsFlopSuffix() {
         let club = Club(
             profileID: profileID,
             nickname: "Trusty",
@@ -38,10 +38,10 @@ final class ClubDisplayNameFormatterTests: XCTestCase {
             swingDistances: SwingDistanceSet(full: 80)
         )
 
-        XCTAssertEqual(formatter.displayName(for: club), "Trusty (Flop)")
+        XCTAssertEqual(formatter.displayName(for: club), "Trusty 54\u{00B0} Wedge (Flop)")
     }
 
-    func testNicknameOverridesClubTypeButKeepsPunchSuffix() {
+    func testNicknamePrefixesClubTypeAndKeepsPunchSuffix() {
         let club = Club(
             profileID: profileID,
             nickname: "Stinger",
@@ -50,7 +50,17 @@ final class ClubDisplayNameFormatterTests: XCTestCase {
             swingDistances: SwingDistanceSet(full: 190)
         )
 
-        XCTAssertEqual(formatter.displayName(for: club), "Stinger (Punch)")
+        XCTAssertEqual(formatter.displayName(for: club), "Stinger 4 Iron (Punch)")
+    }
+
+    func testNicknamePrefixesDriverType() {
+        let club = Club(
+            profileID: profileID,
+            nickname: "Qi10",
+            clubType: .driver,
+            swingDistances: SwingDistanceSet(full: 255)
+        )
+
+        XCTAssertEqual(formatter.displayName(for: club), "Qi10 Driver")
     }
 }
-

@@ -28,6 +28,10 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["255"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["3/4"].exists)
+        XCTAssertTrue(app.staticTexts["Half"].exists)
+        XCTAssertTrue(app.staticTexts["Quarter"].exists)
+        XCTAssertTrue(app.staticTexts["-"].exists)
     }
 
     func testSaveAndAddAnotherCreatesMultipleClubs() {
@@ -70,13 +74,13 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["Clear"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.descendants(matching: .any)["closest-match-3 Wood"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.descendants(matching: .any)["closest-match-5 Wood"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.descendants(matching: .any)["closest-match-Driver"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["3 Wood"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["5 Wood"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Full 230"].exists)
-        XCTAssertTrue(app.staticTexts["Full 215"].exists)
-        XCTAssertFalse(app.staticTexts["Driver"].exists)
-        XCTAssertFalse(app.staticTexts["Full 255"].exists)
+        XCTAssertTrue(app.staticTexts["Full 255"].exists)
+        XCTAssertFalse(app.staticTexts["5 Wood"].exists)
+        XCTAssertFalse(app.staticTexts["Full 215"].exists)
     }
 
     func testTargetYardageAutoClearsAfterDelay() {

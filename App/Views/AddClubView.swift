@@ -76,7 +76,7 @@ struct AddClubView: View {
                     .pickerStyle(.segmented)
                 }
 
-                Section("Distances (Yards)") {
+                Section("Swing Distances (Yards)") {
                     distanceRow("Full", identifier: "full-distance-field", text: $fullDistance)
                     distanceRow("3/4", identifier: "three-quarter-distance-field", text: $threeQuarterDistance)
                     distanceRow("Half", identifier: "half-distance-field", text: $halfDistance)

@@ -6,7 +6,7 @@
 - `xcrun xctrace list devices`: shows `Lemmy Machine`.
 - `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'id=00008130-001A3CE60A3A001C' -allowProvisioningUpdates build`: passed with automatic signing.
 - `xcrun devicectl device install app --device 00008130-001A3CE60A3A001C "<DerivedData>/Build/Products/Debug-iphoneos/Caddie Cat.app"`: installed successfully.
-- First command-line launch is blocked until the iPhone trusts the Apple Development profile in Settings -> General -> VPN & Device Management.
+- `xcrun devicectl device process launch --device 00008130-001A3CE60A3A001C com.cepedarod.GolfYardageCheatsheet`: launched successfully after the Apple Development profile was trusted.
 
 ## One-Time Xcode Setup
 
@@ -40,9 +40,12 @@
    - Confirm the title says `Distance`.
    - Confirm the label-over-yardage grid is readable.
    - Confirm Half and Quarter labels fit.
+   - Confirm empty swing distances show `-`.
 5. Target yardage:
    - Enter a target.
-   - Confirm only the two closest clubs show.
+   - Confirm the result shows the closest long shot and closest short shot.
+   - Confirm All target results exclude Punch shots.
+   - Confirm Punch target results include Punch shots.
    - Confirm Clear exits target mode.
 6. Edit:
    - Edit an existing club distance.

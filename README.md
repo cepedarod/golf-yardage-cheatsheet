@@ -6,7 +6,7 @@ An Apple-native iOS app for quickly checking golf club distances on the course.
 
 V1 release-readiness.
 
-The app is feature-complete for the current personal/friends V1 scope, with simulator QA covered by unit tests and UI smoke tests. Physical iPhone signing and install are working; the remaining release-readiness work is first-launch trust confirmation and hands-on readability validation.
+The app is feature-complete for the current personal/friends V1 scope, with simulator QA covered by unit tests and UI smoke tests. Physical iPhone signing, install, launch, and hands-on smoke testing are working.
 
 ## V1 Goal
 
@@ -30,9 +30,10 @@ Build a simple, offline-first iOS app that lets golfers store club distances by 
 
 ## Current QA Status
 
-- `swift test`: 35 tests passing.
+- `swift test`: 38 tests passing.
 - iOS simulator smoke suite: 9 UI tests passing.
 - Unsigned `iphoneos` Debug build: passing.
 - Physical iPhone signed build: passing with automatic signing.
 - Physical iPhone install: passing on `Lemmy Machine`.
-- Physical iPhone launch: blocked until the Apple Development profile is trusted on the phone.
+- Physical iPhone launch: passing on `Lemmy Machine`.
+- Physical iPhone smoke pass: passed, with follow-up refinements implemented from testing feedback.

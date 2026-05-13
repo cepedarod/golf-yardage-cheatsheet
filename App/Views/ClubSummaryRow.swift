@@ -32,13 +32,15 @@ struct ClubSummaryRow: View {
                         .minimumScaleFactor(0.8)
 
                     HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text("\(entry.distance)")
+                        Text(entry.distance.map(String.init) ?? "-")
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(.primary)
 
-                        Text("yds")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if entry.distance != nil {
+                            Text("yds")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -53,12 +55,21 @@ struct ClubSummaryRow: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var distanceEntries: [(label: DistanceLabel, distance: Int)] {
+    private var distanceEntries: [(label: DistanceLabel, distance: Int?)] {
         if club.clubType == .putter {
-            return club.putterDistances?.entries() ?? []
+            return [
+                (.long, club.putterDistances?.long),
+                (.medium, club.putterDistances?.medium),
+                (.short, club.putterDistances?.short)
+            ]
         }
 
-        return club.swingDistances?.entries() ?? []
+        return [
+            (.full, club.swingDistances?.full),
+            (.threeQuarter, club.swingDistances?.threeQuarter),
+            (.half, club.swingDistances?.half),
+            (.quarter, club.swingDistances?.quarter)
+        ]
     }
 }
 

@@ -5,7 +5,7 @@ final class YardageMatcherTests: XCTestCase {
     private let profileID = UUID()
     private let matcher = YardageMatcher()
 
-    func testClosestMatchesReturnBestUniqueClubMatches() {
+    func testClosestMatchesReturnClosestLongAndShortShots() {
         let firstClubID = UUID()
         let secondClubID = UUID()
         let clubs = [
@@ -23,9 +23,10 @@ final class YardageMatcherTests: XCTestCase {
             )
         ]
 
-        let matches = matcher.closestMatches(targetYardage: 150, clubs: clubs)
+        let matches = matcher.closestMatches(targetYardage: 145, clubs: clubs)
 
         XCTAssertEqual(matches.map(\.club.id), [firstClubID, secondClubID])
+        XCTAssertEqual(matches.map(\.distance), [149, 140])
     }
 
     func testInactiveClubsAreExcluded() {
@@ -71,6 +72,40 @@ final class YardageMatcherTests: XCTestCase {
         let matches = matcher.closestMatches(targetYardage: 150, clubs: clubs, filter: .punchOnly)
 
         XCTAssertEqual(matches.map(\.club.id), [punchClubID])
+    }
+
+    func testAllTargetMatchesExcludePunchClubs() {
+        let normalShortClubID = UUID()
+        let normalLongClubID = UUID()
+        let punchClubID = UUID()
+        let clubs = [
+            Club(
+                id: normalShortClubID,
+                profileID: profileID,
+                clubType: .sevenIron,
+                shotType: .normal,
+                swingDistances: SwingDistanceSet(full: 150)
+            ),
+            Club(
+                id: punchClubID,
+                profileID: profileID,
+                clubType: .fourIron,
+                shotType: .punch,
+                swingDistances: SwingDistanceSet(full: 162)
+            ),
+            Club(
+                id: normalLongClubID,
+                profileID: profileID,
+                clubType: .sixIron,
+                shotType: .normal,
+                swingDistances: SwingDistanceSet(full: 180)
+            )
+        ]
+
+        let matches = matcher.closestMatches(targetYardage: 160, clubs: clubs, filter: .all)
+
+        XCTAssertEqual(matches.map(\.club.id), [normalShortClubID, normalLongClubID])
+        XCTAssertFalse(matches.map(\.club.id).contains(punchClubID))
     }
 
     func testInvalidTargetOrLimitReturnsNoMatches() {

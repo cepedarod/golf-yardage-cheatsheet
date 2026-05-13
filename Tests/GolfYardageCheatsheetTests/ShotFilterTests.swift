@@ -26,6 +26,30 @@ final class ShotFilterTests: XCTestCase {
         XCTAssertTrue(ShotFilter.all.includes(putter))
     }
 
+    func testAllTargetMatchFilterExcludesPunchClubs() {
+        let normalClub = Club(
+            profileID: UUID(),
+            clubType: .sevenIron,
+            shotType: .normal,
+            swingDistances: SwingDistanceSet(full: 150)
+        )
+        let punchClub = Club(
+            profileID: UUID(),
+            clubType: .fourIron,
+            shotType: .punch,
+            swingDistances: SwingDistanceSet(full: 170)
+        )
+        let putter = Club(
+            profileID: UUID(),
+            clubType: .putter,
+            putterDistances: PutterDistanceSet(short: 3)
+        )
+
+        XCTAssertTrue(ShotFilter.all.includesTargetMatch(normalClub))
+        XCTAssertFalse(ShotFilter.all.includesTargetMatch(punchClub))
+        XCTAssertTrue(ShotFilter.all.includesTargetMatch(putter))
+    }
+
     func testPunchOnlyFilterIncludesOnlyPunchClubs() {
         let normalClub = Club(
             profileID: UUID(),
