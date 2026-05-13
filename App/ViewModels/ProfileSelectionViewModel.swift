@@ -27,7 +27,11 @@ final class ProfileSelectionViewModel: ObservableObject {
             } else {
                 selectedProfile = nil
             }
+
+            errorMessage = nil
         } catch {
+            profiles = []
+            selectedProfile = nil
             errorMessage = "Unable to load profiles."
         }
     }

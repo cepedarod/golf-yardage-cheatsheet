@@ -7,6 +7,7 @@
 3. Cross-profile club edits: repository rejects updates that try to reuse a club ID under a different profile and preserves the original club.
 4. Missing club mutations: repository returns `clubNotFound` for restore, deactivate, or delete actions against an unknown club ID.
 5. Local file-store failures: tests cover missing files, corrupt JSON, and creating missing directories while saving.
+6. App reload failures: profile and dashboard view models clear stale screen state on load failure and clear old errors after a successful reload.
 
 ## Tests Added
 
@@ -23,6 +24,9 @@
   - Missing store file loads as empty data.
   - Corrupt JSON throws rather than silently replacing data.
   - Saving creates missing directories and persists data.
+- App state hardening
+  - Profile loading clears stale profiles and selection when loading fails.
+  - Dashboard club loading clears stale clubs and matches when loading fails.
 
 ## Performance Notes
 

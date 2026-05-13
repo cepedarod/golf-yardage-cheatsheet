@@ -52,6 +52,9 @@ final class YardageDashboardViewModel: ObservableObject {
             updateMatches()
             errorMessage = nil
         } catch {
+            activeClubs = []
+            inactiveClubs = []
+            matches = []
             errorMessage = "Unable to load clubs."
         }
     }
