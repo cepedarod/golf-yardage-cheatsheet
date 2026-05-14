@@ -88,6 +88,7 @@ Add a new persisted model:
 - `createdAt: Date`
 
 `distance` is optional. Records without distance count toward total shots, strike distribution, and direction distribution, but not average distance.
+`createdAt` is required for every shot record and should be the timestamp used by future date-range filtering.
 
 ### GolfBagData
 
@@ -207,6 +208,7 @@ If multiple V1 entries map to the same field:
 - Record must belong to an existing profile.
 - Record must point to an existing active club.
 - Putter clubs are not valid for shot recording.
+- Record must include a `createdAt` timestamp.
 - `distance`, when present, must be positive.
 - `category` must be valid for the club:
   - Normal: every non-putter.

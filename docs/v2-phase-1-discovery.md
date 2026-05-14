@@ -29,6 +29,7 @@ This phase is based on `Golf app prompt V2.docx`.
 - Shot recording should exclude putter support in V2, while putters remain visible in Distances and Analysis.
 - Shot recording should capture club, distance, shot category/power, strike quality, and shot direction.
 - Shot recording should allow a shot to be saved without a distance value.
+- Shot recording should store the date/time of each recorded shot so future date filtering can use that timestamp.
 - Distance page should support Manual vs Real Values.
 - Real Values should calculate average distances from Pure shots only.
 - Shots without a recorded distance should be excluded from average-distance calculations.
@@ -72,6 +73,8 @@ Add a new `ShotRecord` model:
 - `strikeQuality`
 - `direction`
 - `createdAt`
+
+`createdAt` is required and represents the shot's recorded date/time for future date filtering.
 
 Recommended enums:
 
