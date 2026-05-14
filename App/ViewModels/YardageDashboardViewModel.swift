@@ -32,6 +32,7 @@ final class YardageDashboardViewModel: ObservableObject {
     private let repository: GolfBagRepository
     private let matcher: YardageMatcher
     private let distanceValueResolver: DistanceValueResolver
+    private let clubSorter = ClubSorter()
     private let targetClearDelayNanoseconds: UInt64
     private var clearTargetTask: Task<Void, Never>?
 
@@ -54,14 +55,7 @@ final class YardageDashboardViewModel: ObservableObject {
 
     func loadClubs() {
         do {
-            let clubs = try repository.clubs(for: profile.id, includeInactive: true)
-                .sorted { lhs, rhs in
-                    if lhs.createdAt != rhs.createdAt {
-                        return lhs.createdAt < rhs.createdAt
-                    }
-
-                    return lhs.id.uuidString < rhs.id.uuidString
-                }
+            let clubs = clubSorter.sortedForDistanceTab(try repository.clubs(for: profile.id, includeInactive: true))
             let shotRecords = try repository.shotRecords(for: profile.id)
             activeClubs = clubs.filter(\.isActive)
             inactiveClubs = clubs.filter { $0.isActive == false }

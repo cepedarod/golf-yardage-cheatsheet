@@ -18,6 +18,27 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.buttons["save-and-add-another-button"].exists)
     }
 
+    func testNicknameKeyboardCanBeDismissedWhenAddingClub() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        XCTAssertTrue(app.navigationBars["Add Club"].waitForExistence(timeout: 5))
+        let nicknameField = app.textFields["nickname-field"]
+        XCTAssertTrue(nicknameField.waitForExistence(timeout: 2))
+        nicknameField.tap()
+        nicknameField.typeText("Qi10")
+
+        let doneButton = app.buttons["dismiss-nickname-keyboard-button"]
+        XCTAssertTrue(doneButton.waitForExistence(timeout: 2))
+        doneButton.tap()
+
+        enterFullDistance("255", in: app)
+        app.buttons["finish-club-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Qi10 Driver"].waitForExistence(timeout: 2))
+    }
+
     func testAddClubWithFinishShowsClubOnDashboard() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)

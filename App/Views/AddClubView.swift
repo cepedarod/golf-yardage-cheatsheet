@@ -5,6 +5,7 @@ struct AddClubView: View {
     let onSave: (Club) throws -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var focusedField: FocusedField?
 
     private let existingClub: Club?
     private let validator = ClubValidator()
@@ -67,6 +68,12 @@ struct AddClubView: View {
 
                 TextField("Nickname", text: $nickname)
                     .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+                    .focused($focusedField, equals: .nickname)
+                    .accessibilityIdentifier("nickname-field")
+                    .onSubmit {
+                        focusedField = nil
+                    }
 
                 if clubType.isWedge {
                     HStack {
@@ -149,6 +156,16 @@ struct AddClubView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button(existingClub == nil ? "Finish" : "Save", action: saveAndFinish)
                     .accessibilityIdentifier(existingClub == nil ? "finish-club-button" : "save-club-button")
+            }
+
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusedField == .nickname {
+                    Spacer()
+                    Button("Done") {
+                        focusedField = nil
+                    }
+                    .accessibilityIdentifier("dismiss-nickname-keyboard-button")
+                }
             }
         }
         .onChange(of: clubType) { _, newValue in
@@ -399,6 +416,10 @@ struct AddClubView: View {
                 "flop"
             }
         }
+    }
+
+    private enum FocusedField: Hashable {
+        case nickname
     }
 }
 

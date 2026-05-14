@@ -314,6 +314,22 @@ final class YardageMatcherTests: XCTestCase {
         XCTAssertEqual(realEntries.first(where: { $0.label == .full })?.resolvedValue(for: .real)?.formattedDistance, "(100)")
     }
 
+    func testFlopOnlyWedgeDisplaysNormalPlaceholderAndFlopSection() {
+        let club = Club(
+            profileID: profileID,
+            clubType: .lobWedge,
+            wedgeLoft: 60,
+            flopDistances: SwingDistanceSet(full: 50, half: 35)
+        )
+        let resolver = DistanceValueResolver()
+
+        let sections = resolver.displaySections(for: club, filter: .normal, mode: .manual, shotRecords: [])
+
+        XCTAssertEqual(sections.map(\.title), ["Normal", "Flop"])
+        XCTAssertTrue(sections[0].entries.allSatisfy { $0.resolvedValue(for: .manual) == nil })
+        XCTAssertEqual(sections[1].entries.first?.resolvedValue(for: .manual)?.distance, 50)
+    }
+
     func testInvalidTargetOrLimitReturnsNoMatches() {
         let clubs = [
             Club(

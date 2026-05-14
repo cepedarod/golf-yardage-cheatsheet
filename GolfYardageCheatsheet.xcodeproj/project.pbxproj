@@ -15,6 +15,7 @@
 		446183DE4919B0564A9E67CC /* PreviewGolfBagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A2B798841A3400F34FA87B /* PreviewGolfBagStore.swift */; };
 		4B00932C967AAC250C06C0F4 /* AddClubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676BD79C075F863CF852C95A /* AddClubView.swift */; };
 		4DDE8EC517C79EB70C0F63CE /* ClubDisplayNameFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */; };
+		4EE15F6041FD4CE1A7B6069C /* ClubSorter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D73DF7E8EDC4F63B73CA0EA /* ClubSorter.swift */; };
 		501D1DD1962F74D4EC74F375 /* YardageMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E2CD273326BC70F5E5CAAF /* YardageMatcher.swift */; };
 		5D3716DB147557025991266D /* Club.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7004039AD549955D5330BA4 /* Club.swift */; };
 		5D758227771BFAFCC6EFA05E /* GolfYardageCheatsheetUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616D955C6CA571DF28801DE9 /* GolfYardageCheatsheetUITests.swift */; };
@@ -62,6 +63,7 @@
 		5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GolfYardageCheatsheetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		616D955C6CA571DF28801DE9 /* GolfYardageCheatsheetUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfYardageCheatsheetUITests.swift; sourceTree = "<group>"; };
 		676BD79C075F863CF852C95A /* AddClubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddClubView.swift; sourceTree = "<group>"; };
+		7D73DF7E8EDC4F63B73CA0EA /* ClubSorter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubSorter.swift; sourceTree = "<group>"; };
 		7688AAF68CC150D755B4DF5C /* GolfBagData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagData.swift; sourceTree = "<group>"; };
 		76D967F6E3B93C91C4C4210A /* YardageDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YardageDashboardView.swift; sourceTree = "<group>"; };
 		868C9716DC779A37ED9B2520 /* CreateProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateProfileView.swift; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 			isa = PBXGroup;
 			children = (
 				4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */,
+				7D73DF7E8EDC4F63B73CA0EA /* ClubSorter.swift */,
 				0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */,
 				BECD268F84F079F082767E3C /* ShotFilter.swift */,
 				A6E2CD273326BC70F5E5CAAF /* YardageMatcher.swift */,
@@ -311,6 +314,7 @@
 				4B00932C967AAC250C06C0F4 /* AddClubView.swift in Sources */,
 				5D3716DB147557025991266D /* Club.swift in Sources */,
 				4DDE8EC517C79EB70C0F63CE /* ClubDisplayNameFormatter.swift in Sources */,
+				4EE15F6041FD4CE1A7B6069C /* ClubSorter.swift in Sources */,
 				1C86432BD39FE965589C2FAC /* ClubSummaryRow.swift in Sources */,
 				8FB6D896167101990DA105E4 /* ClubType.swift in Sources */,
 				784211DA2E7B23551D7351DF /* ClubValidator.swift in Sources */,

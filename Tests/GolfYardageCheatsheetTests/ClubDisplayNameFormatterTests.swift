@@ -16,7 +16,7 @@ final class ClubDisplayNameFormatterTests: XCTestCase {
         XCTAssertEqual(formatter.displayName(for: club), "54\u{00B0} Wedge")
     }
 
-    func testWedgeLoftKeepsFlopSuffix() {
+    func testV2FlopOnlyWedgeDoesNotUseLegacySuffix() {
         let club = Club(
             profileID: profileID,
             clubType: .lobWedge,
@@ -25,10 +25,10 @@ final class ClubDisplayNameFormatterTests: XCTestCase {
             swingDistances: SwingDistanceSet(full: 70)
         )
 
-        XCTAssertEqual(formatter.displayName(for: club), "60\u{00B0} Wedge (Flop)")
+        XCTAssertEqual(formatter.displayName(for: club), "60\u{00B0} Wedge")
     }
 
-    func testNicknamePrefixesWedgeLoftAndKeepsFlopSuffix() {
+    func testNicknamePrefixesWedgeLoftWithoutFlopSuffix() {
         let club = Club(
             profileID: profileID,
             nickname: "Trusty",
@@ -38,7 +38,7 @@ final class ClubDisplayNameFormatterTests: XCTestCase {
             swingDistances: SwingDistanceSet(full: 80)
         )
 
-        XCTAssertEqual(formatter.displayName(for: club), "Trusty 54\u{00B0} Wedge (Flop)")
+        XCTAssertEqual(formatter.displayName(for: club), "Trusty 54\u{00B0} Wedge")
     }
 
     func testNicknamePrefixesClubTypeAndKeepsLowTrajectorySuffix() {

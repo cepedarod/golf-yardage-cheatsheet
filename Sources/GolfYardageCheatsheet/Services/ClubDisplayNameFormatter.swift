@@ -7,11 +7,9 @@ public struct ClubDisplayNameFormatter: Sendable {
         let baseName = baseDisplayName(for: club)
 
         switch club.shotType {
-        case .flop:
-            return "\(baseName) (Flop)"
         case .punch:
             return "\(baseName) (Low Trajectory)"
-        case .normal, .none:
+        case .flop, .normal, .none:
             return baseName
         }
     }

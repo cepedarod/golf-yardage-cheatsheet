@@ -137,18 +137,16 @@ public struct DistanceValueResolver: Sendable {
 
         switch filter {
         case .normal:
-            let normalSection = visibleSection(
-                DistanceDisplaySection(
-                    title: nil,
-                    entries: swingEntries(
-                        club: club,
-                        category: .normal,
-                        distances: club.normalDistances,
-                        shotRecords: shotRecords
-                    )
-                ),
-                mode: mode
+            let rawNormalSection = DistanceDisplaySection(
+                title: nil,
+                entries: swingEntries(
+                    club: club,
+                    category: .normal,
+                    distances: club.normalDistances,
+                    shotRecords: shotRecords
+                )
             )
+            let normalSection = visibleSection(rawNormalSection, mode: mode)
             let flopSection = club.clubType.isWedge
                 ? visibleSection(
                     DistanceDisplaySection(
@@ -170,7 +168,7 @@ public struct DistanceValueResolver: Sendable {
             case (.some(let normalSection), .none):
                 return [normalSection]
             case (.none, .some(let flopSection)):
-                return [flopSection]
+                return [rawNormalSection.titled(ShotCategory.normal.displayName), flopSection]
             case (.none, .none):
                 return []
             }

@@ -30,8 +30,8 @@ Build a simple, offline-first iOS app that lets golfers store club distances by 
 
 ## Current QA Status
 
-- `swift test`: 52 tests passing.
-- iOS simulator smoke suite: 13 UI tests passing.
+- `swift test`: 56 tests passing.
+- iOS simulator smoke suite: 14 UI tests passing.
 - Unsigned `iphoneos` Debug build: passing.
 - Physical iPhone V2 beta signed build: passing with automatic signing.
 - Physical iPhone V2 beta install: passing on `Lemmy Machine`.
