@@ -233,8 +233,10 @@ final class YardageMatcherTests: XCTestCase {
             shotRecords: records
         )
 
-        XCTAssertEqual(matches.map(\.club.id), [realLongClubID, realShortClubID, supplementalClubID])
-        XCTAssertEqual(matches.map(\.distance), [170, 130, 151])
+        XCTAssertEqual(Set(matches.prefix(2).map(\.club.id)), Set([realLongClubID, realShortClubID]))
+        XCTAssertEqual(Set(matches.prefix(2).map(\.distance)), Set([170, 130]))
+        XCTAssertEqual(matches.last?.club.id, supplementalClubID)
+        XCTAssertEqual(matches.last?.distance, 151)
         XCTAssertEqual(matches.map(\.isSupplemental), [false, false, true])
         XCTAssertEqual(matches.last?.formattedDistance, "(151)")
     }

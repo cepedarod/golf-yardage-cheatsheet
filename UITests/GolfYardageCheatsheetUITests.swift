@@ -165,6 +165,51 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["255"].exists)
     }
 
+    func testAnalysisTabShowsRecordedClubStats() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        let recordShotButton = app.buttons["record-shot-button"]
+        XCTAssertTrue(recordShotButton.waitForExistence(timeout: 2))
+        recordShotButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        let shotDistanceField = app.textFields["record-shot-distance-field"]
+        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
+        shotDistanceField.tap()
+        shotDistanceField.typeText("250")
+        app.buttons["Done"].tap()
+        app.buttons["save-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Analysis"].tap()
+
+        XCTAssertTrue(app.navigationBars["Analysis"].waitForExistence(timeout: 5))
+        let driverAnalysisRow = app.descendants(matching: .any)["analysis-club-row-Driver"]
+        XCTAssertTrue(driverAnalysisRow.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["1 recorded shot"].exists)
+        driverAnalysisRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Driver"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["analysis-distance-full"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["255 yds"].exists)
+        XCTAssertTrue(app.staticTexts["250 yds"].exists)
+
+        let totalShots = app.staticTexts["analysis-total-shots"]
+        XCTAssertTrue(totalShots.waitForExistence(timeout: 2))
+        XCTAssertEqual(totalShots.label, "1 shot")
+        XCTAssertTrue(app.descendants(matching: .any)["analysis-percentage-Pure"].exists)
+        XCTAssertTrue(app.staticTexts["100%"].exists)
+
+        app.swipeUp()
+
+        XCTAssertTrue(app.descendants(matching: .any)["analysis-percentage-Straight"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["100%"].exists)
+    }
+
     func testDashboardEditUpdatesExistingClubDistance() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
