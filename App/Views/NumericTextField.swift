@@ -3,6 +3,8 @@ import SwiftUI
 struct NumericTextField: View {
     let title: String
     @Binding var text: String
+    var maxDigits: Int?
+    var dismissesKeyboardAtMaxDigits = false
 
     @FocusState private var isFocused: Bool
     @State private var showsDoneButton = false
@@ -17,9 +19,15 @@ struct NumericTextField: View {
             })
             .onChange(of: text) { _, newValue in
                 let digitsOnly = newValue.filter(\.isNumber)
+                let sanitizedText = maxDigits.map { String(digitsOnly.prefix($0)) } ?? String(digitsOnly)
 
-                if digitsOnly != newValue {
-                    text = digitsOnly
+                if sanitizedText != newValue {
+                    text = sanitizedText
+                }
+
+                if dismissesKeyboardAtMaxDigits, let maxDigits, sanitizedText.count == maxDigits {
+                    isFocused = false
+                    showsDoneButton = false
                 }
             }
             .onChange(of: isFocused) { _, newValue in

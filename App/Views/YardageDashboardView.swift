@@ -427,7 +427,12 @@ private struct RecordShotView: View {
                     HStack {
                         Text("Distance (Yards)")
                         Spacer()
-                        NumericTextField(title: "Optional", text: $distanceText)
+                        NumericTextField(
+                            title: "Optional",
+                            text: $distanceText,
+                            maxDigits: 3,
+                            dismissesKeyboardAtMaxDigits: true
+                        )
                             .accessibilityIdentifier("record-shot-distance-field")
                             .frame(maxWidth: 112)
                     }

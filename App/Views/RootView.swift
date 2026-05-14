@@ -255,12 +255,17 @@ private struct ClubAnalysisDetailView: View {
                     onDelete: onDeleteShotRecord
                 )
             } label: {
-                HStack {
-                    Text("Total Shots")
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Total Shots")
+                        Text(totalShotsSubtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
                     Spacer()
-                    Text(totalShots == 1 ? "1 shot" : "\(totalShots) shots")
-                        .font(.headline)
-                        .accessibilityIdentifier("analysis-total-shots")
+
+                    summaryValue
                 }
             }
             .accessibilityIdentifier("analysis-total-shots-row")
@@ -269,16 +274,18 @@ private struct ClubAnalysisDetailView: View {
 
     private var strikeDistributionSection: some View {
         Section("Strike Quality") {
-            DistributionSummaryRow(
+            StrikeQualityDistributionView(
                 rows: StrikeQuality.allCases.map {
                     DistributionRowData(
                         id: $0.displayName,
                         quality: $0,
                         title: $0.displayName,
+                        count: strikeCount(for: $0),
                         percentage: strikeDistribution[$0] ?? 0,
                         tint: $0.tint
                     )
-                }
+                },
+                totalCount: categoryShotRecords.count
             )
             .accessibilityIdentifier("analysis-strike-distribution")
         }
@@ -286,14 +293,20 @@ private struct ClubAnalysisDetailView: View {
 
     private var directionDistributionSection: some View {
         Section("Direction") {
-            ForEach(ShotDirection.allCases, id: \.self) { direction in
-                PercentageRow(
-                    title: direction.displayName,
-                    percentage: directionDistribution[direction] ?? 0,
-                    systemImage: direction.systemImage,
-                    tint: direction.tint
-                )
-            }
+            DirectionDistributionView(
+                rows: ShotDirection.allCases.map { direction in
+                    DirectionDistributionRowData(
+                        id: direction.displayName,
+                        direction: direction,
+                        title: direction.displayName,
+                        count: directionCount(for: direction),
+                        percentage: directionDistribution[direction] ?? 0,
+                        tint: direction.tint
+                    )
+                },
+                totalCount: categoryShotRecords.count
+            )
+            .accessibilityIdentifier("analysis-direction-distribution")
         }
     }
 
@@ -323,6 +336,68 @@ private struct ClubAnalysisDetailView: View {
 
     private var totalShots: Int {
         shotRecords.filter { $0.clubID == club.id }.count
+    }
+
+    private var categoryShotRecords: [ShotRecord] {
+        shotRecords.filter { $0.clubID == club.id && $0.category == selectedCategory }
+    }
+
+    private func strikeCount(for quality: StrikeQuality) -> Int {
+        categoryShotRecords.filter { $0.strikeQuality == quality }.count
+    }
+
+    private func directionCount(for direction: ShotDirection) -> Int {
+        categoryShotRecords.filter { $0.direction == direction }.count
+    }
+
+    private var primaryStrikeQuality: StrikeQuality? {
+        StrikeQuality.allCases.max {
+            strikeCount(for: $0) < strikeCount(for: $1)
+        }.flatMap {
+            strikeCount(for: $0) > 0 ? $0 : nil
+        }
+    }
+
+    private var primaryDirection: ShotDirection? {
+        ShotDirection.allCases.max {
+            directionCount(for: $0) < directionCount(for: $1)
+        }.flatMap {
+            directionCount(for: $0) > 0 ? $0 : nil
+        }
+    }
+
+    private var totalShotsSubtitle: String {
+        guard let primaryStrikeQuality, let primaryDirection else {
+            return categoryShotRecords.isEmpty ? "No \(selectedCategory.displayName.lowercased()) shots yet" : selectedCategory.displayName
+        }
+
+        return "\(primaryStrikeQuality.displayName) / \(primaryDirection.displayName)"
+    }
+
+    private var totalShotsValueText: String {
+        totalShots == 1 ? "1 shot" : "\(totalShots) shots"
+    }
+
+    private var categoryShotCaption: String {
+        if categoryShotRecords.count == totalShots {
+            return "All recorded shots"
+        }
+
+        return "\(categoryShotRecords.count) of \(totalShotsValueText)"
+    }
+
+    private var summaryValue: some View {
+        VStack(alignment: .trailing, spacing: 3) {
+            Text(totalShotsValueText)
+                .font(.headline)
+                .accessibilityIdentifier("analysis-total-shots")
+
+            if totalShots > 0 {
+                Text(categoryShotCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     private var strikeDistribution: [StrikeQuality: Double] {
@@ -601,7 +676,12 @@ private struct ShotRecordEditView: View {
                         .accessibilityLabel("Clear Distance")
                         .accessibilityIdentifier("clear-edit-shot-distance-button")
                     }
-                    NumericTextField(title: "Optional", text: $distanceText)
+                    NumericTextField(
+                        title: "Optional",
+                        text: $distanceText,
+                        maxDigits: 3,
+                        dismissesKeyboardAtMaxDigits: true
+                    )
                         .accessibilityIdentifier("edit-shot-distance-field")
                         .frame(maxWidth: 112)
                 }
@@ -876,37 +956,280 @@ private struct DistributionRowData: Identifiable {
     let id: String
     let quality: StrikeQuality
     let title: String
+    let count: Int
     let percentage: Double
     let tint: Color
 }
 
-private struct DistributionSummaryRow: View {
+private struct DirectionDistributionRowData: Identifiable {
+    let id: String
+    let direction: ShotDirection
+    let title: String
+    let count: Int
+    let percentage: Double
+    let tint: Color
+}
+
+private struct StrikeQualityDistributionView: View {
     let rows: [DistributionRowData]
+    let totalCount: Int
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(rows) { row in
-                VStack(spacing: 7) {
-                    StrikeQualityIcon(quality: row.quality, size: 30)
+        VStack(alignment: .leading, spacing: 14) {
+            DistributionStackedBar(
+                rows: rows.map {
+                    DistributionSegmentData(
+                        id: $0.id,
+                        percentage: $0.percentage,
+                        tint: $0.tint
+                    )
+                },
+                totalCount: totalCount
+            )
 
-                    Text(row.title)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text(formattedPercentage(row.percentage))
-                        .font(.headline.weight(.semibold))
-                        .monospacedDigit()
-                        .accessibilityIdentifier("analysis-percentage-\(row.title)")
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(rows) { row in
+                    StrikeQualityBucket(row: row)
+                        .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+    }
+}
+
+private struct DirectionDistributionView: View {
+    let rows: [DirectionDistributionRowData]
+    let totalCount: Int
+
+    var body: some View {
+        VStack(spacing: 12) {
+            DirectionFanChart(rows: rows, totalCount: totalCount)
+                .frame(height: 190)
+
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(rows) { row in
+                    VStack(spacing: 4) {
+                        Text(row.title)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+
+                        Text(row.count == 1 ? "1" : "\(row.count)")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(row.count > 0 ? row.tint : .secondary)
+                            .monospacedDigit()
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+private struct DistributionSegmentData: Identifiable {
+    let id: String
+    let percentage: Double
+    let tint: Color
+}
+
+private struct DistributionStackedBar: View {
+    let rows: [DistributionSegmentData]
+    let totalCount: Int
+
+    var body: some View {
+        Canvas { context, size in
+            guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else {
+                return
+            }
+
+            let rect = CGRect(origin: .zero, size: size)
+            let cornerRadius = size.height / 2
+
+            if totalCount == 0 {
+                context.fill(
+                    Path(roundedRect: rect, cornerRadius: cornerRadius),
+                    with: .color(Color.secondary.opacity(0.16))
+                )
+                return
+            }
+
+            let activeRows = rows.filter { $0.percentage > 0 }
+            let totalGap = CGFloat(max(0, activeRows.count - 1)) * 3
+            let availableWidth = max(0, size.width - totalGap)
+            var x: CGFloat = 0
+
+            for row in activeRows {
+                let segmentWidth = max(0, availableWidth * row.percentage / 100)
+                guard segmentWidth > 0 else {
+                    continue
+                }
+
+                let segmentRect = CGRect(x: x, y: 0, width: segmentWidth, height: size.height)
+
+                context.fill(
+                    Path(roundedRect: segmentRect, cornerRadius: cornerRadius),
+                    with: .color(row.tint)
+                )
+
+                x += segmentWidth + 3
+            }
+        }
+        .frame(height: 10)
+    }
+}
+
+private struct StrikeQualityBucket: View {
+    let row: DistributionRowData
+
+    var body: some View {
+        VStack(spacing: 7) {
+            StrikeQualityIcon(quality: row.quality, size: 30)
+
+            Text(row.title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text(formattedPercentage(row.percentage))
+                .font(.headline.weight(.semibold))
+                .monospacedDigit()
+                .accessibilityIdentifier("analysis-percentage-\(row.title)")
+
+            Text(row.count == 1 ? "1 shot" : "\(row.count) shots")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct DirectionFanChart: View {
+    let rows: [DirectionDistributionRowData]
+    let totalCount: Int
+
+    var body: some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            let center = CGPoint(x: size.width / 2, y: size.height - 16)
+            let maxRadius = min(size.width * 0.37, size.height * 0.72)
+            let labels = labelPositions(in: size, center: center, radius: maxRadius)
+
+            ZStack {
+                Canvas { context, canvasSize in
+                    guard canvasSize.width.isFinite,
+                          canvasSize.height.isFinite,
+                          canvasSize.width > 0,
+                          canvasSize.height > 0 else {
+                        return
+                    }
+
+                    for guideAngle in [-121.0, -59.0] {
+                        var guidePath = Path()
+                        guidePath.move(to: center)
+                        guidePath.addLine(to: point(from: center, radius: maxRadius + 34, degrees: guideAngle))
+                        context.stroke(
+                            guidePath,
+                            with: .color(Color.secondary.opacity(0.18)),
+                            style: StrokeStyle(lineWidth: 1, dash: [5, 5])
+                        )
+                    }
+
+                    for (index, row) in rows.enumerated() {
+                        let geometry = sliceGeometry(for: index)
+                        let share = totalCount > 0 ? max(0, min(1, row.percentage / 100)) : 0
+                        let radius = maxRadius * (0.36 + share * 0.64)
+                        let opacity = 0.16 + share * 0.78
+                        let path = fanSlicePath(
+                            center: center,
+                            radius: radius,
+                            startDegrees: geometry.startDegrees,
+                            endDegrees: geometry.endDegrees
+                        )
+
+                        context.fill(path, with: .color(row.tint.opacity(opacity)))
+                    }
+                }
+
+                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                    DirectionFanLabel(row: row)
+                        .position(labels[index])
+                }
+            }
+        }
     }
 
-    private func formattedPercentage(_ percentage: Double) -> String {
-        "\(Int(percentage.rounded()))%"
+    private func sliceGeometry(for index: Int) -> (startDegrees: Double, endDegrees: Double) {
+        let sliceWidth = 24.0
+        let sliceSpacing = 27.0
+        let straightIndex = 2.0
+        let midpoint = -90.0 + (Double(index) - straightIndex) * sliceSpacing
+
+        return (midpoint - sliceWidth / 2, midpoint + sliceWidth / 2)
     }
+
+    private func labelPositions(in size: CGSize, center: CGPoint, radius: CGFloat) -> [CGPoint] {
+        let labelRadius = radius + 22
+
+        return rows.indices.map { index in
+            let geometry = sliceGeometry(for: index)
+            let midpoint = (geometry.startDegrees + geometry.endDegrees) / 2
+            let radians = midpoint * .pi / 180
+            let x = center.x + cos(radians) * labelRadius
+            let y = center.y + sin(radians) * labelRadius
+
+            return CGPoint(
+                x: min(max(x, 34), size.width - 34),
+                y: min(max(y, 14), size.height - 20)
+            )
+        }
+    }
+
+    private func fanSlicePath(center: CGPoint, radius: CGFloat, startDegrees: Double, endDegrees: Double) -> Path {
+        var path = Path()
+        path.move(to: center)
+        path.addArc(
+            center: center,
+            radius: radius,
+            startAngle: .degrees(startDegrees),
+            endAngle: .degrees(endDegrees),
+            clockwise: false
+        )
+        path.closeSubpath()
+        return path
+    }
+
+    private func point(from center: CGPoint, radius: CGFloat, degrees: Double) -> CGPoint {
+        CGPoint(
+            x: center.x + cos(degrees * .pi / 180) * radius,
+            y: center.y + sin(degrees * .pi / 180) * radius
+        )
+    }
+}
+
+private struct DirectionFanLabel: View {
+    let row: DirectionDistributionRowData
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(formattedPercentage(row.percentage))
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .accessibilityIdentifier("analysis-percentage-\(row.title)")
+
+            Text(row.title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private func formattedPercentage(_ percentage: Double) -> String {
+    "\(Int(percentage.rounded()))%"
 }
 
 private struct StrikeQualityIcon: View {
@@ -1083,51 +1406,6 @@ private struct GroundStrikeShape: Shape {
 
 
         return path
-    }
-}
-
-private struct PercentageRow: View {
-    let title: String
-    let percentage: Double
-    let systemImage: String
-    let tint: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 10) {
-                Image(systemName: systemImage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 22)
-
-                Text(title)
-
-                Spacer()
-
-                Text(formattedPercentage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.14))
-
-                    Capsule()
-                        .fill(tint)
-                        .frame(width: percentage <= 0 ? 0 : max(6, proxy.size.width * percentage / 100))
-                }
-            }
-            .frame(height: 8)
-        }
-        .padding(.vertical, 4)
-        .accessibilityIdentifier("analysis-percentage-\(title)")
-    }
-
-    private var formattedPercentage: String {
-        "\(Int(percentage.rounded()))%"
     }
 }
 
