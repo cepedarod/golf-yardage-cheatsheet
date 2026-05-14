@@ -7,6 +7,8 @@
 - `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'id=00008130-001A3CE60A3A001C' -allowProvisioningUpdates build`: passed with automatic signing.
 - `xcrun devicectl device install app --device 00008130-001A3CE60A3A001C "<DerivedData>/Build/Products/Debug-iphoneos/Caddie Cat.app"`: installed successfully.
 - `xcrun devicectl device process launch --device 00008130-001A3CE60A3A001C com.cepedarod.GolfYardageCheatsheet`: launched successfully after the Apple Development profile was trusted.
+- V1 physical smoke pass: passed.
+- V2 physical beta pass: pending.
 
 ## One-Time Xcode Setup
 
@@ -26,7 +28,7 @@
 5. In Xcode, select the physical iPhone as the run destination.
 6. Run the app from Xcode.
 
-## Physical QA Pass
+## V2 Physical Beta Pass
 
 1. Confirm the app appears as `Caddie Cat` with the final cat caddie icon.
 2. Fresh install:
@@ -34,29 +36,48 @@
    - Confirm the Add Club flow opens.
 3. Add clubs:
    - Add one normal club.
-   - Add one Punch club.
-   - Add one wedge with loft.
+   - Add one club with Low Trajectory values.
+   - Add one wedge with loft and Flop values.
+   - Confirm switching distance categories in Add/Edit Club preserves already-entered values.
 4. Dashboard:
    - Confirm the title says `Distance`.
    - Confirm the label-over-yardage grid is readable.
    - Confirm Half and Quarter labels fit.
    - Confirm empty swing distances show `-`.
+   - Confirm Normal filter shows normal and wedge Flop values when present.
+   - Confirm Low Trajectory filter only shows Low Trajectory values.
+   - Confirm Manual mode shows manually-entered values.
+   - Confirm Real mode shows Pure-shot averages and parenthesized manual fallbacks.
 5. Target yardage:
    - Enter a target.
    - Confirm the result shows the closest long shot and closest short shot.
-   - Confirm All target results exclude Punch shots.
-   - Confirm Punch target results include Punch shots.
+   - Confirm Normal target results exclude Low Trajectory shots.
+   - Confirm Low Trajectory target results include only Low Trajectory shots.
+   - Confirm Manual and Real modes use their selected value source.
+   - Confirm a supplemental third result appears only when it is closer than both primary results.
    - Confirm Clear exits target mode.
-6. Edit:
+6. Record shots:
+   - Record a Pure shot with a distance and confirm Real mode updates.
+   - Record a Thin or Chunk shot with a distance and confirm it does not affect Real average distance.
+   - Record a shot with no distance and confirm recorded-shot history shows `-`.
+   - Record a Low Trajectory shot.
+   - Record a Flop shot for a wedge.
+7. Analysis:
+   - Confirm active clubs appear before inactive clubs.
+   - Open a club and confirm total shots, Manual/Average comparison, strike distribution, and direction distribution.
+   - Tap Total Shots and confirm recorded shots are chronological.
+   - Edit a recorded shot and confirm the list updates.
+   - Delete a recorded shot and confirm it disappears.
+8. Edit clubs:
    - Edit an existing club distance.
    - Confirm the dashboard updates.
-7. Inactive clubs:
+9. Inactive clubs:
    - Deactivate a club.
    - Restore it from Inactive Clubs.
    - Deactivate another club and delete it from Inactive Clubs.
-8. Relaunch:
+10. Relaunch:
    - Force quit and reopen the app.
-   - Confirm the selected profile and saved clubs persist.
-9. Readability:
+   - Confirm the selected profile, saved clubs, and recorded shots persist.
+11. Readability:
    - Check the dashboard indoors and near bright outdoor light.
    - Confirm row text and yardage numbers are readable at normal phone distance.

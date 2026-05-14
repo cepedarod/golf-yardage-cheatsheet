@@ -165,6 +165,42 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["255"].exists)
     }
 
+    func testRecordShotWithoutDistanceShowsDashAndDoesNotCreateRealAverage() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        let recordShotButton = app.buttons["record-shot-button"]
+        XCTAssertTrue(recordShotButton.waitForExistence(timeout: 2))
+        recordShotButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["record-shot-distance-field"].waitForExistence(timeout: 2))
+        app.buttons["save-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.buttons["value-mode-real"].tap()
+
+        XCTAssertTrue(app.staticTexts["(255)"].waitForExistence(timeout: 2))
+
+        app.tabBars.buttons["Analysis"].tap()
+        XCTAssertTrue(app.navigationBars["Analysis"].waitForExistence(timeout: 5))
+        let driverAnalysisRow = app.descendants(matching: .any)["analysis-club-row-Driver"]
+        XCTAssertTrue(driverAnalysisRow.waitForExistence(timeout: 2))
+        driverAnalysisRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Driver"].waitForExistence(timeout: 5))
+        let totalShotsRow = app.descendants(matching: .any)["analysis-total-shots-row"]
+        XCTAssertTrue(totalShotsRow.waitForExistence(timeout: 2))
+        totalShotsRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Recorded Shots"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["shot-record-row-full"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["-"].exists)
+    }
+
     func testAnalysisTabShowsRecordedClubStats() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
