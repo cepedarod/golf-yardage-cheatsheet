@@ -200,8 +200,9 @@ The analysis visualizations should be treated as a design gate before implementa
 - Real fallback values in Manual mode should be shown in parentheses.
 - Putters stay visible in Distances and Analysis, but are excluded from shot recording.
 - Low Trajectory is available for wedges.
-- Manual mode target matching should compare manual distances, using parenthesized real fallback values when no manual value exists.
-- Real mode target matching should compare calculated Pure-shot averages, using parenthesized manual fallback values when no real average exists.
+- Manual mode target matching should first show the two closest manual values.
+- Real mode target matching should first show the two closest calculated Pure-shot average values.
+- Target mode may show a third supplemental value from the opposite mode when the selected mode has no value for that slot, but only if that supplemental value is closer to the target than both primary results already shown.
 - Wedge Flop values should participate in target matching when the filter is `Normal`.
 - V1 Punch and Flop entries should merge into a base club when club type, wedge loft, and nickname match.
 - If a V1 Punch or Flop entry has no exact base club match, preserve it as its own club with the relevant category filled.

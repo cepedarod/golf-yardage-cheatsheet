@@ -222,8 +222,9 @@ If multiple V1 entries map to the same field:
 
 - Display manual distances.
 - If no manual distance exists, display the calculated real value in parentheses.
-- Target matching uses manual distances where present.
-- If no manual distance exists for a slot, target matching uses the parenthesized real fallback.
+- Target mode first selects the two closest manual-distance matches.
+- After the two primary manual matches are selected, target mode may show one supplemental calculated-real match for a slot with no manual value.
+- The supplemental match is shown only when it is closer to the target than both primary manual matches.
 
 ### Real Mode
 
@@ -232,8 +233,17 @@ If multiple V1 entries map to the same field:
   - `distance != nil`
   - club/category/power match the slot.
 - If no calculated average exists, display the manual value in parentheses.
-- Target matching uses calculated averages where present.
-- If no calculated average exists for a slot, target matching uses the parenthesized manual fallback.
+- Target mode first selects the two closest calculated-real matches.
+- After the two primary real matches are selected, target mode may show one supplemental manual match for a slot with no calculated real value.
+- The supplemental match is shown only when it is closer to the target than both primary real matches.
+
+### Supplemental Target Result Rules
+
+- The primary two target results always come from the selected mode.
+- A supplemental result never replaces either primary result.
+- At most one supplemental result is shown.
+- Supplemental values are visually marked in parentheses.
+- "Closer" means a strictly smaller absolute difference from the target yardage than both primary results.
 
 ## Stats Contracts
 
@@ -261,7 +271,7 @@ The first code module should include:
 - Codable migration from V1 to V2.
 - Repository methods for shot record persistence.
 - Unit tests for migration, validation, and Real average calculation.
-- Unit tests for Manual and Real fallback distance selection.
+- Unit tests for Manual and Real target matching with optional supplemental third results.
 - No UI changes beyond whatever is needed to keep existing V1 screens compiling.
 
 ## Implementation Assumptions
@@ -269,5 +279,4 @@ The first code module should include:
 - Exact V1 merge matching includes normalized nickname, as well as profile, club type, and wedge loft.
 - If no exact merge match exists, preserve the V1 entry as its own club with the relevant V2 category filled.
 - For duplicate merged distance fields, newest `updatedAt` wins.
-- In Real mode target matching, parenthesized manual fallback values participate in recommendations when no calculated average exists for that slot.
-- In Manual mode target matching, parenthesized real fallback values participate in recommendations when no manual value exists for that slot.
+- In target mode, fallback values are eligible only as an optional supplemental third result, never as part of the primary two selected-mode results.
