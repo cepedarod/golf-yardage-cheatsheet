@@ -273,9 +273,9 @@ private struct ClubAnalysisDetailView: View {
                 rows: StrikeQuality.allCases.map {
                     DistributionRowData(
                         id: $0.displayName,
+                        quality: $0,
                         title: $0.displayName,
                         percentage: strikeDistribution[$0] ?? 0,
-                        systemImage: $0.systemImage,
                         tint: $0.tint
                     )
                 }
@@ -512,9 +512,7 @@ private struct ShotRecordRowView: View {
 
                 Spacer()
 
-                Image(systemName: record.strikeQuality.systemImage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(record.strikeQuality.tint)
+                StrikeQualityIcon(quality: record.strikeQuality, size: 22)
                     .accessibilityLabel(record.strikeQuality.displayName)
 
                 Image(systemName: record.direction.systemImage)
@@ -871,9 +869,9 @@ private struct ComparisonValue: View {
 
 private struct DistributionRowData: Identifiable {
     let id: String
+    let quality: StrikeQuality
     let title: String
     let percentage: Double
-    let systemImage: String
     let tint: Color
 }
 
@@ -884,9 +882,7 @@ private struct DistributionSummaryRow: View {
         HStack(spacing: 0) {
             ForEach(rows) { row in
                 VStack(spacing: 7) {
-                    Image(systemName: row.systemImage)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(row.tint)
+                    StrikeQualityIcon(quality: row.quality, size: 30)
 
                     Text(row.title)
                         .font(.caption)
@@ -905,6 +901,183 @@ private struct DistributionSummaryRow: View {
 
     private func formattedPercentage(_ percentage: Double) -> String {
         "\(Int(percentage.rounded()))%"
+    }
+}
+
+private struct StrikeQualityIcon: View {
+    let quality: StrikeQuality
+    var size: CGFloat
+
+    var body: some View {
+        ZStack {
+            GroundStrikeShape(quality: quality)
+                .stroke(
+                    groundTint,
+                    style: StrokeStyle(
+                        lineWidth: max(1, size * 0.045),
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
+                )
+                .frame(width: size, height: size)
+
+            ClubShaftShape()
+                .stroke(
+                    quality.tint.opacity(0.62),
+                    style: StrokeStyle(
+                        lineWidth: max(0.8, size * 0.035),
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
+                )
+                .frame(width: size, height: size)
+                .offset(shaftOffset)
+
+            ironFace
+                .rotationEffect(.degrees(ironRotation))
+                .offset(ironOffset)
+
+            Circle()
+                .fill(.background)
+                .overlay {
+                    Circle()
+                        .stroke(quality.tint.opacity(0.95), lineWidth: max(1.25, size * 0.07))
+                }
+                .frame(width: size * 0.31, height: size * 0.31)
+                .offset(x: size * 0.24, y: size * 0.12)
+
+            impactMark
+        }
+        .frame(width: size, height: size)
+        .accessibilityLabel(quality.displayName)
+    }
+
+    private var groundTint: Color {
+        quality == .chunk ? quality.tint.opacity(0.72) : Color.secondary.opacity(0.22)
+    }
+
+    private var ironFace: some View {
+        IronFaceSilhouetteShape()
+            .fill(quality.tint.opacity(0.88))
+            .overlay {
+                IronFaceSilhouetteShape()
+                    .stroke(quality.tint, lineWidth: max(0.9, size * 0.045))
+            }
+            .frame(width: size * 0.42, height: size * 0.6)
+    }
+
+    @ViewBuilder
+    private var impactMark: some View {
+        switch quality {
+        case .thin:
+            Capsule()
+                .fill(quality.tint)
+                .frame(width: size * 0.16, height: max(1, size * 0.045))
+                .rotationEffect(.degrees(-4))
+                .offset(x: size * 0.11, y: size * 0.1)
+        case .pure:
+            Capsule()
+                .fill(quality.tint)
+                .frame(width: max(1, size * 0.05), height: size * 0.17)
+                .rotationEffect(.degrees(-12))
+                .offset(x: size * 0.1, y: size * 0.08)
+        case .chunk:
+            EmptyView()
+        }
+    }
+
+    private var shaftOffset: CGSize {
+        switch quality {
+        case .thin:
+            CGSize(width: -size * 0.07, height: -size * 0.08)
+        case .pure:
+            CGSize(width: -size * 0.08, height: -size * 0.01)
+        case .chunk:
+            CGSize(width: -size * 0.18, height: size * 0.12)
+        }
+    }
+
+    private var ironOffset: CGSize {
+        switch quality {
+        case .thin:
+            CGSize(width: -size * 0.22, height: -size * 0.08)
+        case .pure:
+            CGSize(width: -size * 0.21, height: size * 0.03)
+        case .chunk:
+            CGSize(width: -size * 0.31, height: size * 0.19)
+        }
+    }
+
+    private var ironRotation: Double {
+        switch quality {
+        case .thin:
+            -6
+        case .pure:
+            -6
+        case .chunk:
+            15
+        }
+    }
+}
+
+private struct IronFaceSilhouetteShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        path.move(to: CGPoint(x: rect.minX + rect.width * 0.2, y: rect.minY + rect.height * 0.05))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + rect.width * 0.38, y: rect.minY + rect.height * 0.04),
+            control: CGPoint(x: rect.minX + rect.width * 0.28, y: rect.minY - rect.height * 0.02)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.04, y: rect.maxY - rect.height * 0.13))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + rect.width * 0.66, y: rect.maxY - rect.height * 0.02),
+            control: CGPoint(x: rect.maxX - rect.width * 0.12, y: rect.maxY + rect.height * 0.07)
+        )
+        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.06, y: rect.minY + rect.height * 0.28))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + rect.width * 0.2, y: rect.minY + rect.height * 0.05),
+            control: CGPoint(x: rect.minX + rect.width * 0.03, y: rect.minY + rect.height * 0.11)
+        )
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+private struct ClubShaftShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        path.move(to: CGPoint(x: rect.minX + rect.width * 0.48, y: rect.minY + rect.height * 0.04))
+        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.41, y: rect.minY + rect.height * 0.58))
+
+        return path
+    }
+}
+
+private struct GroundStrikeShape: Shape {
+    let quality: StrikeQuality
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+
+        let groundY = rect.minY + rect.height * 0.78
+
+        switch quality {
+        case .chunk:
+            path.move(to: CGPoint(x: rect.minX + rect.width * 0.06, y: groundY))
+            path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.26, y: groundY))
+            path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.34, y: groundY + rect.height * 0.11))
+            path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.47, y: groundY))
+            path.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.08, y: groundY))
+        case .thin, .pure:
+            path.move(to: CGPoint(x: rect.minX + rect.width * 0.08, y: groundY))
+            path.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.08, y: groundY))
+        }
+
+
+        return path
     }
 }
 
@@ -954,17 +1127,6 @@ private struct PercentageRow: View {
 }
 
 private extension StrikeQuality {
-    var systemImage: String {
-        switch self {
-        case .thin:
-            "minus.circle"
-        case .pure:
-            "checkmark.circle.fill"
-        case .chunk:
-            "exclamationmark.circle"
-        }
-    }
-
     var tint: Color {
         switch self {
         case .thin:
