@@ -4,9 +4,9 @@
 
 - `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build`: passed.
 - `xcrun xctrace list devices`: shows `Lemmy Machine`.
-- `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'id=00008130-001A3CE60A3A001C' -allowProvisioningUpdates build`: passed with automatic signing.
-- `xcrun devicectl device install app --device 00008130-001A3CE60A3A001C "<DerivedData>/Build/Products/Debug-iphoneos/Caddie Cat.app"`: installed successfully.
-- `xcrun devicectl device process launch --device 00008130-001A3CE60A3A001C com.cepedarod.GolfYardageCheatsheet`: launched successfully after the Apple Development profile was trusted.
+- V2 beta `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS,name=Lemmy Machine' -allowProvisioningUpdates build`: passed with automatic signing.
+- V2 beta `xcrun devicectl device install app --device 0ACBB310-B196-5C2B-87A1-E1D47EC481CC "<DerivedData>/Build/Products/Debug-iphoneos/Caddie Cat.app"`: installed successfully.
+- V2 beta `xcrun devicectl device process launch --device 0ACBB310-B196-5C2B-87A1-E1D47EC481CC com.cepedarod.GolfYardageCheatsheet`: launched successfully.
 - V1 physical smoke pass: passed.
 - V2 physical beta pass: pending.
 

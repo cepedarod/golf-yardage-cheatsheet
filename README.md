@@ -33,8 +33,8 @@ Build a simple, offline-first iOS app that lets golfers store club distances by 
 - `swift test`: 52 tests passing.
 - iOS simulator smoke suite: 13 UI tests passing.
 - Unsigned `iphoneos` Debug build: passing.
-- Physical iPhone signed build: passing with automatic signing.
-- Physical iPhone install: passing on `Lemmy Machine`.
-- Physical iPhone launch: passing on `Lemmy Machine`.
+- Physical iPhone V2 beta signed build: passing with automatic signing.
+- Physical iPhone V2 beta install: passing on `Lemmy Machine`.
+- Physical iPhone V2 beta launch: passing on `Lemmy Machine`.
 - Physical iPhone V1 smoke pass: passed, with follow-up refinements implemented from testing feedback.
 - Physical iPhone V2 beta pass: pending.
