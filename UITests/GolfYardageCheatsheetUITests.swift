@@ -88,20 +88,23 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         let targetField = app.textFields["target-yardage-field"]
         XCTAssertTrue(targetField.waitForExistence(timeout: 2))
         targetField.tap()
+        XCTAssertTrue(app.buttons["dismiss-target-keyboard-button"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["record-shot-button"].exists)
         app.keys["2"].tap()
         app.keys["3"].tap()
         app.keys["2"].tap()
-        app.buttons["Done"].tap()
 
         XCTAssertTrue(app.buttons["Clear"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["dismiss-target-keyboard-button"].exists)
+        XCTAssertTrue(app.buttons["record-shot-button"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.descendants(matching: .any)["closest-match-3 Wood"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.descendants(matching: .any)["closest-match-Driver"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["3 Wood"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Full 230"].exists)
-        XCTAssertTrue(app.staticTexts["Full 255"].exists)
+        XCTAssertEqual(app.descendants(matching: .any)["closest-match-distance-3 Wood"].label, "Full 230")
+        XCTAssertEqual(app.descendants(matching: .any)["closest-match-distance-Driver"].label, "Full 255")
         XCTAssertFalse(app.staticTexts["5 Wood"].exists)
-        XCTAssertFalse(app.staticTexts["Full 215"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["closest-match-distance-5 Wood"].exists)
     }
 
     func testTargetYardageAutoClearsAfterDelay() {
@@ -142,11 +145,11 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
-        XCTAssertFalse(app.staticTexts["3 Wood (Low Trajectory)"].exists)
+        XCTAssertFalse(app.staticTexts["3 Wood"].exists)
 
         app.buttons["shot-filter-low-trajectory"].tap()
 
-        XCTAssertTrue(app.staticTexts["3 Wood (Low Trajectory)"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["3 Wood"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["230"].exists)
         XCTAssertFalse(app.staticTexts["Driver"].exists)
         XCTAssertFalse(app.staticTexts["255"].exists)
@@ -154,7 +157,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.buttons["shot-filter-normal"].tap()
 
         XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
-        XCTAssertFalse(app.staticTexts["3 Wood (Low Trajectory)"].exists)
+        XCTAssertFalse(app.staticTexts["3 Wood"].exists)
     }
 
     func testRecordShotUpdatesRealDistanceMode() {
@@ -219,7 +222,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Recorded Shots"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["shot-record-row-full"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["-"].exists)
+        XCTAssertTrue(app.staticTexts["- yds"].exists)
     }
 
     func testAnalysisTabShowsRecordedClubStats() {
@@ -321,7 +324,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(shotRow.waitForExistence(timeout: 2))
         let stingerRow = app.descendants(matching: .any)["shot-record-row-stinger"]
         XCTAssertTrue(stingerRow.waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Full"].exists)
+        XCTAssertTrue(app.staticTexts["Full Normal"].exists)
         XCTAssertTrue(app.staticTexts["Stinger"].exists)
         XCTAssertFalse(app.staticTexts["Normal Full"].exists)
         XCTAssertFalse(app.staticTexts["Low Trajectory Stinger"].exists)
@@ -380,13 +383,43 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         let fullDistanceField = app.textFields["full-distance-field"]
         XCTAssertEqual(fullDistanceField.value as? String, "255")
 
-        replaceText(in: fullDistanceField, with: "260", in: app)
+        let clearFullDistanceButton = app.buttons["clear-full-distance-field-button"]
+        XCTAssertTrue(clearFullDistanceButton.waitForExistence(timeout: 2))
+        clearFullDistanceButton.tap()
+        fullDistanceField.tap()
+        fullDistanceField.typeText("260")
         app.buttons["save-club-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["260"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.staticTexts["255"].exists)
+    }
+
+    func testProfileCanBeDeletedFromProfileList() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        XCTAssertTrue(app.navigationBars["Add Club"].waitForExistence(timeout: 5))
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.buttons["Switch Profile"].tap()
+
+        XCTAssertTrue(app.navigationBars["Profiles"].waitForExistence(timeout: 5))
+        let profileRow = app.descendants(matching: .any)["profile-row-Rod"]
+        XCTAssertTrue(profileRow.waitForExistence(timeout: 2))
+        profileRow.swipeLeft()
+
+        let deleteButton = app.buttons["Delete Profile"]
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 2))
+        deleteButton.tap()
+
+        let confirmDeleteButton = app.buttons["Delete Profile"]
+        XCTAssertTrue(confirmDeleteButton.waitForExistence(timeout: 2))
+        confirmDeleteButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Create Profile"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any)["profile-row-Rod"].exists)
     }
 
     func testInactiveClubRestoreAndDeleteFlows() {
@@ -501,7 +534,10 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
             app.keys[String(digit)].tap()
         }
 
-        app.buttons["Done"].tap()
+        let doneButton = app.buttons["Done"]
+        if doneButton.waitForExistence(timeout: 1) {
+            doneButton.tap()
+        }
     }
 
     private func replaceText(in textField: XCUIElement, with text: String, in app: XCUIApplication) {

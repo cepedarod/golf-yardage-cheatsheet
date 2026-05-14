@@ -399,8 +399,7 @@ public struct YardageMatcher: Sendable {
             limit: limit
         )
 
-        guard primaryMatches.count == limit,
-              let supplementalMatch = closestSupplementalMatch(
+        guard let supplementalMatch = closestSupplementalMatch(
                 targetYardage: targetYardage,
                 candidates: candidates,
                 primaryMatches: primaryMatches,
@@ -482,12 +481,25 @@ public struct YardageMatcher: Sendable {
 
         return supplementalMatches
             .filter { supplemental in
-                primaryMatches.allSatisfy { supplemental.differenceFromTarget < $0.differenceFromTarget }
+                shouldIncludeSupplemental(supplemental, primaryMatches: primaryMatches)
             }
             .sorted { lhs, rhs in
                 sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords)
             }
             .first
+    }
+
+    private func shouldIncludeSupplemental(
+        _ supplemental: YardageMatch,
+        primaryMatches: [YardageMatch]
+    ) -> Bool {
+        guard primaryMatches.isEmpty == false else {
+            return true
+        }
+
+        return primaryMatches.allSatisfy {
+            supplemental.differenceFromTarget < $0.differenceFromTarget
+        }
     }
 
     private func match(

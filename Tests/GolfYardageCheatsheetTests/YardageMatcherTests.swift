@@ -241,6 +241,44 @@ final class YardageMatcherTests: XCTestCase {
         XCTAssertEqual(matches.last?.formattedDistance, "(151)")
     }
 
+    func testRealModeTargetMatchesCanAppendCloserManualSupplementalWhenOnlyOneRealMatchExists() {
+        let realClubID = UUID()
+        let supplementalClubID = UUID()
+        let clubs = [
+            Club(id: realClubID, profileID: profileID, clubType: .fiveIron),
+            Club(
+                id: supplementalClubID,
+                profileID: profileID,
+                clubType: .sixIron,
+                normalDistances: SwingDistanceSet(half: 166)
+            )
+        ]
+        let records = [
+            ShotRecord(
+                profileID: profileID,
+                clubID: realClubID,
+                category: .normal,
+                power: .half,
+                distance: 160,
+                strikeQuality: .pure,
+                direction: .straight
+            )
+        ]
+
+        let matches = matcher.closestMatches(
+            targetYardage: 165,
+            clubs: clubs,
+            filter: .normal,
+            valueMode: .real,
+            shotRecords: records
+        )
+
+        XCTAssertEqual(matches.map(\.club.id), [realClubID, supplementalClubID])
+        XCTAssertEqual(matches.map(\.distance), [160, 166])
+        XCTAssertEqual(matches.map(\.isSupplemental), [false, true])
+        XCTAssertEqual(matches.last?.formattedDistance, "(166)")
+    }
+
     func testManualModeTargetMatchesCanAppendCloserRealSupplementalResult() {
         let manualLongClubID = UUID()
         let manualShortClubID = UUID()

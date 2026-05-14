@@ -58,6 +58,26 @@ public final class GolfBagRepository {
         try store.save(data)
     }
 
+    public func deleteProfile(id profileID: UUID) throws {
+        var data = try store.load()
+
+        guard data.profiles.contains(where: { $0.id == profileID }) else {
+            throw GolfBagRepositoryError.profileNotFound
+        }
+
+        let removedClubIDs = Set(data.clubs.filter { $0.profileID == profileID }.map(\.id))
+
+        data.profiles.removeAll { $0.id == profileID }
+        data.clubs.removeAll { $0.profileID == profileID }
+        data.shotRecords.removeAll { $0.profileID == profileID || removedClubIDs.contains($0.clubID) }
+
+        if data.selectedProfileID == profileID {
+            data.selectedProfileID = data.profiles.first?.id
+        }
+
+        try store.save(data)
+    }
+
     public func profiles() throws -> [GolferProfile] {
         try store.load().profiles.sorted { lhs, rhs in
             if lhs.createdAt != rhs.createdAt {

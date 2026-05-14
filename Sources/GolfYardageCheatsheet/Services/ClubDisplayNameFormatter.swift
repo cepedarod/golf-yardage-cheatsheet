@@ -4,14 +4,7 @@ public struct ClubDisplayNameFormatter: Sendable {
     public init() {}
 
     public func displayName(for club: Club) -> String {
-        let baseName = baseDisplayName(for: club)
-
-        switch club.shotType {
-        case .punch:
-            return "\(baseName) (Low Trajectory)"
-        case .flop, .normal, .none:
-            return baseName
-        }
+        baseDisplayName(for: club)
     }
 
     private func baseDisplayName(for club: Club) -> String {

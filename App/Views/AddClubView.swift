@@ -191,6 +191,17 @@ struct AddClubView: View {
         HStack {
             Text(title)
             Spacer()
+            if text.wrappedValue.isEmpty == false {
+                Button {
+                    text.wrappedValue = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear \(title)")
+                .accessibilityIdentifier("clear-\(identifier)-button")
+            }
             NumericTextField(title: "Yards", text: text)
                 .accessibilityIdentifier(identifier)
                 .frame(maxWidth: 96)

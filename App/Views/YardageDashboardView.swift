@@ -9,6 +9,7 @@ struct YardageDashboardView: View {
     @State private var didOfferInitialBagSetup = false
     @State private var isShowingRecordShot = false
     @State private var targetYardageText = ""
+    @FocusState private var isTargetYardageFocused: Bool
 
     private let formatter = ClubDisplayNameFormatter()
 
@@ -33,10 +34,7 @@ struct YardageDashboardView: View {
                 HStack {
                     Text("Target")
                     Spacer()
-                    NumericTextField(title: "Yards", text: $targetYardageText)
-                        .font(.title2.weight(.semibold))
-                        .accessibilityIdentifier("target-yardage-field")
-                        .frame(maxWidth: 120)
+                    targetYardageField
                 }
 
                 Picker("Shot Filter", selection: $viewModel.shotFilter) {
@@ -162,6 +160,16 @@ struct YardageDashboardView: View {
                     .accessibilityLabel("Add Club")
                 }
             }
+
+            ToolbarItemGroup(placement: .keyboard) {
+                if isTargetYardageFocused {
+                    Spacer()
+                    Button("Done") {
+                        isTargetYardageFocused = false
+                    }
+                    .accessibilityIdentifier("dismiss-target-keyboard-button")
+                }
+            }
         }
         .sheet(item: $clubForm) { form in
             NavigationStack {
@@ -183,14 +191,27 @@ struct YardageDashboardView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            recordShotBar
+            if isTargetYardageFocused == false {
+                recordShotBar
+            }
         }
         .task {
             viewModel.loadClubs()
             offerInitialBagSetupIfNeeded()
         }
         .onChange(of: targetYardageText) { _, newValue in
-            viewModel.setTargetYardageText(newValue)
+            let digitsOnly = String(newValue.filter(\.isNumber).prefix(3))
+
+            guard digitsOnly == newValue else {
+                targetYardageText = digitsOnly
+                return
+            }
+
+            viewModel.setTargetYardageText(digitsOnly)
+
+            if digitsOnly.count == 3 {
+                isTargetYardageFocused = false
+            }
         }
         .onChange(of: viewModel.targetYardageText) { _, newValue in
             if targetYardageText != newValue {
@@ -218,26 +239,50 @@ struct YardageDashboardView: View {
         viewModel.clearTargetYardage()
     }
 
+    private var targetYardageField: some View {
+        TextField("Yards", text: $targetYardageText)
+            .focused($isTargetYardageFocused)
+            .keyboardType(.numberPad)
+            .multilineTextAlignment(.trailing)
+            .font(.title2.weight(.semibold))
+            .accessibilityIdentifier("target-yardage-field")
+            .frame(maxWidth: 120)
+    }
+
     private func closestMatchRow(for match: YardageMatch) -> some View {
         let displayName = formatter.displayName(for: match.club)
-        let distanceSummary = "\(match.displayLabel) \(match.formattedDistance)"
+        let distanceAccessibility = "\(match.displayLabel) \(match.formattedDistance)"
 
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(displayName)
-                .font(.headline)
-                .accessibilityIdentifier("closest-match-name-\(displayName)")
+        return HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(displayName)
+                    .font(.headline)
+                    .accessibilityIdentifier("closest-match-name-\(displayName)")
 
-            HStack {
-                Text(distanceSummary)
-                    .font(.title3.weight(.semibold))
-                    .accessibilityIdentifier("closest-match-distance-\(displayName)")
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(match.displayLabel)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
 
-                Spacer()
+                    Text(match.formattedDistance)
+                        .font(.title3.weight(.semibold))
+                        .monospacedDigit()
 
-                Text(differenceSummary(for: match))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    Text("yds")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(distanceAccessibility)
+                .accessibilityIdentifier("closest-match-distance-\(displayName)")
             }
+
+            Spacer()
+
+            Text(differenceSummary(for: match))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .contain)

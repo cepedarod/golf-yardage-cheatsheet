@@ -22,6 +22,56 @@ final class GolfBagRepositoryTests: XCTestCase {
         }
     }
 
+    func testDeleteProfileRemovesProfileClubsAndShotRecords() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let firstProfile = try repository.createProfile(name: "Rod")
+        let secondProfile = try repository.createProfile(name: "Friend")
+        let firstClub = Club(
+            profileID: firstProfile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155)
+        )
+        let secondClub = Club(
+            profileID: secondProfile.id,
+            clubType: .driver,
+            swingDistances: SwingDistanceSet(full: 250)
+        )
+        let firstRecord = ShotRecord(
+            profileID: firstProfile.id,
+            clubID: firstClub.id,
+            category: .normal,
+            power: .full,
+            distance: 152,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+        let secondRecord = ShotRecord(
+            profileID: secondProfile.id,
+            clubID: secondClub.id,
+            category: .normal,
+            power: .full,
+            distance: 248,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+
+        try repository.saveClub(firstClub)
+        try repository.saveClub(secondClub)
+        try repository.saveShotRecord(firstRecord)
+        try repository.saveShotRecord(secondRecord)
+
+        try repository.deleteProfile(id: firstProfile.id)
+
+        XCTAssertEqual(try repository.profiles(), [secondProfile])
+        XCTAssertThrowsError(try repository.clubs(for: firstProfile.id)) { error in
+            XCTAssertEqual(error as? GolfBagRepositoryError, .profileNotFound)
+        }
+        XCTAssertEqual(try repository.clubs(for: secondProfile.id), [secondClub])
+        XCTAssertEqual(try repository.shotRecords(for: secondProfile.id), [secondRecord])
+        XCTAssertFalse(try repository.loadData().shotRecords.contains(firstRecord))
+    }
+
     func testSaveClubRequiresExistingProfile() {
         let repository = GolfBagRepository(store: InMemoryGolfBagStore())
         let club = Club(

@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileSelectionView: View {
     @ObservedObject var viewModel: ProfileSelectionViewModel
     @State private var isShowingCreateProfile = false
+    @State private var profilePendingDelete: GolferProfile?
 
     var body: some View {
         Group {
@@ -40,6 +41,15 @@ struct ProfileSelectionView: View {
                                 .padding(.vertical, 8)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("profile-row-\(profile.name)")
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    profilePendingDelete = profile
+                                } label: {
+                                    Label("Delete Profile", systemImage: "trash")
+                                }
+                                .accessibilityIdentifier("delete-profile-\(profile.name)-button")
+                            }
                         }
                     }
                 }
@@ -55,6 +65,14 @@ struct ProfileSelectionView: View {
                     }
                 }
             }
+        }
+        .alert("Delete Profile?", isPresented: isConfirmingProfileDelete, presenting: profilePendingDelete) { profile in
+            Button("Cancel", role: .cancel) {}
+            Button("Delete Profile", role: .destructive) {
+                viewModel.deleteProfile(profile)
+            }
+        } message: { profile in
+            Text("This removes \(profile.name), their clubs, and their recorded shots from this device.")
         }
         .sheet(isPresented: $isShowingCreateProfile) {
             NavigationStack {
@@ -80,6 +98,17 @@ struct ProfileSelectionView: View {
             }
         }
     }
+
+    private var isConfirmingProfileDelete: Binding<Bool> {
+        Binding(
+            get: { profilePendingDelete != nil },
+            set: { isPresented in
+                if isPresented == false {
+                    profilePendingDelete = nil
+                }
+            }
+        )
+    }
 }
 
 #Preview {
@@ -87,4 +116,3 @@ struct ProfileSelectionView: View {
     let viewModel = ProfileSelectionViewModel(repository: repository)
     ProfileSelectionView(viewModel: viewModel)
 }
-

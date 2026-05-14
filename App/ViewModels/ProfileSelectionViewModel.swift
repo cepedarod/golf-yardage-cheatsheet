@@ -59,8 +59,22 @@ final class ProfileSelectionViewModel: ObservableObject {
         }
     }
 
+    func deleteProfile(_ profile: GolferProfile) {
+        do {
+            try repository.deleteProfile(id: profile.id)
+            profiles = try repository.profiles()
+
+            if selectedProfile?.id == profile.id {
+                selectedProfile = nil
+            }
+
+            errorMessage = nil
+        } catch {
+            errorMessage = "Unable to delete profile."
+        }
+    }
+
     func clearSelectedProfile() {
         selectedProfile = nil
     }
 }
-

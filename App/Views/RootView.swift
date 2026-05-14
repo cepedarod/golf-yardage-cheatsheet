@@ -525,12 +525,17 @@ private struct ShotRecordRowView: View {
     }
 
     private var shotTypeText: String {
-        record.power.displayName
+        switch record.category {
+        case .normal, .flop:
+            return "\(record.power.displayName) \(record.category.displayName)"
+        case .lowTrajectory:
+            return record.power.displayName
+        }
     }
 
     private var distanceText: String {
         guard let distance = record.distance else {
-            return "-"
+            return "- yds"
         }
 
         return "\(distance) yds"
