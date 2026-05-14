@@ -119,8 +119,17 @@ final class YardageDashboardViewModel: ObservableObject {
         }
     }
 
+    var recordableActiveClubs: [Club] {
+        activeClubs.filter { $0.clubType != .putter }
+    }
+
     func setTargetYardageText(_ text: String) {
         targetYardageText = text
+    }
+
+    func saveShotRecord(_ record: ShotRecord) throws {
+        try repository.saveShotRecord(record)
+        loadClubs()
     }
 
     private var targetYardage: Int? {

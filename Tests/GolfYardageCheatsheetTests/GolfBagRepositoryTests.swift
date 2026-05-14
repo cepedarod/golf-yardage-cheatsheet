@@ -262,6 +262,61 @@ final class GolfBagRepositoryTests: XCTestCase {
         )
     }
 
+    func testShotStatsUseAllRecordsForTotalsAndDistributions() {
+        let clubID = UUID()
+        let calculator = ShotStatsCalculator()
+        let records = [
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: nil,
+                strikeQuality: .pure,
+                direction: .straight
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .half,
+                distance: 90,
+                strikeQuality: .thin,
+                direction: .fade
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .quarter,
+                distance: nil,
+                strikeQuality: .chunk,
+                direction: .fade
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .lowTrajectory,
+                power: .stinger,
+                distance: 120,
+                strikeQuality: .pure,
+                direction: .draw
+            )
+        ]
+
+        XCTAssertEqual(calculator.totalShots(for: records, clubID: clubID, category: .normal), 3)
+        XCTAssertEqual(
+            calculator.strikeDistributionPercentages(for: records, clubID: clubID, category: .normal)[.pure] ?? -1,
+            100.0 / 3.0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            calculator.directionDistributionPercentages(for: records, clubID: clubID, category: .normal)[.fade] ?? -1,
+            200.0 / 3.0,
+            accuracy: 0.001
+        )
+    }
+
     func testMissingClubMutationsThrowClubNotFound() throws {
         let repository = GolfBagRepository(store: InMemoryGolfBagStore())
 

@@ -156,6 +156,16 @@ public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
 public struct ShotStatsCalculator: Sendable {
     public init() {}
 
+    public func totalShots(
+        for records: [ShotRecord],
+        clubID: UUID,
+        category: ShotCategory
+    ) -> Int {
+        records.filter {
+            $0.clubID == clubID && $0.category == category
+        }.count
+    }
+
     public func averageDistance(
         for records: [ShotRecord],
         clubID: UUID,
@@ -198,6 +208,47 @@ public struct ShotStatsCalculator: Sendable {
             if let average = averageDistance(for: records, clubID: clubID, category: category, power: power) {
                 result[power] = average
             }
+        }
+    }
+
+    public func strikeDistributionPercentages(
+        for records: [ShotRecord],
+        clubID: UUID,
+        category: ShotCategory
+    ) -> [StrikeQuality: Double] {
+        distributionPercentages(
+            for: records.filter { $0.clubID == clubID && $0.category == category },
+            allCases: StrikeQuality.allCases,
+            keyPath: \.strikeQuality
+        )
+    }
+
+    public func directionDistributionPercentages(
+        for records: [ShotRecord],
+        clubID: UUID,
+        category: ShotCategory
+    ) -> [ShotDirection: Double] {
+        distributionPercentages(
+            for: records.filter { $0.clubID == clubID && $0.category == category },
+            allCases: ShotDirection.allCases,
+            keyPath: \.direction
+        )
+    }
+
+    private func distributionPercentages<Value: CaseIterable & Hashable>(
+        for records: [ShotRecord],
+        allCases: Value.AllCases,
+        keyPath: KeyPath<ShotRecord, Value>
+    ) -> [Value: Double] where Value.AllCases: Collection {
+        guard records.isEmpty == false else {
+            return allCases.reduce(into: [:]) { result, value in
+                result[value] = 0
+            }
+        }
+
+        return allCases.reduce(into: [:]) { result, value in
+            let matchingCount = records.filter { $0[keyPath: keyPath] == value }.count
+            result[value] = Double(matchingCount) / Double(records.count) * 100
         }
     }
 }

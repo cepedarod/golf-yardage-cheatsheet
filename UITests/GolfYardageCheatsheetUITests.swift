@@ -136,6 +136,35 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["3 Wood (Low Trajectory)"].exists)
     }
 
+    func testRecordShotUpdatesRealDistanceMode() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        let recordShotButton = app.buttons["record-shot-button"]
+        XCTAssertTrue(recordShotButton.waitForExistence(timeout: 2))
+        recordShotButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["record-shot-form"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
+
+        let shotDistanceField = app.textFields["record-shot-distance-field"]
+        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
+        shotDistanceField.tap()
+        shotDistanceField.typeText("250")
+        app.buttons["Done"].tap()
+        app.buttons["save-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.buttons["value-mode-real"].tap()
+
+        XCTAssertTrue(app.staticTexts["250"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["255"].exists)
+    }
+
     func testDashboardEditUpdatesExistingClubDistance() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
