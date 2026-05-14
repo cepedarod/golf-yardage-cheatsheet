@@ -66,7 +66,7 @@ final class ClubValidatorTests: XCTestCase {
         XCTAssertTrue(validator.validate(club).contains(.wedgeLoftNotAllowedForClubType))
     }
 
-    func testWedgesCannotUsePunchShotType() {
+    func testWedgesCanUseLowTrajectoryDistances() {
         let club = Club(
             profileID: profileID,
             clubType: .sandWedge,
@@ -74,7 +74,7 @@ final class ClubValidatorTests: XCTestCase {
             swingDistances: SwingDistanceSet(full: 90)
         )
 
-        XCTAssertTrue(validator.validate(club).contains(.invalidWedgeShotType))
+        XCTAssertTrue(validator.isValid(club))
     }
 
     func testNonWedgesCannotUseFlopShotType() {
@@ -99,6 +99,19 @@ final class ClubValidatorTests: XCTestCase {
 
         XCTAssertTrue(errors.contains(.nonPositiveDistance(label: .full)))
         XCTAssertTrue(errors.contains(.nonPositiveDistance(label: .half)))
+    }
+
+    func testLowTrajectoryDistancesMustBePositive() {
+        let club = Club(
+            profileID: profileID,
+            clubType: .fiveIron,
+            lowTrajectoryDistances: LowTrajectoryDistanceSet(stinger: 0, punch: -5)
+        )
+
+        let errors = validator.validate(club)
+
+        XCTAssertTrue(errors.contains(.nonPositiveLowTrajectoryDistance(power: .stinger)))
+        XCTAssertTrue(errors.contains(.nonPositiveLowTrajectoryDistance(power: .punch)))
     }
 
     func testPutterCannotCarryShotTypeOrSwingDistancesFromCorruptData() {

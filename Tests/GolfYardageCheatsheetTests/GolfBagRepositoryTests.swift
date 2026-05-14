@@ -157,6 +157,111 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertTrue(try repository.clubs(for: profile.id).isEmpty)
     }
 
+    func testSaveShotRecordPersistsOptionalDistanceAndTimestamp() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let club = Club(
+            profileID: profile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155)
+        )
+        let createdAt = Date(timeIntervalSince1970: 500)
+        let record = ShotRecord(
+            profileID: profile.id,
+            clubID: club.id,
+            category: .normal,
+            power: .full,
+            distance: nil,
+            strikeQuality: .pure,
+            direction: .straight,
+            createdAt: createdAt
+        )
+
+        try repository.saveClub(club)
+        try repository.saveShotRecord(record)
+
+        XCTAssertEqual(try repository.shotRecords(for: profile.id), [record])
+        XCTAssertEqual(try repository.loadData().shotRecords.first?.createdAt, createdAt)
+    }
+
+    func testSaveShotRecordRejectsInvalidPowerForCategory() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let club = Club(
+            profileID: profile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155)
+        )
+        let record = ShotRecord(
+            profileID: profile.id,
+            clubID: club.id,
+            category: .normal,
+            power: .stinger,
+            distance: 150,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+
+        try repository.saveClub(club)
+
+        XCTAssertThrowsError(try repository.saveShotRecord(record)) { error in
+            XCTAssertEqual(
+                error as? GolfBagRepositoryError,
+                .invalidShotRecord([.unsupportedPowerForCategory])
+            )
+        }
+    }
+
+    func testShotAveragesIgnoreMissingDistanceAndNonPureStrikes() {
+        let clubID = UUID()
+        let calculator = ShotStatsCalculator()
+        let records = [
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 100,
+                strikeQuality: .pure,
+                direction: .straight
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: nil,
+                strikeQuality: .pure,
+                direction: .straight
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 160,
+                strikeQuality: .thin,
+                direction: .straight
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 120,
+                strikeQuality: .pure,
+                direction: .fade
+            )
+        ]
+
+        XCTAssertEqual(
+            calculator.averageDistance(for: records, clubID: clubID, category: .normal, power: .full),
+            110
+        )
+    }
+
     func testMissingClubMutationsThrowClubNotFound() throws {
         let repository = GolfBagRepository(store: InMemoryGolfBagStore())
 

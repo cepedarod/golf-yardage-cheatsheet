@@ -6,15 +6,22 @@ public enum GolfBagRepositoryError: Error, Equatable, Sendable {
     case clubNotFound
     case clubDoesNotBelongToProfile
     case invalidClub([ClubValidationError])
+    case invalidShotRecord([ShotRecordValidationError])
 }
 
 public final class GolfBagRepository {
     private let store: GolfBagStore
     private let clubValidator: ClubValidator
+    private let shotRecordValidator: ShotRecordValidator
 
-    public init(store: GolfBagStore, clubValidator: ClubValidator = ClubValidator()) {
+    public init(
+        store: GolfBagStore,
+        clubValidator: ClubValidator = ClubValidator(),
+        shotRecordValidator: ShotRecordValidator = ShotRecordValidator()
+    ) {
         self.store = store
         self.clubValidator = clubValidator
+        self.shotRecordValidator = shotRecordValidator
     }
 
     public func loadData() throws -> GolfBagData {
@@ -104,6 +111,58 @@ public final class GolfBagRepository {
         return club
     }
 
+    @discardableResult
+    public func saveShotRecord(_ record: ShotRecord) throws -> ShotRecord {
+        var data = try store.load()
+
+        guard data.profiles.contains(where: { $0.id == record.profileID }) else {
+            throw GolfBagRepositoryError.profileNotFound
+        }
+
+        guard let club = data.clubs.first(where: { $0.id == record.clubID }) else {
+            throw GolfBagRepositoryError.clubNotFound
+        }
+
+        guard club.profileID == record.profileID else {
+            throw GolfBagRepositoryError.clubDoesNotBelongToProfile
+        }
+
+        let validationErrors = shotRecordValidator.validate(record, club: club)
+
+        guard validationErrors.isEmpty else {
+            throw GolfBagRepositoryError.invalidShotRecord(validationErrors)
+        }
+
+        if let existingIndex = data.shotRecords.firstIndex(where: { $0.id == record.id }) {
+            data.shotRecords[existingIndex] = record
+        } else {
+            data.shotRecords.append(record)
+        }
+
+        try store.save(data)
+        return record
+    }
+
+    public func shotRecords(for profileID: UUID, clubID: UUID? = nil) throws -> [ShotRecord] {
+        let data = try store.load()
+
+        guard data.profiles.contains(where: { $0.id == profileID }) else {
+            throw GolfBagRepositoryError.profileNotFound
+        }
+
+        return data.shotRecords
+            .filter { record in
+                record.profileID == profileID && (clubID == nil || record.clubID == clubID)
+            }
+            .sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt < rhs.createdAt
+                }
+
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+    }
+
     public func setClubActive(_ isActive: Bool, clubID: UUID, now: Date = Date()) throws {
         var data = try store.load()
 
@@ -125,7 +184,7 @@ public final class GolfBagRepository {
         }
 
         data.clubs.remove(at: index)
+        data.shotRecords.removeAll { $0.clubID == clubID }
         try store.save(data)
     }
 }
-

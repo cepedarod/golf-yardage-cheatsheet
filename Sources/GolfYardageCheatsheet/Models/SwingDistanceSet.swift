@@ -27,3 +27,47 @@ public struct SwingDistanceSet: Codable, Equatable, Sendable {
     }
 }
 
+public struct LowTrajectoryDistanceSet: Codable, Equatable, Sendable {
+    public var stinger: Int?
+    public var punch: Int?
+    public var softPunch: Int?
+    public var chip: Int?
+
+    public init(stinger: Int? = nil, punch: Int? = nil, softPunch: Int? = nil, chip: Int? = nil) {
+        self.stinger = stinger
+        self.punch = punch
+        self.softPunch = softPunch
+        self.chip = chip
+    }
+
+    public init(swingDistances: SwingDistanceSet) {
+        self.init(
+            stinger: swingDistances.full,
+            punch: swingDistances.threeQuarter,
+            softPunch: swingDistances.half,
+            chip: swingDistances.quarter
+        )
+    }
+
+    public var hasAtLeastOneDistance: Bool {
+        entries().isEmpty == false
+    }
+
+    public func entries() -> [(power: ShotPower, distance: Int)] {
+        [
+            stinger.map { (.stinger, $0) },
+            punch.map { (.punch, $0) },
+            softPunch.map { (.softPunch, $0) },
+            chip.map { (.chip, $0) }
+        ].compactMap { $0 }
+    }
+
+    public func asSwingDistanceSet() -> SwingDistanceSet {
+        SwingDistanceSet(
+            full: stinger,
+            threeQuarter: punch,
+            half: softPunch,
+            quarter: chip
+        )
+    }
+}

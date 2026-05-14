@@ -4,6 +4,7 @@ public enum ClubValidationError: Error, Equatable, Sendable {
     case missingSwingDistance
     case missingPutterDistance
     case nonPositiveDistance(label: DistanceLabel)
+    case nonPositiveLowTrajectoryDistance(power: ShotPower)
     case putterCannotHaveShotType
     case putterCannotHaveSwingDistances
     case nonPutterCannotHavePutterDistances
@@ -59,7 +60,7 @@ public struct ClubValidator: Sendable {
             errors.append(.putterCannotHaveShotType)
         }
 
-        if let swingDistances = club.swingDistances, swingDistances.entries().isEmpty == false {
+        if hasNonPutterDistances(club) {
             errors.append(.putterCannotHaveSwingDistances)
         }
 
@@ -84,24 +85,27 @@ public struct ClubValidator: Sendable {
             errors.append(.nonPutterCannotHavePutterDistances)
         }
 
-        if club.clubType.isWedge {
-            if club.shotType == .punch {
-                errors.append(.invalidWedgeShotType)
-            }
-        } else if club.shotType == .flop {
+        if club.clubType.isWedge == false,
+           club.flopDistances?.entries().isEmpty == false || club.shotType == .flop {
             errors.append(.invalidNonWedgeShotType)
         }
 
-        guard let swingDistances = club.swingDistances else {
+        let swingDistanceSets = [
+            club.normalDistances,
+            club.flopDistances
+        ].compactMap { $0 }
+        let legacySwingDistances = swingDistanceSets.isEmpty ? club.swingDistances : nil
+        let swingEntries = swingDistanceSets.flatMap { $0.entries() }
+        let legacyEntries = legacySwingDistances?.entries() ?? []
+        let lowTrajectoryEntries = club.lowTrajectoryDistances?.entries() ?? []
+
+        if swingEntries.isEmpty, legacyEntries.isEmpty, lowTrajectoryEntries.isEmpty {
             errors.append(.missingSwingDistance)
-            return errors
         }
 
-        errors.append(contentsOf: validateDistances(swingDistances.entries()))
-
-        if swingDistances.hasAtLeastOneDistance == false {
-            errors.append(.missingSwingDistance)
-        }
+        errors.append(contentsOf: validateDistances(swingEntries))
+        errors.append(contentsOf: validateDistances(legacyEntries))
+        errors.append(contentsOf: validateLowTrajectoryDistances(lowTrajectoryEntries))
 
         return errors
     }
@@ -111,5 +115,76 @@ public struct ClubValidator: Sendable {
             entry.distance > 0 ? nil : .nonPositiveDistance(label: entry.label)
         }
     }
+
+    private func validateLowTrajectoryDistances(
+        _ entries: [(power: ShotPower, distance: Int)]
+    ) -> [ClubValidationError] {
+        entries.compactMap { entry in
+            entry.distance > 0 ? nil : .nonPositiveLowTrajectoryDistance(power: entry.power)
+        }
+    }
+
+    private func hasNonPutterDistances(_ club: Club) -> Bool {
+        club.swingDistances?.entries().isEmpty == false ||
+            club.normalDistances?.entries().isEmpty == false ||
+            club.lowTrajectoryDistances?.entries().isEmpty == false ||
+            club.flopDistances?.entries().isEmpty == false
+    }
 }
 
+public enum ShotRecordValidationError: Error, Equatable, Sendable {
+    case inactiveClub
+    case putterShotRecordsNotSupported
+    case unsupportedCategoryForClubType
+    case unsupportedPowerForCategory
+    case nonPositiveDistance
+}
+
+public struct ShotRecordValidator: Sendable {
+    public init() {}
+
+    public func validate(_ record: ShotRecord, club: Club) -> [ShotRecordValidationError] {
+        var errors: [ShotRecordValidationError] = []
+
+        if club.isActive == false {
+            errors.append(.inactiveClub)
+        }
+
+        if club.clubType == .putter {
+            errors.append(.putterShotRecordsNotSupported)
+        }
+
+        if record.category == .flop, club.clubType.isWedge == false {
+            errors.append(.unsupportedCategoryForClubType)
+        }
+
+        if supports(record.power, in: record.category) == false {
+            errors.append(.unsupportedPowerForCategory)
+        }
+
+        if let distance = record.distance, distance <= 0 {
+            errors.append(.nonPositiveDistance)
+        }
+
+        return errors
+    }
+
+    private func supports(_ power: ShotPower, in category: ShotCategory) -> Bool {
+        switch category {
+        case .normal, .flop:
+            switch power {
+            case .full, .threeQuarter, .half, .quarter:
+                true
+            case .stinger, .punch, .softPunch, .chip:
+                false
+            }
+        case .lowTrajectory:
+            switch power {
+            case .stinger, .punch, .softPunch, .chip:
+                true
+            case .full, .threeQuarter, .half, .quarter:
+                false
+            }
+        }
+    }
+}
