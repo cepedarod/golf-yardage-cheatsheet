@@ -104,31 +104,36 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["255"].exists)
     }
 
-    func testPunchFilterShowsOnlyPunchClubs() {
+    func testLowTrajectoryFilterShowsOnlyLowTrajectoryClubs() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
 
         saveClub(fullDistance: "255", shouldAddAnother: true, in: app)
 
         XCTAssertTrue(app.navigationBars["Add Club"].waitForExistence(timeout: 5))
-        app.buttons["shot-type-punch"].tap()
-        saveClub(fullDistance: "230", shouldAddAnother: false, in: app)
+        app.buttons["distance-category-low-trajectory"].tap()
+
+        let lowStingerDistanceField = app.textFields["low-stinger-distance-field"]
+        XCTAssertTrue(lowStingerDistanceField.waitForExistence(timeout: 2))
+        lowStingerDistanceField.tap()
+        lowStingerDistanceField.typeText("230")
+        app.buttons["finish-club-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["3 Wood (Punch)"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["3 Wood (Low Trajectory)"].exists)
 
-        app.buttons["shot-filter-punch"].tap()
+        app.buttons["shot-filter-low-trajectory"].tap()
 
-        XCTAssertTrue(app.staticTexts["3 Wood (Punch)"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["3 Wood (Low Trajectory)"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["230"].exists)
         XCTAssertFalse(app.staticTexts["Driver"].exists)
         XCTAssertFalse(app.staticTexts["255"].exists)
 
-        app.buttons["shot-filter-all"].tap()
+        app.buttons["shot-filter-normal"].tap()
 
         XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["3 Wood (Punch)"].exists)
+        XCTAssertFalse(app.staticTexts["3 Wood (Low Trajectory)"].exists)
     }
 
     func testDashboardEditUpdatesExistingClubDistance() {

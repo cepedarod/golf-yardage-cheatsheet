@@ -2,18 +2,21 @@ import XCTest
 @testable import GolfYardageCheatsheet
 
 final class ShotFilterTests: XCTestCase {
-    func testAllFilterIncludesEveryClub() {
+    func testNormalFilterIncludesNormalFlopAndPutterClubs() {
         let normalClub = Club(
             profileID: UUID(),
             clubType: .sevenIron,
-            shotType: .normal,
-            swingDistances: SwingDistanceSet(full: 150)
+            normalDistances: SwingDistanceSet(full: 150)
         )
-        let punchClub = Club(
+        let lowTrajectoryClub = Club(
             profileID: UUID(),
             clubType: .fourIron,
-            shotType: .punch,
-            swingDistances: SwingDistanceSet(full: 170)
+            lowTrajectoryDistances: LowTrajectoryDistanceSet(stinger: 170)
+        )
+        let flopClub = Club(
+            profileID: UUID(),
+            clubType: .lobWedge,
+            flopDistances: SwingDistanceSet(full: 70)
         )
         let putter = Club(
             profileID: UUID(),
@@ -21,23 +24,22 @@ final class ShotFilterTests: XCTestCase {
             putterDistances: PutterDistanceSet(short: 3)
         )
 
-        XCTAssertTrue(ShotFilter.all.includes(normalClub))
-        XCTAssertTrue(ShotFilter.all.includes(punchClub))
-        XCTAssertTrue(ShotFilter.all.includes(putter))
+        XCTAssertTrue(ShotFilter.normal.includes(normalClub))
+        XCTAssertFalse(ShotFilter.normal.includes(lowTrajectoryClub))
+        XCTAssertTrue(ShotFilter.normal.includes(flopClub))
+        XCTAssertTrue(ShotFilter.normal.includes(putter))
     }
 
-    func testAllTargetMatchFilterExcludesPunchClubs() {
+    func testNormalTargetMatchFilterExcludesLowTrajectoryOnlyClubs() {
         let normalClub = Club(
             profileID: UUID(),
             clubType: .sevenIron,
-            shotType: .normal,
-            swingDistances: SwingDistanceSet(full: 150)
+            normalDistances: SwingDistanceSet(full: 150)
         )
-        let punchClub = Club(
+        let lowTrajectoryClub = Club(
             profileID: UUID(),
             clubType: .fourIron,
-            shotType: .punch,
-            swingDistances: SwingDistanceSet(full: 170)
+            lowTrajectoryDistances: LowTrajectoryDistanceSet(stinger: 170)
         )
         let putter = Club(
             profileID: UUID(),
@@ -45,23 +47,21 @@ final class ShotFilterTests: XCTestCase {
             putterDistances: PutterDistanceSet(short: 3)
         )
 
-        XCTAssertTrue(ShotFilter.all.includesTargetMatch(normalClub))
-        XCTAssertFalse(ShotFilter.all.includesTargetMatch(punchClub))
-        XCTAssertTrue(ShotFilter.all.includesTargetMatch(putter))
+        XCTAssertTrue(ShotFilter.normal.includesTargetMatch(normalClub))
+        XCTAssertFalse(ShotFilter.normal.includesTargetMatch(lowTrajectoryClub))
+        XCTAssertTrue(ShotFilter.normal.includesTargetMatch(putter))
     }
 
-    func testPunchOnlyFilterIncludesOnlyPunchClubs() {
+    func testLowTrajectoryFilterIncludesOnlyLowTrajectoryClubs() {
         let normalClub = Club(
             profileID: UUID(),
             clubType: .sevenIron,
-            shotType: .normal,
-            swingDistances: SwingDistanceSet(full: 150)
+            normalDistances: SwingDistanceSet(full: 150)
         )
-        let punchClub = Club(
+        let lowTrajectoryClub = Club(
             profileID: UUID(),
             clubType: .fourIron,
-            shotType: .punch,
-            swingDistances: SwingDistanceSet(full: 170)
+            lowTrajectoryDistances: LowTrajectoryDistanceSet(stinger: 170)
         )
         let putter = Club(
             profileID: UUID(),
@@ -69,8 +69,8 @@ final class ShotFilterTests: XCTestCase {
             putterDistances: PutterDistanceSet(short: 3)
         )
 
-        XCTAssertFalse(ShotFilter.punchOnly.includes(normalClub))
-        XCTAssertTrue(ShotFilter.punchOnly.includes(punchClub))
-        XCTAssertFalse(ShotFilter.punchOnly.includes(putter))
+        XCTAssertFalse(ShotFilter.lowTrajectory.includes(normalClub))
+        XCTAssertTrue(ShotFilter.lowTrajectory.includes(lowTrajectoryClub))
+        XCTAssertFalse(ShotFilter.lowTrajectory.includes(putter))
     }
 }

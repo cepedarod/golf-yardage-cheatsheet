@@ -10,13 +10,21 @@ struct AddClubView: View {
     private let validator = ClubValidator()
 
     @State private var clubType: ClubType = .driver
-    @State private var shotType: ShotType = .normal
+    @State private var distanceCategory: ClubDistanceCategory = .normal
     @State private var nickname = ""
     @State private var wedgeLoft = ""
-    @State private var fullDistance = ""
-    @State private var threeQuarterDistance = ""
-    @State private var halfDistance = ""
-    @State private var quarterDistance = ""
+    @State private var normalFullDistance = ""
+    @State private var normalThreeQuarterDistance = ""
+    @State private var normalHalfDistance = ""
+    @State private var normalQuarterDistance = ""
+    @State private var lowStingerDistance = ""
+    @State private var lowPunchDistance = ""
+    @State private var lowSoftPunchDistance = ""
+    @State private var lowChipDistance = ""
+    @State private var flopFullDistance = ""
+    @State private var flopThreeQuarterDistance = ""
+    @State private var flopHalfDistance = ""
+    @State private var flopQuarterDistance = ""
     @State private var longPutterDistance = ""
     @State private var mediumPutterDistance = ""
     @State private var shortPutterDistance = ""
@@ -28,13 +36,21 @@ struct AddClubView: View {
         self.onSave = onSave
 
         _clubType = State(initialValue: club?.clubType ?? .driver)
-        _shotType = State(initialValue: club?.shotType ?? .normal)
+        _distanceCategory = State(initialValue: Self.initialDistanceCategory(for: club))
         _nickname = State(initialValue: club?.nickname ?? "")
         _wedgeLoft = State(initialValue: club?.wedgeLoft.map(String.init) ?? "")
-        _fullDistance = State(initialValue: club?.swingDistances?.full.map(String.init) ?? "")
-        _threeQuarterDistance = State(initialValue: club?.swingDistances?.threeQuarter.map(String.init) ?? "")
-        _halfDistance = State(initialValue: club?.swingDistances?.half.map(String.init) ?? "")
-        _quarterDistance = State(initialValue: club?.swingDistances?.quarter.map(String.init) ?? "")
+        _normalFullDistance = State(initialValue: club?.normalDistances?.full.map(String.init) ?? "")
+        _normalThreeQuarterDistance = State(initialValue: club?.normalDistances?.threeQuarter.map(String.init) ?? "")
+        _normalHalfDistance = State(initialValue: club?.normalDistances?.half.map(String.init) ?? "")
+        _normalQuarterDistance = State(initialValue: club?.normalDistances?.quarter.map(String.init) ?? "")
+        _lowStingerDistance = State(initialValue: club?.lowTrajectoryDistances?.stinger.map(String.init) ?? "")
+        _lowPunchDistance = State(initialValue: club?.lowTrajectoryDistances?.punch.map(String.init) ?? "")
+        _lowSoftPunchDistance = State(initialValue: club?.lowTrajectoryDistances?.softPunch.map(String.init) ?? "")
+        _lowChipDistance = State(initialValue: club?.lowTrajectoryDistances?.chip.map(String.init) ?? "")
+        _flopFullDistance = State(initialValue: club?.flopDistances?.full.map(String.init) ?? "")
+        _flopThreeQuarterDistance = State(initialValue: club?.flopDistances?.threeQuarter.map(String.init) ?? "")
+        _flopHalfDistance = State(initialValue: club?.flopDistances?.half.map(String.init) ?? "")
+        _flopQuarterDistance = State(initialValue: club?.flopDistances?.quarter.map(String.init) ?? "")
         _longPutterDistance = State(initialValue: club?.putterDistances?.long.map(String.init) ?? "")
         _mediumPutterDistance = State(initialValue: club?.putterDistances?.medium.map(String.init) ?? "")
         _shortPutterDistance = State(initialValue: club?.putterDistances?.short.map(String.init) ?? "")
@@ -65,22 +81,35 @@ struct AddClubView: View {
             }
 
             if clubType != .putter {
-                Section("Shot") {
-                    Picker("Shot", selection: $shotType) {
-                        ForEach(availableShotTypes, id: \.self) { shotType in
-                            Text(shotType.rawValue)
-                                .tag(shotType)
-                                .accessibilityIdentifier("shot-type-\(shotType.rawValue.lowercased())")
+                Section("Distance Category") {
+                    Picker("Distance Category", selection: $distanceCategory) {
+                        ForEach(availableDistanceCategories) { category in
+                            Text(category.displayName)
+                                .tag(category)
+                                .accessibilityIdentifier("distance-category-\(category.accessibilityName)")
                         }
                     }
                     .pickerStyle(.segmented)
                 }
 
-                Section("Swing Distances (Yards)") {
-                    distanceRow("Full", identifier: "full-distance-field", text: $fullDistance)
-                    distanceRow("3/4", identifier: "three-quarter-distance-field", text: $threeQuarterDistance)
-                    distanceRow("Half", identifier: "half-distance-field", text: $halfDistance)
-                    distanceRow("Quarter", identifier: "quarter-distance-field", text: $quarterDistance)
+                Section("\(distanceCategory.displayName) Distances (Yards)") {
+                    switch distanceCategory {
+                    case .normal:
+                        distanceRow("Full", identifier: "full-distance-field", text: $normalFullDistance)
+                        distanceRow("3/4", identifier: "three-quarter-distance-field", text: $normalThreeQuarterDistance)
+                        distanceRow("Half", identifier: "half-distance-field", text: $normalHalfDistance)
+                        distanceRow("Quarter", identifier: "quarter-distance-field", text: $normalQuarterDistance)
+                    case .lowTrajectory:
+                        distanceRow("Stinger", identifier: "low-stinger-distance-field", text: $lowStingerDistance)
+                        distanceRow("Punch", identifier: "low-punch-distance-field", text: $lowPunchDistance)
+                        distanceRow("Soft Punch", identifier: "low-soft-punch-distance-field", text: $lowSoftPunchDistance)
+                        distanceRow("Chip", identifier: "low-chip-distance-field", text: $lowChipDistance)
+                    case .flop:
+                        distanceRow("Full", identifier: "flop-full-distance-field", text: $flopFullDistance)
+                        distanceRow("3/4", identifier: "flop-three-quarter-distance-field", text: $flopThreeQuarterDistance)
+                        distanceRow("Half", identifier: "flop-half-distance-field", text: $flopHalfDistance)
+                        distanceRow("Quarter", identifier: "flop-quarter-distance-field", text: $flopQuarterDistance)
+                    }
                 }
             } else {
                 Section("Distances (Yards)") {
@@ -123,8 +152,8 @@ struct AddClubView: View {
             }
         }
         .onChange(of: clubType) { _, newValue in
-            if availableShotTypes.contains(shotType) == false {
-                shotType = .normal
+            if availableDistanceCategories.contains(distanceCategory) == false {
+                distanceCategory = .normal
             }
 
             if newValue.isWedge == false {
@@ -133,12 +162,12 @@ struct AddClubView: View {
         }
     }
 
-    private var availableShotTypes: [ShotType] {
-        if clubType == .putter {
+    private var availableDistanceCategories: [ClubDistanceCategory] {
+        guard clubType != .putter else {
             return []
         }
 
-        return clubType.isWedge ? [.normal, .flop] : [.normal, .punch]
+        return clubType.isWedge ? [.normal, .lowTrajectory, .flop] : [.normal, .lowTrajectory]
     }
 
     private func distanceRow(_ title: String, identifier: String, text: Binding<String>) -> some View {
@@ -191,19 +220,21 @@ struct AddClubView: View {
             nickname: normalizedNickname,
             clubType: clubType,
             wedgeLoft: normalizedWedgeLoft,
-            shotType: clubType == .putter ? nil : shotType,
             isActive: existingClub?.isActive ?? true,
-            swingDistances: clubType == .putter ? nil : SwingDistanceSet(
-                full: distance(from: fullDistance),
-                threeQuarter: distance(from: threeQuarterDistance),
-                half: distance(from: halfDistance),
-                quarter: distance(from: quarterDistance)
+            normalDistances: clubType == .putter ? nil : swingDistanceSet(
+                full: normalFullDistance,
+                threeQuarter: normalThreeQuarterDistance,
+                half: normalHalfDistance,
+                quarter: normalQuarterDistance
             ),
-            putterDistances: clubType == .putter ? PutterDistanceSet(
-                long: distance(from: longPutterDistance),
-                medium: distance(from: mediumPutterDistance),
-                short: distance(from: shortPutterDistance)
+            lowTrajectoryDistances: clubType == .putter ? nil : lowTrajectoryDistanceSet(),
+            flopDistances: clubType.isWedge ? swingDistanceSet(
+                full: flopFullDistance,
+                threeQuarter: flopThreeQuarterDistance,
+                half: flopHalfDistance,
+                quarter: flopQuarterDistance
             ) : nil,
+            putterDistances: clubType == .putter ? putterDistanceSet() : nil,
             createdAt: existingClub?.createdAt ?? now,
             updatedAt: now
         )
@@ -211,13 +242,21 @@ struct AddClubView: View {
 
     private func resetForNextClub() {
         clubType = nextClubType(after: clubType)
-        shotType = .normal
+        distanceCategory = .normal
         nickname = ""
         wedgeLoft = ""
-        fullDistance = ""
-        threeQuarterDistance = ""
-        halfDistance = ""
-        quarterDistance = ""
+        normalFullDistance = ""
+        normalThreeQuarterDistance = ""
+        normalHalfDistance = ""
+        normalQuarterDistance = ""
+        lowStingerDistance = ""
+        lowPunchDistance = ""
+        lowSoftPunchDistance = ""
+        lowChipDistance = ""
+        flopFullDistance = ""
+        flopThreeQuarterDistance = ""
+        flopHalfDistance = ""
+        flopQuarterDistance = ""
         longPutterDistance = ""
         mediumPutterDistance = ""
         shortPutterDistance = ""
@@ -248,6 +287,43 @@ struct AddClubView: View {
         return distance(from: wedgeLoft)
     }
 
+    private func swingDistanceSet(
+        full: String,
+        threeQuarter: String,
+        half: String,
+        quarter: String
+    ) -> SwingDistanceSet? {
+        let distances = SwingDistanceSet(
+            full: distance(from: full),
+            threeQuarter: distance(from: threeQuarter),
+            half: distance(from: half),
+            quarter: distance(from: quarter)
+        )
+
+        return distances.entries().isEmpty ? nil : distances
+    }
+
+    private func lowTrajectoryDistanceSet() -> LowTrajectoryDistanceSet? {
+        let distances = LowTrajectoryDistanceSet(
+            stinger: distance(from: lowStingerDistance),
+            punch: distance(from: lowPunchDistance),
+            softPunch: distance(from: lowSoftPunchDistance),
+            chip: distance(from: lowChipDistance)
+        )
+
+        return distances.entries().isEmpty ? nil : distances
+    }
+
+    private func putterDistanceSet() -> PutterDistanceSet? {
+        let distances = PutterDistanceSet(
+            long: distance(from: longPutterDistance),
+            medium: distance(from: mediumPutterDistance),
+            short: distance(from: shortPutterDistance)
+        )
+
+        return distances.entries().isEmpty ? nil : distances
+    }
+
     private func distance(from text: String) -> Int? {
         Int(text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
@@ -262,16 +338,67 @@ struct AddClubView: View {
         }
 
         if errors.contains(where: { error in
-            if case .nonPositiveDistance = error {
-                return true
+            switch error {
+            case .nonPositiveDistance, .nonPositiveLowTrajectoryDistance:
+                true
+            default:
+                false
             }
-
-            return false
         }) {
             return "Distances must be greater than 0."
         }
 
         return "Check the club details and try again."
+    }
+
+    private static func initialDistanceCategory(for club: Club?) -> ClubDistanceCategory {
+        guard let club, club.clubType != .putter else {
+            return .normal
+        }
+
+        if club.normalDistances?.hasAtLeastOneDistance == true {
+            return .normal
+        }
+
+        if club.lowTrajectoryDistances?.hasAtLeastOneDistance == true {
+            return .lowTrajectory
+        }
+
+        if club.flopDistances?.hasAtLeastOneDistance == true {
+            return .flop
+        }
+
+        return .normal
+    }
+
+    private enum ClubDistanceCategory: Hashable, Identifiable {
+        case normal
+        case lowTrajectory
+        case flop
+
+        var id: Self { self }
+
+        var displayName: String {
+            switch self {
+            case .normal:
+                ShotCategory.normal.displayName
+            case .lowTrajectory:
+                ShotCategory.lowTrajectory.displayName
+            case .flop:
+                ShotCategory.flop.displayName
+            }
+        }
+
+        var accessibilityName: String {
+            switch self {
+            case .normal:
+                "normal"
+            case .lowTrajectory:
+                "low-trajectory"
+            case .flop:
+                "flop"
+            }
+        }
     }
 }
 

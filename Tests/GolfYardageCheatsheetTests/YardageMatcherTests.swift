@@ -51,61 +51,76 @@ final class YardageMatcherTests: XCTestCase {
         XCTAssertEqual(matches.map(\.club.id), [activeClubID])
     }
 
-    func testPunchFilterOnlyReturnsPunchClubs() {
-        let punchClubID = UUID()
+    func testLowTrajectoryFilterOnlyReturnsLowTrajectoryClubValues() {
+        let lowTrajectoryClubID = UUID()
         let clubs = [
             Club(
                 profileID: profileID,
                 clubType: .sevenIron,
-                shotType: .normal,
-                swingDistances: SwingDistanceSet(full: 150)
+                normalDistances: SwingDistanceSet(full: 150)
             ),
             Club(
-                id: punchClubID,
+                id: lowTrajectoryClubID,
                 profileID: profileID,
                 clubType: .fourIron,
-                shotType: .punch,
-                swingDistances: SwingDistanceSet(full: 170, threeQuarter: 150)
+                lowTrajectoryDistances: LowTrajectoryDistanceSet(stinger: 170, punch: 150)
             )
         ]
 
-        let matches = matcher.closestMatches(targetYardage: 150, clubs: clubs, filter: .punchOnly)
+        let matches = matcher.closestMatches(targetYardage: 150, clubs: clubs, filter: .lowTrajectory)
 
-        XCTAssertEqual(matches.map(\.club.id), [punchClubID])
+        XCTAssertEqual(matches.map(\.club.id), [lowTrajectoryClubID])
+        XCTAssertEqual(matches.map(\.label), [.punch])
     }
 
-    func testAllTargetMatchesExcludePunchClubs() {
+    func testNormalTargetMatchesExcludeLowTrajectoryValues() {
         let normalShortClubID = UUID()
         let normalLongClubID = UUID()
-        let punchClubID = UUID()
+        let lowTrajectoryClubID = UUID()
         let clubs = [
             Club(
                 id: normalShortClubID,
                 profileID: profileID,
                 clubType: .sevenIron,
-                shotType: .normal,
-                swingDistances: SwingDistanceSet(full: 150)
+                normalDistances: SwingDistanceSet(full: 150)
             ),
             Club(
-                id: punchClubID,
+                id: lowTrajectoryClubID,
                 profileID: profileID,
                 clubType: .fourIron,
-                shotType: .punch,
-                swingDistances: SwingDistanceSet(full: 162)
+                lowTrajectoryDistances: LowTrajectoryDistanceSet(stinger: 162)
             ),
             Club(
                 id: normalLongClubID,
                 profileID: profileID,
                 clubType: .sixIron,
-                shotType: .normal,
-                swingDistances: SwingDistanceSet(full: 180)
+                normalDistances: SwingDistanceSet(full: 180)
             )
         ]
 
-        let matches = matcher.closestMatches(targetYardage: 160, clubs: clubs, filter: .all)
+        let matches = matcher.closestMatches(targetYardage: 160, clubs: clubs, filter: .normal)
 
         XCTAssertEqual(matches.map(\.club.id), [normalShortClubID, normalLongClubID])
-        XCTAssertFalse(matches.map(\.club.id).contains(punchClubID))
+        XCTAssertFalse(matches.map(\.club.id).contains(lowTrajectoryClubID))
+    }
+
+    func testNormalTargetMatchesIncludeWedgeFlopValues() {
+        let wedgeID = UUID()
+        let clubs = [
+            Club(
+                id: wedgeID,
+                profileID: profileID,
+                clubType: .sandWedge,
+                normalDistances: SwingDistanceSet(full: 105),
+                flopDistances: SwingDistanceSet(full: 65, half: 40)
+            )
+        ]
+
+        let matches = matcher.closestMatches(targetYardage: 65, clubs: clubs, filter: .normal)
+
+        XCTAssertEqual(matches.map(\.club.id), [wedgeID])
+        XCTAssertEqual(matches.map(\.category), [.flop])
+        XCTAssertEqual(matches.map(\.displayLabel), ["Flop Full"])
     }
 
     func testInvalidTargetOrLimitReturnsNoMatches() {

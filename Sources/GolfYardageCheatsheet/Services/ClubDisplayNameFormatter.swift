@@ -10,7 +10,7 @@ public struct ClubDisplayNameFormatter: Sendable {
         case .flop:
             return "\(baseName) (Flop)"
         case .punch:
-            return "\(baseName) (Punch)"
+            return "\(baseName) (Low Trajectory)"
         case .normal, .none:
             return baseName
         }

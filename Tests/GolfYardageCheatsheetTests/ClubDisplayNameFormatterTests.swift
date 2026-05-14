@@ -41,7 +41,7 @@ final class ClubDisplayNameFormatterTests: XCTestCase {
         XCTAssertEqual(formatter.displayName(for: club), "Trusty 54\u{00B0} Wedge (Flop)")
     }
 
-    func testNicknamePrefixesClubTypeAndKeepsPunchSuffix() {
+    func testNicknamePrefixesClubTypeAndKeepsLowTrajectorySuffix() {
         let club = Club(
             profileID: profileID,
             nickname: "Stinger",
@@ -50,7 +50,7 @@ final class ClubDisplayNameFormatterTests: XCTestCase {
             swingDistances: SwingDistanceSet(full: 190)
         )
 
-        XCTAssertEqual(formatter.displayName(for: club), "Stinger 4 Iron (Punch)")
+        XCTAssertEqual(formatter.displayName(for: club), "Stinger 4 Iron (Low Trajectory)")
     }
 
     func testNicknamePrefixesDriverType() {

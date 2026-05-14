@@ -39,12 +39,12 @@ struct YardageDashboardView: View {
                 }
 
                 Picker("Shot Filter", selection: $viewModel.shotFilter) {
-                    Text("All")
-                        .tag(ShotFilter.all)
-                        .accessibilityIdentifier("shot-filter-all")
-                    Text("Punch")
-                        .tag(ShotFilter.punchOnly)
-                        .accessibilityIdentifier("shot-filter-punch")
+                    Text("Normal")
+                        .tag(ShotFilter.normal)
+                        .accessibilityIdentifier("shot-filter-normal")
+                    Text("Low Trajectory")
+                        .tag(ShotFilter.lowTrajectory)
+                        .accessibilityIdentifier("shot-filter-low-trajectory")
                 }
                 .pickerStyle(.segmented)
 
@@ -89,7 +89,7 @@ struct YardageDashboardView: View {
                         .listRowBackground(Color.clear)
                     } else {
                         ForEach(viewModel.visibleActiveClubs) { club in
-                            ClubSummaryRow(club: club)
+                            ClubSummaryRow(club: club, shotFilter: viewModel.shotFilter)
                                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                     Button {
                                         clubForm = .edit(club)
@@ -192,7 +192,7 @@ struct YardageDashboardView: View {
 
     private func closestMatchRow(for match: YardageMatch) -> some View {
         let displayName = formatter.displayName(for: match.club)
-        let distanceSummary = "\(match.label.rawValue) \(match.distance)"
+        let distanceSummary = "\(match.displayLabel) \(match.distance)"
 
         return VStack(alignment: .leading, spacing: 6) {
             Text(displayName)
@@ -217,23 +217,23 @@ struct YardageDashboardView: View {
     }
 
     private var emptyClubsTitle: String {
-        if viewModel.shotFilter == .punchOnly, viewModel.activeClubs.isEmpty == false {
-            return "No Punch Clubs"
+        if viewModel.shotFilter == .lowTrajectory, viewModel.activeClubs.isEmpty == false {
+            return "No Low Trajectory Clubs"
         }
 
         return viewModel.inactiveClubs.isEmpty ? "No Clubs" : "No Active Clubs"
     }
 
     private var emptyClubsDescription: String {
-        if viewModel.shotFilter == .punchOnly, viewModel.activeClubs.isEmpty == false {
-            return "Switch to All or add a punch club."
+        if viewModel.shotFilter == .lowTrajectory, viewModel.activeClubs.isEmpty == false {
+            return "Switch to Normal or add low trajectory distances."
         }
 
         return viewModel.inactiveClubs.isEmpty ? "Add your first club." : "Restore one from Inactive Clubs or add a new club."
     }
 
     private var emptyClubsActionTitle: String {
-        if viewModel.shotFilter == .punchOnly, viewModel.activeClubs.isEmpty == false {
+        if viewModel.shotFilter == .lowTrajectory, viewModel.activeClubs.isEmpty == false {
             return "Add Club"
         }
 
@@ -242,10 +242,10 @@ struct YardageDashboardView: View {
 
     private var activeClubSectionTitle: String {
         switch viewModel.shotFilter {
-        case .all:
+        case .normal:
             return "\(profile.name)'s Clubs"
-        case .punchOnly:
-            return "Punch Clubs"
+        case .lowTrajectory:
+            return "Low Trajectory Clubs"
         }
     }
 
