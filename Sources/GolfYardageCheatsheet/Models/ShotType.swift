@@ -6,6 +6,29 @@ public enum ShotType: String, CaseIterable, Codable, Equatable, Sendable {
     case flop = "Flop"
 }
 
+public enum DistanceValueMode: String, CaseIterable, Codable, Equatable, Hashable, Sendable {
+    case manual
+    case real
+
+    public var displayName: String {
+        switch self {
+        case .manual:
+            "Manual"
+        case .real:
+            "Real"
+        }
+    }
+
+    public var supplementalMode: DistanceValueMode {
+        switch self {
+        case .manual:
+            .real
+        case .real:
+            .manual
+        }
+    }
+}
+
 public enum ShotCategory: String, CaseIterable, Codable, Equatable, Sendable {
     case normal
     case lowTrajectory

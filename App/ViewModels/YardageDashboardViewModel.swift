@@ -4,6 +4,7 @@ import Foundation
 final class YardageDashboardViewModel: ObservableObject {
     @Published private(set) var activeClubs: [Club] = []
     @Published private(set) var inactiveClubs: [Club] = []
+    @Published private(set) var shotRecords: [ShotRecord] = []
     @Published private(set) var matches: [YardageMatch] = []
     @Published private(set) var targetYardageText = "" {
         didSet {
@@ -20,11 +21,17 @@ final class YardageDashboardViewModel: ObservableObject {
             updateMatches()
         }
     }
+    @Published var valueMode: DistanceValueMode = .manual {
+        didSet {
+            updateMatches()
+        }
+    }
     @Published var errorMessage: String?
 
     let profile: GolferProfile
     private let repository: GolfBagRepository
     private let matcher: YardageMatcher
+    private let distanceValueResolver: DistanceValueResolver
     private let targetClearDelayNanoseconds: UInt64
     private var clearTargetTask: Task<Void, Never>?
 
@@ -37,6 +44,7 @@ final class YardageDashboardViewModel: ObservableObject {
         self.profile = profile
         self.repository = repository
         self.matcher = matcher
+        self.distanceValueResolver = DistanceValueResolver()
         self.targetClearDelayNanoseconds = targetClearDelayNanoseconds
     }
 
@@ -54,13 +62,16 @@ final class YardageDashboardViewModel: ObservableObject {
 
                     return lhs.id.uuidString < rhs.id.uuidString
                 }
+            let shotRecords = try repository.shotRecords(for: profile.id)
             activeClubs = clubs.filter(\.isActive)
             inactiveClubs = clubs.filter { $0.isActive == false }
+            self.shotRecords = shotRecords
             updateMatches()
             errorMessage = nil
         } catch {
             activeClubs = []
             inactiveClubs = []
+            shotRecords = []
             matches = []
             errorMessage = "Unable to load clubs."
         }
@@ -98,7 +109,14 @@ final class YardageDashboardViewModel: ObservableObject {
     }
 
     var visibleActiveClubs: [Club] {
-        activeClubs.filter(shotFilter.includes)
+        activeClubs.filter {
+            distanceValueResolver.hasDisplayableDistances(
+                for: $0,
+                filter: shotFilter,
+                mode: valueMode,
+                shotRecords: shotRecords
+            )
+        }
     }
 
     func setTargetYardageText(_ text: String) {
@@ -122,7 +140,9 @@ final class YardageDashboardViewModel: ObservableObject {
         matches = matcher.closestMatches(
             targetYardage: targetYardage,
             clubs: activeClubs,
-            filter: shotFilter
+            filter: shotFilter,
+            valueMode: valueMode,
+            shotRecords: shotRecords
         )
     }
 

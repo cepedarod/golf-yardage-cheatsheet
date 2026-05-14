@@ -3,8 +3,11 @@ import SwiftUI
 struct ClubSummaryRow: View {
     let club: Club
     var shotFilter: ShotFilter = .normal
+    var valueMode: DistanceValueMode = .manual
+    var shotRecords: [ShotRecord] = []
 
     private let formatter = ClubDisplayNameFormatter()
+    private let distanceValueResolver = DistanceValueResolver()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -43,11 +46,11 @@ struct ClubSummaryRow: View {
                         .minimumScaleFactor(0.8)
 
                     HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text(entry.distance.map(String.init) ?? "-")
+                        Text(entry.value?.formattedDistance ?? "-")
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(.primary)
 
-                        if entry.distance != nil {
+                        if entry.value != nil {
                             Text("yds")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -67,61 +70,21 @@ struct ClubSummaryRow: View {
     }
 
     private var distanceSections: [(title: String?, entries: [DistanceEntry])] {
-        if club.clubType == .putter {
-            return [(
-                title: nil,
-                entries: [
-                    DistanceEntry(label: DistanceLabel.long.rawValue, distance: club.putterDistances?.long),
-                    DistanceEntry(label: DistanceLabel.medium.rawValue, distance: club.putterDistances?.medium),
-                    DistanceEntry(label: DistanceLabel.short.rawValue, distance: club.putterDistances?.short)
-                ]
-            )]
-        }
-
-        switch shotFilter {
-        case .normal:
-            var sections: [(title: String?, entries: [DistanceEntry])] = []
-
-            if club.normalDistances != nil {
-                sections.append((
-                    title: club.flopDistances == nil ? nil : ShotCategory.normal.displayName,
-                    entries: swingEntries(from: club.normalDistances)
-                ))
+        distanceValueResolver
+            .displaySections(for: club, filter: shotFilter, mode: valueMode, shotRecords: shotRecords)
+            .map { section in
+                (
+                    title: section.title,
+                    entries: section.entries.map {
+                        DistanceEntry(label: $0.label.rawValue, value: $0.resolvedValue(for: valueMode))
+                    }
+                )
             }
-
-            if club.clubType.isWedge, club.flopDistances != nil {
-                sections.append((
-                    title: ShotCategory.flop.displayName,
-                    entries: swingEntries(from: club.flopDistances)
-                ))
-            }
-
-            return sections
-        case .lowTrajectory:
-            return [(
-                title: nil,
-                entries: [
-                    DistanceEntry(label: DistanceLabel.stinger.rawValue, distance: club.lowTrajectoryDistances?.stinger),
-                    DistanceEntry(label: DistanceLabel.punch.rawValue, distance: club.lowTrajectoryDistances?.punch),
-                    DistanceEntry(label: DistanceLabel.softPunch.rawValue, distance: club.lowTrajectoryDistances?.softPunch),
-                    DistanceEntry(label: DistanceLabel.chip.rawValue, distance: club.lowTrajectoryDistances?.chip)
-                ]
-            )]
-        }
-    }
-
-    private func swingEntries(from distances: SwingDistanceSet?) -> [DistanceEntry] {
-        [
-            DistanceEntry(label: DistanceLabel.full.rawValue, distance: distances?.full),
-            DistanceEntry(label: DistanceLabel.threeQuarter.rawValue, distance: distances?.threeQuarter),
-            DistanceEntry(label: DistanceLabel.half.rawValue, distance: distances?.half),
-            DistanceEntry(label: DistanceLabel.quarter.rawValue, distance: distances?.quarter)
-        ]
     }
 
     private struct DistanceEntry {
         let label: String
-        let distance: Int?
+        let value: ResolvedDistanceValue?
     }
 }
 

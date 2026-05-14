@@ -123,6 +123,195 @@ final class YardageMatcherTests: XCTestCase {
         XCTAssertEqual(matches.map(\.displayLabel), ["Flop Full"])
     }
 
+    func testRealModeTargetMatchesUsePureShotAverages() {
+        let longClubID = UUID()
+        let shortClubID = UUID()
+        let clubs = [
+            Club(
+                id: longClubID,
+                profileID: profileID,
+                clubType: .sevenIron,
+                normalDistances: SwingDistanceSet(full: 200)
+            ),
+            Club(
+                id: shortClubID,
+                profileID: profileID,
+                clubType: .nineIron,
+                normalDistances: SwingDistanceSet(full: 100)
+            )
+        ]
+        let records = [
+            ShotRecord(
+                profileID: profileID,
+                clubID: longClubID,
+                category: .normal,
+                power: .full,
+                distance: 148,
+                strikeQuality: .pure,
+                direction: .straight
+            ),
+            ShotRecord(
+                profileID: profileID,
+                clubID: longClubID,
+                category: .normal,
+                power: .full,
+                distance: 150,
+                strikeQuality: .pure,
+                direction: .straight
+            ),
+            ShotRecord(
+                profileID: profileID,
+                clubID: longClubID,
+                category: .normal,
+                power: .full,
+                distance: 300,
+                strikeQuality: .thin,
+                direction: .straight
+            ),
+            ShotRecord(
+                profileID: profileID,
+                clubID: shortClubID,
+                category: .normal,
+                power: .full,
+                distance: 135,
+                strikeQuality: .pure,
+                direction: .draw
+            )
+        ]
+
+        let matches = matcher.closestMatches(
+            targetYardage: 145,
+            clubs: clubs,
+            valueMode: .real,
+            shotRecords: records
+        )
+
+        XCTAssertEqual(matches.map(\.club.id), [longClubID, shortClubID])
+        XCTAssertEqual(matches.map(\.distance), [149, 135])
+        XCTAssertEqual(matches.map(\.isSupplemental), [false, false])
+    }
+
+    func testRealModeTargetMatchesCanAppendCloserManualSupplementalResult() {
+        let realLongClubID = UUID()
+        let realShortClubID = UUID()
+        let supplementalClubID = UUID()
+        let clubs = [
+            Club(id: realLongClubID, profileID: profileID, clubType: .sevenIron),
+            Club(id: realShortClubID, profileID: profileID, clubType: .nineIron),
+            Club(
+                id: supplementalClubID,
+                profileID: profileID,
+                clubType: .pitchingWedge,
+                normalDistances: SwingDistanceSet(full: 151)
+            )
+        ]
+        let records = [
+            ShotRecord(
+                profileID: profileID,
+                clubID: realLongClubID,
+                category: .normal,
+                power: .full,
+                distance: 170,
+                strikeQuality: .pure,
+                direction: .straight
+            ),
+            ShotRecord(
+                profileID: profileID,
+                clubID: realShortClubID,
+                category: .normal,
+                power: .full,
+                distance: 130,
+                strikeQuality: .pure,
+                direction: .fade
+            )
+        ]
+
+        let matches = matcher.closestMatches(
+            targetYardage: 150,
+            clubs: clubs,
+            valueMode: .real,
+            shotRecords: records
+        )
+
+        XCTAssertEqual(matches.map(\.club.id), [realLongClubID, realShortClubID, supplementalClubID])
+        XCTAssertEqual(matches.map(\.distance), [170, 130, 151])
+        XCTAssertEqual(matches.map(\.isSupplemental), [false, false, true])
+        XCTAssertEqual(matches.last?.formattedDistance, "(151)")
+    }
+
+    func testManualModeTargetMatchesCanAppendCloserRealSupplementalResult() {
+        let manualLongClubID = UUID()
+        let manualShortClubID = UUID()
+        let supplementalClubID = UUID()
+        let clubs = [
+            Club(
+                id: manualLongClubID,
+                profileID: profileID,
+                clubType: .sevenIron,
+                normalDistances: SwingDistanceSet(full: 170)
+            ),
+            Club(
+                id: manualShortClubID,
+                profileID: profileID,
+                clubType: .nineIron,
+                normalDistances: SwingDistanceSet(full: 130)
+            ),
+            Club(id: supplementalClubID, profileID: profileID, clubType: .pitchingWedge)
+        ]
+        let records = [
+            ShotRecord(
+                profileID: profileID,
+                clubID: supplementalClubID,
+                category: .normal,
+                power: .full,
+                distance: 151,
+                strikeQuality: .pure,
+                direction: .straight
+            )
+        ]
+
+        let matches = matcher.closestMatches(
+            targetYardage: 150,
+            clubs: clubs,
+            valueMode: .manual,
+            shotRecords: records
+        )
+
+        XCTAssertEqual(matches.map(\.club.id), [manualLongClubID, manualShortClubID, supplementalClubID])
+        XCTAssertEqual(matches.map(\.distance), [170, 130, 151])
+        XCTAssertEqual(matches.map(\.isSupplemental), [false, false, true])
+    }
+
+    func testDisplayResolverMarksFallbackDistancesAsSupplemental() {
+        let clubID = UUID()
+        let club = Club(
+            id: clubID,
+            profileID: profileID,
+            clubType: .sandWedge,
+            normalDistances: SwingDistanceSet(full: 100)
+        )
+        let records = [
+            ShotRecord(
+                profileID: profileID,
+                clubID: clubID,
+                category: .normal,
+                power: .half,
+                distance: 70,
+                strikeQuality: .pure,
+                direction: .straight
+            )
+        ]
+        let resolver = DistanceValueResolver()
+
+        let manualEntries = resolver
+            .displayEntries(for: club, filter: .normal, mode: .manual, shotRecords: records)
+        let realEntries = resolver
+            .displayEntries(for: club, filter: .normal, mode: .real, shotRecords: records)
+
+        XCTAssertEqual(manualEntries.first(where: { $0.label == .half })?.resolvedValue(for: .manual)?.formattedDistance, "(70)")
+        XCTAssertEqual(realEntries.first(where: { $0.label == .full })?.resolvedValue(for: .real)?.formattedDistance, "(100)")
+    }
+
     func testInvalidTargetOrLimitReturnsNoMatches() {
         let clubs = [
             Club(

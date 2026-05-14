@@ -48,6 +48,16 @@ struct YardageDashboardView: View {
                 }
                 .pickerStyle(.segmented)
 
+                Picker("Value Mode", selection: $viewModel.valueMode) {
+                    Text("Manual")
+                        .tag(DistanceValueMode.manual)
+                        .accessibilityIdentifier("value-mode-manual")
+                    Text("Real")
+                        .tag(DistanceValueMode.real)
+                        .accessibilityIdentifier("value-mode-real")
+                }
+                .pickerStyle(.segmented)
+
                 if viewModel.hasTargetYardage {
                     Button("Clear", action: clearTargetYardage)
                 }
@@ -89,7 +99,12 @@ struct YardageDashboardView: View {
                         .listRowBackground(Color.clear)
                     } else {
                         ForEach(viewModel.visibleActiveClubs) { club in
-                            ClubSummaryRow(club: club, shotFilter: viewModel.shotFilter)
+                            ClubSummaryRow(
+                                club: club,
+                                shotFilter: viewModel.shotFilter,
+                                valueMode: viewModel.valueMode,
+                                shotRecords: viewModel.shotRecords
+                            )
                                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                     Button {
                                         clubForm = .edit(club)
@@ -192,7 +207,7 @@ struct YardageDashboardView: View {
 
     private func closestMatchRow(for match: YardageMatch) -> some View {
         let displayName = formatter.displayName(for: match.club)
-        let distanceSummary = "\(match.displayLabel) \(match.distance)"
+        let distanceSummary = "\(match.displayLabel) \(match.formattedDistance)"
 
         return VStack(alignment: .leading, spacing: 6) {
             Text(displayName)
