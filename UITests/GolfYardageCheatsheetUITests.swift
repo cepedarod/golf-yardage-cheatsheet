@@ -229,6 +229,20 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.buttons["save-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.buttons["record-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        let stingerButton = app.buttons["shot-power-low-trajectory-stinger"]
+        XCTAssertTrue(stingerButton.waitForExistence(timeout: 2))
+        stingerButton.tap()
+        let stingerDistanceField = app.textFields["record-shot-distance-field"]
+        XCTAssertTrue(stingerDistanceField.waitForExistence(timeout: 2))
+        stingerDistanceField.tap()
+        stingerDistanceField.typeText("230")
+        app.buttons["Done"].tap()
+        app.buttons["save-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Analysis"].tap()
 
         XCTAssertTrue(app.navigationBars["Analysis"].waitForExistence(timeout: 5))
@@ -237,14 +251,24 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         driverAnalysisRow.tap()
 
         XCTAssertTrue(app.navigationBars["Driver"].waitForExistence(timeout: 5))
+        let totalShots = app.staticTexts["analysis-total-shots"]
+        XCTAssertTrue(totalShots.waitForExistence(timeout: 2))
+        XCTAssertEqual(totalShots.label, "2 shots")
+
         let totalShotsRow = app.descendants(matching: .any)["analysis-total-shots-row"]
         XCTAssertTrue(totalShotsRow.waitForExistence(timeout: 2))
         totalShotsRow.tap()
 
-        XCTAssertTrue(app.navigationBars["Normal Shots"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Recorded Shots"].waitForExistence(timeout: 5))
         let shotRow = app.descendants(matching: .any)["shot-record-row-full"]
         XCTAssertTrue(shotRow.waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Normal Full"].exists)
+        let stingerRow = app.descendants(matching: .any)["shot-record-row-stinger"]
+        XCTAssertTrue(stingerRow.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Full"].exists)
+        XCTAssertTrue(app.staticTexts["Stinger"].exists)
+        XCTAssertFalse(app.staticTexts["Normal Full"].exists)
+        XCTAssertFalse(app.staticTexts["Low Trajectory Stinger"].exists)
+        XCTAssertLessThan(shotRow.frame.minY, stingerRow.frame.minY)
         XCTAssertTrue(app.staticTexts["250 yds"].exists)
         shotRow.tap()
 
@@ -257,7 +281,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.buttons["Done"].tap()
         app.buttons["save-shot-edit-button"].tap()
 
-        XCTAssertTrue(app.navigationBars["Normal Shots"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Recorded Shots"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["251 yds"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.staticTexts["250 yds"].exists)
 
@@ -269,8 +293,18 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 2))
         deleteButton.tap()
 
-        XCTAssertTrue(app.staticTexts["No Recorded Shots"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Stinger"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.staticTexts["251 yds"].exists)
+
+        let remainingShotRow = app.descendants(matching: .any)["shot-record-row-stinger"]
+        XCTAssertTrue(remainingShotRow.waitForExistence(timeout: 2))
+        remainingShotRow.swipeLeft()
+
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 2))
+        deleteButton.tap()
+
+        XCTAssertTrue(app.staticTexts["No Recorded Shots"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["230 yds"].exists)
     }
 
     func testDashboardEditUpdatesExistingClubDistance() {

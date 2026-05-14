@@ -250,7 +250,6 @@ private struct ClubAnalysisDetailView: View {
             NavigationLink {
                 ShotRecordListView(
                     club: club,
-                    category: selectedCategory,
                     shotRecords: shotRecords,
                     onSave: onSaveShotRecord,
                     onDelete: onDeleteShotRecord
@@ -323,11 +322,7 @@ private struct ClubAnalysisDetailView: View {
     }
 
     private var totalShots: Int {
-        statsCalculator.totalShots(
-            for: shotRecords,
-            clubID: club.id,
-            category: selectedCategory
-        )
+        shotRecords.filter { $0.clubID == club.id }.count
     }
 
     private var strikeDistribution: [StrikeQuality: Double] {
@@ -427,7 +422,6 @@ private struct ClubAnalysisDetailView: View {
 
 private struct ShotRecordListView: View {
     let club: Club
-    let category: ShotCategory
     let shotRecords: [ShotRecord]
     let onSave: (ShotRecord) throws -> Void
     let onDelete: (ShotRecord) -> Void
@@ -440,7 +434,7 @@ private struct ShotRecordListView: View {
                 ContentUnavailableView(
                     "No Recorded Shots",
                     systemImage: "list.bullet.rectangle",
-                    description: Text("Shots recorded for this club and category will appear here.")
+                    description: Text("Shots recorded for this club will appear here.")
                 )
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
@@ -472,7 +466,7 @@ private struct ShotRecordListView: View {
             }
         }
         .accessibilityIdentifier("shot-record-list")
-        .navigationTitle("\(category.displayName) Shots")
+        .navigationTitle("Recorded Shots")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingRecord) { record in
             NavigationStack {
@@ -483,10 +477,10 @@ private struct ShotRecordListView: View {
 
     private var records: [ShotRecord] {
         shotRecords
-            .filter { $0.clubID == club.id && $0.category == category }
+            .filter { $0.clubID == club.id }
             .sorted { lhs, rhs in
                 if lhs.createdAt != rhs.createdAt {
-                    return lhs.createdAt > rhs.createdAt
+                    return lhs.createdAt < rhs.createdAt
                 }
 
                 return lhs.id.uuidString < rhs.id.uuidString
@@ -533,7 +527,7 @@ private struct ShotRecordRowView: View {
     }
 
     private var shotTypeText: String {
-        "\(record.category.displayName) \(record.power.displayName)"
+        record.power.displayName
     }
 
     private var distanceText: String {
