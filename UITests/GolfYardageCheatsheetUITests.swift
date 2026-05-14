@@ -195,17 +195,16 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Driver"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["analysis-distance-full"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["255 yds"].exists)
-        XCTAssertTrue(app.staticTexts["250 yds"].exists)
+        XCTAssertTrue(app.staticTexts["255"].exists)
+        XCTAssertTrue(app.staticTexts["250"].exists)
 
         let totalShots = app.staticTexts["analysis-total-shots"]
         XCTAssertTrue(totalShots.waitForExistence(timeout: 2))
         XCTAssertEqual(totalShots.label, "1 shot")
-        XCTAssertTrue(app.descendants(matching: .any)["analysis-percentage-Pure"].exists)
-        XCTAssertTrue(app.staticTexts["100%"].exists)
 
         app.swipeUp()
 
+        XCTAssertTrue(app.staticTexts["Pure"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.descendants(matching: .any)["analysis-percentage-Straight"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["100%"].exists)
     }

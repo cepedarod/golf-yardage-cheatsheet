@@ -210,24 +210,8 @@ private struct ClubAnalysisDetailView: View {
 
                 distanceComparisonSection
                 shotSummarySection
-                distributionSection(
-                    title: "Strike Quality",
-                    rows: StrikeQuality.allCases.map {
-                        DistributionRowData(
-                            title: $0.displayName,
-                            percentage: strikeDistribution[$0] ?? 0
-                        )
-                    }
-                )
-                distributionSection(
-                    title: "Direction",
-                    rows: ShotDirection.allCases.map {
-                        DistributionRowData(
-                            title: $0.displayName,
-                            percentage: directionDistribution[$0] ?? 0
-                        )
-                    }
-                )
+                strikeDistributionSection
+                directionDistributionSection
             }
         }
         .navigationTitle(formatter.displayName(for: club))
@@ -248,15 +232,7 @@ private struct ClubAnalysisDetailView: View {
     private var distanceComparisonSection: some View {
         Section("Distances") {
             ForEach(distanceRows, id: \.power) { row in
-                HStack(alignment: .firstTextBaseline) {
-                    Text(row.label)
-                        .font(.headline)
-
-                    Spacer()
-
-                    LabeledDistanceValue(title: "Manual", value: formattedDistance(row.manualDistance))
-                    LabeledDistanceValue(title: "Avg", value: formattedAverage(row.averageDistance))
-                }
+                DistanceComparisonRowView(row: row)
                 .accessibilityIdentifier("analysis-distance-\(row.power.accessibilityName)")
             }
         }
@@ -274,10 +250,32 @@ private struct ClubAnalysisDetailView: View {
         }
     }
 
-    private func distributionSection(title: String, rows: [DistributionRowData]) -> some View {
-        Section(title) {
-            ForEach(rows) { row in
-                PercentageRow(title: row.title, percentage: row.percentage)
+    private var strikeDistributionSection: some View {
+        Section("Strike Quality") {
+            DistributionSummaryRow(
+                rows: StrikeQuality.allCases.map {
+                    DistributionRowData(
+                        id: $0.displayName,
+                        title: $0.displayName,
+                        percentage: strikeDistribution[$0] ?? 0,
+                        systemImage: $0.systemImage,
+                        tint: $0.tint
+                    )
+                }
+            )
+            .accessibilityIdentifier("analysis-strike-distribution")
+        }
+    }
+
+    private var directionDistributionSection: some View {
+        Section("Direction") {
+            ForEach(ShotDirection.allCases, id: \.self) { direction in
+                PercentageRow(
+                    title: direction.displayName,
+                    percentage: directionDistribution[direction] ?? 0,
+                    systemImage: direction.systemImage,
+                    tint: direction.tint
+                )
             }
         }
     }
@@ -301,12 +299,7 @@ private struct ClubAnalysisDetailView: View {
                 power: power,
                 label: power.displayName,
                 manualDistance: manualDistance(for: selectedCategory, power: power),
-                averageDistance: statsCalculator.averageDistance(
-                    for: shotRecords,
-                    clubID: club.id,
-                    category: selectedCategory,
-                    power: power
-                )
+                averageDistance: roundedAverage(for: power)
             )
         }
     }
@@ -399,59 +392,207 @@ private struct ClubAnalysisDetailView: View {
         return "\(distance) yds"
     }
 
-    private func formattedAverage(_ average: Double?) -> String {
-        guard let average else {
-            return "-"
+    private func roundedAverage(for power: ShotPower) -> Int? {
+        guard let average = statsCalculator.averageDistance(
+            for: shotRecords,
+            clubID: club.id,
+            category: selectedCategory,
+            power: power
+        ) else {
+            return nil
         }
 
-        return "\(Int(average.rounded())) yds"
+        return Int(average.rounded())
     }
 
-    private struct DistanceComparisonRow {
-        let power: ShotPower
-        let label: String
-        let manualDistance: Int?
-        let averageDistance: Double?
+}
+
+private struct DistanceComparisonRow {
+    let power: ShotPower
+    let label: String
+    let manualDistance: Int?
+    let averageDistance: Int?
+
+    var delta: Int? {
+        guard let manualDistance, let averageDistance else {
+            return nil
+        }
+
+        return averageDistance - manualDistance
     }
 }
 
-private struct LabeledDistanceValue: View {
-    let title: String
-    let value: String
+private struct DistanceComparisonRowView: View {
+    let row: DistanceComparisonRow
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 3) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(row.label)
+                    .font(.headline)
+
+                Spacer()
+
+                if let deltaText {
+                    Text(deltaText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(deltaTint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(deltaTint.opacity(0.12), in: Capsule())
+                        .accessibilityIdentifier("analysis-distance-delta-\(row.power.accessibilityName)")
+                }
+            }
+
+            HStack(spacing: 0) {
+                ComparisonValue(title: "Manual", distance: row.manualDistance)
+
+                Divider()
+                    .padding(.vertical, 3)
+
+                ComparisonValue(title: "Pure Avg", distance: row.averageDistance)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var deltaText: String? {
+        guard let delta = row.delta else {
+            return nil
+        }
+
+        if delta == 0 {
+            return "Even"
+        }
+
+        return delta > 0 ? "+\(delta) yds" : "\(delta) yds"
+    }
+
+    private var deltaTint: Color {
+        guard let delta = row.delta else {
+            return .secondary
+        }
+
+        if delta == 0 {
+            return .secondary
+        }
+
+        return delta > 0 ? .blue : .orange
+    }
+}
+
+private struct ComparisonValue: View {
+    let title: String
+    let distance: Int?
+
+    var body: some View {
+        VStack(spacing: 4) {
             Text(title)
-                .font(.caption)
+                .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
 
-            Text(value)
-                .font(.headline)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(formattedDistance)
+                    .font(.title3.weight(.semibold))
+                    .monospacedDigit()
+
+                if distance != nil {
+                    Text("yds")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
         }
-        .frame(minWidth: 70, alignment: .trailing)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var formattedDistance: String {
+        guard let distance, distance > 0 else {
+            return "-"
+        }
+
+        return "\(distance)"
+    }
+}
+
+private struct DistributionRowData: Identifiable {
+    let id: String
+    let title: String
+    let percentage: Double
+    let systemImage: String
+    let tint: Color
+}
+
+private struct DistributionSummaryRow: View {
+    let rows: [DistributionRowData]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(rows) { row in
+                VStack(spacing: 7) {
+                    Image(systemName: row.systemImage)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(row.tint)
+
+                    Text(row.title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text(formattedPercentage(row.percentage))
+                        .font(.headline.weight(.semibold))
+                        .monospacedDigit()
+                        .accessibilityIdentifier("analysis-percentage-\(row.title)")
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func formattedPercentage(_ percentage: Double) -> String {
+        "\(Int(percentage.rounded()))%"
     }
 }
 
 private struct PercentageRow: View {
     let title: String
     let percentage: Double
+    let systemImage: String
+    let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 22)
+
                 Text(title)
+
                 Spacer()
+
                 Text(formattedPercentage)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .monospacedDigit()
             }
 
-            ProgressView(value: percentage, total: 100)
-                .tint(.green)
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.14))
+
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: percentage <= 0 ? 0 : max(6, proxy.size.width * percentage / 100))
+                }
+            }
+            .frame(height: 8)
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
         .accessibilityIdentifier("analysis-percentage-\(title)")
     }
 
@@ -460,12 +601,55 @@ private struct PercentageRow: View {
     }
 }
 
-private struct DistributionRowData: Identifiable {
-    let title: String
-    let percentage: Double
+private extension StrikeQuality {
+    var systemImage: String {
+        switch self {
+        case .thin:
+            "minus.circle"
+        case .pure:
+            "checkmark.circle.fill"
+        case .chunk:
+            "exclamationmark.circle"
+        }
+    }
 
-    var id: String {
-        title
+    var tint: Color {
+        switch self {
+        case .thin:
+            .orange
+        case .pure:
+            .green
+        case .chunk:
+            .red
+        }
+    }
+}
+
+private extension ShotDirection {
+    var systemImage: String {
+        switch self {
+        case .hook:
+            "arrowshape.turn.up.left.fill"
+        case .draw:
+            "arrow.up.left"
+        case .straight:
+            "arrow.up"
+        case .fade:
+            "arrow.up.right"
+        case .slice:
+            "arrowshape.turn.up.right.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .hook, .slice:
+            .red
+        case .draw, .fade:
+            .blue
+        case .straight:
+            .green
+        }
     }
 }
 
