@@ -5,6 +5,7 @@ public enum GolfBagRepositoryError: Error, Equatable, Sendable {
     case profileNotFound
     case clubNotFound
     case clubDoesNotBelongToProfile
+    case shotRecordNotFound
     case invalidClub([ClubValidationError])
     case invalidShotRecord([ShotRecordValidationError])
 }
@@ -161,6 +162,17 @@ public final class GolfBagRepository {
 
                 return lhs.id.uuidString < rhs.id.uuidString
             }
+    }
+
+    public func deleteShotRecord(id recordID: UUID) throws {
+        var data = try store.load()
+
+        guard let index = data.shotRecords.firstIndex(where: { $0.id == recordID }) else {
+            throw GolfBagRepositoryError.shotRecordNotFound
+        }
+
+        data.shotRecords.remove(at: index)
+        try store.save(data)
     }
 
     public func setClubActive(_ isActive: Bool, clubID: UUID, now: Date = Date()) throws {

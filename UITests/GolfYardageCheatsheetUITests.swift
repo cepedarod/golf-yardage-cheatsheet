@@ -209,6 +209,70 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["100%"].exists)
     }
 
+    func testAnalysisShotLogSupportsEditingAndDeletingShot() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        let recordShotButton = app.buttons["record-shot-button"]
+        XCTAssertTrue(recordShotButton.waitForExistence(timeout: 2))
+        recordShotButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        let shotDistanceField = app.textFields["record-shot-distance-field"]
+        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
+        shotDistanceField.tap()
+        shotDistanceField.typeText("250")
+        app.buttons["Done"].tap()
+        app.buttons["save-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Analysis"].tap()
+
+        XCTAssertTrue(app.navigationBars["Analysis"].waitForExistence(timeout: 5))
+        let driverAnalysisRow = app.descendants(matching: .any)["analysis-club-row-Driver"]
+        XCTAssertTrue(driverAnalysisRow.waitForExistence(timeout: 2))
+        driverAnalysisRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Driver"].waitForExistence(timeout: 5))
+        let totalShotsRow = app.descendants(matching: .any)["analysis-total-shots-row"]
+        XCTAssertTrue(totalShotsRow.waitForExistence(timeout: 2))
+        totalShotsRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Normal Shots"].waitForExistence(timeout: 5))
+        let shotRow = app.descendants(matching: .any)["shot-record-row-full"]
+        XCTAssertTrue(shotRow.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Normal Full"].exists)
+        XCTAssertTrue(app.staticTexts["250 yds"].exists)
+        shotRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Edit Shot"].waitForExistence(timeout: 5))
+        let editDistanceField = app.textFields["edit-shot-distance-field"]
+        XCTAssertTrue(app.buttons["clear-edit-shot-distance-button"].waitForExistence(timeout: 2))
+        app.buttons["clear-edit-shot-distance-button"].tap()
+        editDistanceField.tap()
+        editDistanceField.typeText("251")
+        app.buttons["Done"].tap()
+        app.buttons["save-shot-edit-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Normal Shots"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["251 yds"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["250 yds"].exists)
+
+        let editedShotRow = app.descendants(matching: .any)["shot-record-row-full"]
+        XCTAssertTrue(editedShotRow.waitForExistence(timeout: 2))
+        editedShotRow.swipeLeft()
+
+        let deleteButton = app.buttons["Delete"]
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 2))
+        deleteButton.tap()
+
+        XCTAssertTrue(app.staticTexts["No Recorded Shots"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["251 yds"].exists)
+    }
+
     func testDashboardEditUpdatesExistingClubDistance() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
@@ -400,4 +464,5 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
             app.buttons["finish-club-button"].tap()
         }
     }
+
 }

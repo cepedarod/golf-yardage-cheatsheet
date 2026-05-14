@@ -185,6 +185,69 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.loadData().shotRecords.first?.createdAt, createdAt)
     }
 
+    func testSaveShotRecordUpdatesExistingRecord() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let club = Club(
+            profileID: profile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155)
+        )
+        let original = ShotRecord(
+            profileID: profile.id,
+            clubID: club.id,
+            category: .normal,
+            power: .full,
+            distance: 150,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+        let edited = ShotRecord(
+            id: original.id,
+            profileID: profile.id,
+            clubID: club.id,
+            category: .normal,
+            power: .half,
+            distance: nil,
+            strikeQuality: .thin,
+            direction: .fade,
+            createdAt: original.createdAt
+        )
+
+        try repository.saveClub(club)
+        try repository.saveShotRecord(original)
+        try repository.saveShotRecord(edited)
+
+        XCTAssertEqual(try repository.shotRecords(for: profile.id), [edited])
+    }
+
+    func testDeleteShotRecordRemovesRecord() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let club = Club(
+            profileID: profile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155)
+        )
+        let record = ShotRecord(
+            profileID: profile.id,
+            clubID: club.id,
+            category: .normal,
+            power: .full,
+            distance: 150,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+
+        try repository.saveClub(club)
+        try repository.saveShotRecord(record)
+        try repository.deleteShotRecord(id: record.id)
+
+        XCTAssertTrue(try repository.shotRecords(for: profile.id).isEmpty)
+    }
+
     func testSaveShotRecordRejectsInvalidPowerForCategory() throws {
         let store = InMemoryGolfBagStore()
         let repository = GolfBagRepository(store: store)
@@ -325,6 +388,9 @@ final class GolfBagRepositoryTests: XCTestCase {
         }
         XCTAssertThrowsError(try repository.deleteClub(id: UUID())) { error in
             XCTAssertEqual(error as? GolfBagRepositoryError, .clubNotFound)
+        }
+        XCTAssertThrowsError(try repository.deleteShotRecord(id: UUID())) { error in
+            XCTAssertEqual(error as? GolfBagRepositoryError, .shotRecordNotFound)
         }
     }
 }

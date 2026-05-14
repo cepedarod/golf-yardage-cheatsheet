@@ -132,6 +132,15 @@ final class YardageDashboardViewModel: ObservableObject {
         loadClubs()
     }
 
+    func deleteShotRecord(_ record: ShotRecord) {
+        do {
+            try repository.deleteShotRecord(id: record.id)
+            loadClubs()
+        } catch {
+            errorMessage = "Unable to delete shot."
+        }
+    }
+
     private var targetYardage: Int? {
         guard let targetYardage = Int(targetYardageText), targetYardage > 0 else {
             return nil
