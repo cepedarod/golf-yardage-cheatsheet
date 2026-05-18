@@ -496,6 +496,18 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertEqual(shotDistanceField.value as? String, "165")
         XCTAssertTrue(app.descendants(matching: .any)["gps-confidence-row"].waitForExistence(timeout: 2))
 
+        let auditButton = app.buttons["gps-audit-button"]
+        XCTAssertTrue(auditButton.waitForExistence(timeout: 2))
+        auditButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Audit Distance"].waitForExistence(timeout: 5))
+        let auditDistance = app.staticTexts["gps-audit-distance"]
+        XCTAssertTrue(auditDistance.waitForExistence(timeout: 2))
+        XCTAssertEqual(auditDistance.label, "165 yds")
+
+        app.buttons["apply-gps-audit-button"].tap()
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+
         app.buttons["save-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))

@@ -1,4 +1,5 @@
 import CoreLocation
+import MapKit
 import SwiftUI
 
 struct YardageDashboardView: View {
@@ -212,7 +213,7 @@ struct YardageDashboardView: View {
                     profile: profile,
                     clubs: viewModel.recordableActiveClubs,
                     roundID: context.roundID,
-                    gpsMeasurement: context.gpsMeasurement,
+                    gpsCapture: context.gpsCapture,
                     onSave: viewModel.saveShotRecord
                 )
             }
@@ -256,7 +257,7 @@ struct YardageDashboardView: View {
             }
 
             Button("Manual Entry") {
-                recordShotContext = RecordShotContext(roundID: nil, gpsMeasurement: nil)
+                recordShotContext = RecordShotContext(roundID: nil, gpsCapture: nil)
             }
 
             Button("Cancel", role: .cancel) {}
@@ -269,7 +270,7 @@ struct YardageDashboardView: View {
                 message: Text(alert.message),
                 primaryButton: .default(Text("Manual Entry")) {
                     shotTracker.abort()
-                    recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsMeasurement: nil)
+                    recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsCapture: nil)
                 },
                 secondaryButton: .default(Text("Retry Location")) {
                     retryGPSCapture()
@@ -425,7 +426,7 @@ struct YardageDashboardView: View {
     private func handleShotTrackingTap() {
         switch effectiveShotTrackingMode {
         case .manual:
-            recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsMeasurement: nil)
+            recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsCapture: nil)
         case .gps:
             switch shotTracker.phase {
             case .idle:
@@ -455,8 +456,8 @@ struct YardageDashboardView: View {
     private func finishGPSShot() {
         Task {
             do {
-                let measurement = try await shotTracker.captureFinish()
-                recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsMeasurement: measurement)
+                let capture = try await shotTracker.captureFinish()
+                recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsCapture: capture)
             } catch {
                 gpsFallbackAlert = GPSFallbackAlert(message: message(for: error))
             }
@@ -553,7 +554,13 @@ struct YardageDashboardView: View {
 private struct RecordShotContext: Identifiable {
     let id = UUID()
     let roundID: UUID?
-    let gpsMeasurement: ShotGPSMeasurement?
+    let gpsCapture: ShotGPSCapture?
+}
+
+private struct ShotGPSCapture: Equatable {
+    var measurement: ShotGPSMeasurement
+    var startAnchor: ShotLocationAnchor
+    var endAnchor: ShotLocationAnchor
 }
 
 private struct GPSFallbackAlert: Identifiable {
@@ -659,7 +666,7 @@ private final class ShotTrackingFlowViewModel: ObservableObject {
         }
     }
 
-    func captureFinish() async throws -> ShotGPSMeasurement {
+    func captureFinish() async throws -> ShotGPSCapture {
         guard case let .readyToFinish(startAnchor) = phase else {
             throw ShotLocationCaptureError.locationUnavailable
         }
@@ -668,8 +675,13 @@ private final class ShotTrackingFlowViewModel: ObservableObject {
 
         do {
             let endAnchor = try await locationProvider.captureAnchor(durationNanoseconds: captureDurationNanoseconds)
+            let capture = ShotGPSCapture(
+                measurement: calculator.measurement(from: startAnchor, to: endAnchor),
+                startAnchor: startAnchor,
+                endAnchor: endAnchor
+            )
             phase = .idle
-            return calculator.measurement(from: startAnchor, to: endAnchor)
+            return capture
         } catch {
             phase = .readyToFinish(startAnchor)
             throw error
@@ -821,7 +833,6 @@ private struct RecordShotView: View {
     let profile: GolferProfile
     let clubs: [Club]
     let roundID: UUID?
-    let gpsMeasurement: ShotGPSMeasurement?
     let onSave: (ShotRecord) throws -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -835,22 +846,24 @@ private struct RecordShotView: View {
     @State private var strikeQuality: StrikeQuality = .pure
     @State private var direction: ShotDirection = .straight
     @State private var grassType: GrassType = .fairway
+    @State private var gpsCapture: ShotGPSCapture?
+    @State private var isShowingGPSAudit = false
     @State private var errorMessage: String?
 
     init(
         profile: GolferProfile,
         clubs: [Club],
         roundID: UUID? = nil,
-        gpsMeasurement: ShotGPSMeasurement? = nil,
+        gpsCapture: ShotGPSCapture? = nil,
         onSave: @escaping (ShotRecord) throws -> Void
     ) {
         self.profile = profile
         self.clubs = clubs
         self.roundID = roundID
-        self.gpsMeasurement = gpsMeasurement
         self.onSave = onSave
         _selectedClubID = State(initialValue: clubs.first?.id ?? UUID())
-        _distanceText = State(initialValue: gpsMeasurement.map { String($0.measuredDistanceYards) } ?? "")
+        _distanceText = State(initialValue: gpsCapture.map { String($0.measurement.measuredDistanceYards) } ?? "")
+        _gpsCapture = State(initialValue: gpsCapture)
     }
 
     var body: some View {
@@ -921,6 +934,7 @@ private struct RecordShotView: View {
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 58, alignment: .leading)
+                                .accessibilityIdentifier("gps-confidence-row")
 
                             Image(systemName: "location.circle.fill")
                                 .font(.caption)
@@ -931,6 +945,17 @@ private struct RecordShotView: View {
 
                             Spacer(minLength: 4)
 
+                            Button {
+                                isShowingGPSAudit = true
+                            } label: {
+                                Label("Audit", systemImage: "map")
+                                    .font(.caption2.weight(.semibold))
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+                            .accessibilityLabel("Audit GPS Distance")
+                            .accessibilityIdentifier("gps-audit-button")
+
                             Text(gpsMeasurement.confidence.displayName)
                                 .font(.caption2.weight(.semibold))
                                 .lineLimit(1)
@@ -940,7 +965,6 @@ private struct RecordShotView: View {
                         }
                         .foregroundStyle(gpsMeasurement.confidence.tint)
                         .padding(.vertical, 2)
-                        .accessibilityIdentifier("gps-confidence-row")
                     }
                 }
 
@@ -1043,10 +1067,22 @@ private struct RecordShotView: View {
         .onChange(of: selectedClubID) { _, _ in
             normalizeSelectedShot()
         }
+        .sheet(isPresented: $isShowingGPSAudit) {
+            if let gpsCapture {
+                GPSAuditMapView(capture: gpsCapture) { auditedCapture in
+                    self.gpsCapture = auditedCapture
+                    distanceText = String(auditedCapture.measurement.measuredDistanceYards)
+                }
+            }
+        }
     }
 
     private var selectedClub: Club? {
         clubs.first { $0.id == selectedClubID } ?? clubs.first
+    }
+
+    private var gpsMeasurement: ShotGPSMeasurement? {
+        gpsCapture?.measurement
     }
 
     private var threeChoiceColumns: [GridItem] {
@@ -1298,6 +1334,235 @@ private struct RecordShotView: View {
     }
 }
 
+private struct GPSAuditMapView: View {
+    let capture: ShotGPSCapture
+    let onApply: (ShotGPSCapture) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var startAnchor: ShotLocationAnchor
+    @State private var endAnchor: ShotLocationAnchor
+    @State private var position: MapCameraPosition
+
+    private let calculator = ShotGPSMeasurementCalculator()
+
+    init(capture: ShotGPSCapture, onApply: @escaping (ShotGPSCapture) -> Void) {
+        self.capture = capture
+        self.onApply = onApply
+        _startAnchor = State(initialValue: capture.startAnchor)
+        _endAnchor = State(initialValue: capture.endAnchor)
+        _position = State(initialValue: Self.cameraPosition(start: capture.startAnchor, end: capture.endAnchor))
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                MapReader { proxy in
+                    Map(position: $position, interactionModes: [.pan, .zoom, .rotate]) {
+                        MapCircle(center: startCoordinate, radius: max(startAnchor.horizontalAccuracyMeters, 1))
+                            .foregroundStyle(Color.blue.opacity(0.14))
+                            .stroke(Color.blue.opacity(0.55), lineWidth: 1)
+
+                        MapCircle(center: endCoordinate, radius: max(endAnchor.horizontalAccuracyMeters, 1))
+                            .foregroundStyle(Color.green.opacity(0.14))
+                            .stroke(Color.green.opacity(0.55), lineWidth: 1)
+
+                        MapPolyline(coordinates: [startCoordinate, endCoordinate])
+                            .stroke(Color.white.opacity(0.9), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+
+                        MapPolyline(coordinates: [startCoordinate, endCoordinate])
+                            .stroke(Color.green.opacity(0.85), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+
+                        Annotation("Start", coordinate: startCoordinate, anchor: .center) {
+                            auditMarker(systemName: "figure.golf", color: .blue)
+                                .accessibilityIdentifier("gps-audit-start-marker")
+                        }
+
+                        Annotation("Finish", coordinate: endCoordinate, anchor: .center) {
+                            auditMarker(systemName: "flag.checkered", color: .green)
+                                .accessibilityIdentifier("gps-audit-end-marker")
+                        }
+                    }
+                    .mapStyle(.imagery(elevation: .realistic))
+                    .simultaneousGesture(
+                        SpatialTapGesture()
+                            .onEnded { value in
+                                if let coordinate = proxy.convert(value.location, from: .local) {
+                                    moveNearestAnchor(to: coordinate)
+                                }
+                            }
+                    )
+                }
+
+                auditControls
+            }
+            .navigationTitle("Audit Distance")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Apply") {
+                        onApply(auditedCapture)
+                        dismiss()
+                    }
+                    .accessibilityIdentifier("apply-gps-audit-button")
+                }
+            }
+        }
+    }
+
+    private var auditControls: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("GPS Distance")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Text("\(capture.measurement.measuredDistanceYards) yds")
+                        .font(.title3.weight(.semibold))
+                        .monospacedDigit()
+                    Text("+/- \(Int(capture.measurement.estimatedUncertaintyYards.rounded())) yds")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(capture.measurement.confidence.tint)
+                        .monospacedDigit()
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("New Distance")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Text("\(auditedMeasurement.measuredDistanceYards) yds")
+                        .font(.title3.weight(.semibold))
+                        .monospacedDigit()
+                        .accessibilityIdentifier("gps-audit-distance")
+                }
+            }
+
+            HStack {
+                Button {
+                    resetAnchors()
+                } label: {
+                    Label("Reset", systemImage: "arrow.counterclockwise")
+                }
+                .buttonStyle(.bordered)
+
+                Spacer()
+
+                HStack(spacing: 12) {
+                    auditLegendItem("Start", color: .blue)
+                    auditLegendItem("Finish", color: .green)
+                }
+            }
+        }
+        .padding()
+        .background(.bar)
+    }
+
+    private var startCoordinate: CLLocationCoordinate2D {
+        startAnchor.coordinate
+    }
+
+    private var endCoordinate: CLLocationCoordinate2D {
+        endAnchor.coordinate
+    }
+
+    private var auditedMeasurement: ShotGPSMeasurement {
+        calculator.measurement(
+            from: startAnchor,
+            to: endAnchor,
+            capturedAt: capture.measurement.capturedAt
+        )
+    }
+
+    private var auditedCapture: ShotGPSCapture {
+        ShotGPSCapture(
+            measurement: auditedMeasurement,
+            startAnchor: startAnchor,
+            endAnchor: endAnchor
+        )
+    }
+
+    private func auditMarker(systemName: String, color: Color) -> some View {
+        Image(systemName: systemName)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(width: 30, height: 30)
+            .background(color, in: Circle())
+            .shadow(radius: 3, y: 1)
+    }
+
+    private func auditLegendItem(_ title: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(title)
+                .font(.caption.weight(.semibold))
+        }
+        .foregroundStyle(.secondary)
+    }
+
+    private func moveNearestAnchor(to coordinate: CLLocationCoordinate2D) {
+        let tappedLocation = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let startLocation = CLLocation(latitude: startAnchor.latitude, longitude: startAnchor.longitude)
+        let endLocation = CLLocation(latitude: endAnchor.latitude, longitude: endAnchor.longitude)
+
+        if tappedLocation.distance(from: startLocation) <= tappedLocation.distance(from: endLocation) {
+            startAnchor.latitude = coordinate.latitude
+            startAnchor.longitude = coordinate.longitude
+        } else {
+            endAnchor.latitude = coordinate.latitude
+            endAnchor.longitude = coordinate.longitude
+        }
+    }
+
+    private func resetAnchors() {
+        startAnchor = capture.startAnchor
+        endAnchor = capture.endAnchor
+        position = Self.cameraPosition(start: capture.startAnchor, end: capture.endAnchor)
+    }
+
+    private static func cameraPosition(start: ShotLocationAnchor, end: ShotLocationAnchor) -> MapCameraPosition {
+        let center = CLLocationCoordinate2D(
+            latitude: (start.latitude + end.latitude) / 2,
+            longitude: (start.longitude + end.longitude) / 2
+        )
+        let distance = max(distanceMeters(from: start, to: end) * 3.2, 240)
+
+        return .camera(MapCamera(
+            centerCoordinate: center,
+            distance: distance,
+            heading: bearingDegrees(from: start, to: end),
+            pitch: 0
+        ))
+    }
+
+    private static func distanceMeters(from start: ShotLocationAnchor, to end: ShotLocationAnchor) -> CLLocationDistance {
+        CLLocation(latitude: start.latitude, longitude: start.longitude)
+            .distance(from: CLLocation(latitude: end.latitude, longitude: end.longitude))
+    }
+
+    private static func bearingDegrees(from start: ShotLocationAnchor, to end: ShotLocationAnchor) -> CLLocationDirection {
+        let startLatitude = start.latitude * .pi / 180
+        let endLatitude = end.latitude * .pi / 180
+        let deltaLongitude = (end.longitude - start.longitude) * .pi / 180
+
+        let y = sin(deltaLongitude) * cos(endLatitude)
+        let x = cos(startLatitude) * sin(endLatitude) -
+            sin(startLatitude) * cos(endLatitude) * cos(deltaLongitude)
+        let bearing = atan2(y, x) * 180 / .pi
+
+        return (bearing + 360).truncatingRemainder(dividingBy: 360)
+    }
+
+}
+
 private enum RecordClubGroup: CaseIterable {
     case woods
     case irons
@@ -1354,6 +1619,12 @@ private extension GPSConfidence {
         case .red:
             return .red
         }
+    }
+}
+
+private extension ShotLocationAnchor {
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 }
 
