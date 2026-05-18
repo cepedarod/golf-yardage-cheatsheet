@@ -59,6 +59,500 @@ private struct MainTabView: View {
                 Label("Analysis", systemImage: "chart.bar.xaxis")
             }
             .accessibilityIdentifier("analysis-tab")
+
+            NavigationStack {
+                ProfileView(
+                    profile: profile,
+                    repository: repository,
+                    switchProfile: switchProfile
+                )
+            }
+            .tabItem {
+                Label("Profile", systemImage: "person.crop.circle")
+            }
+            .accessibilityIdentifier("profile-tab")
+        }
+    }
+}
+
+@MainActor
+private final class ProfileDashboardViewModel: ObservableObject {
+    @Published var shotTrackingMode: ShotTrackingMode
+    @Published private(set) var profileName: String
+    @Published private(set) var shotRows: [ProfileShotRow] = []
+    @Published private(set) var completedRounds: [GolfRound] = []
+    @Published private(set) var shotCountsByRoundID: [UUID: Int] = [:]
+    @Published var errorMessage: String?
+
+    private let profileID: UUID
+    private let repository: GolfBagRepository
+    private let formatter = ClubDisplayNameFormatter()
+
+    init(profile: GolferProfile, repository: GolfBagRepository) {
+        profileID = profile.id
+        profileName = profile.name
+        shotTrackingMode = profile.shotTrackingMode
+        self.repository = repository
+    }
+
+    func load() {
+        do {
+            let data = try repository.loadData()
+
+            guard let profile = data.profiles.first(where: { $0.id == profileID }) else {
+                throw GolfBagRepositoryError.profileNotFound
+            }
+
+            let clubsByID = Dictionary(uniqueKeysWithValues: data.clubs.map { ($0.id, $0) })
+            profileName = profile.name
+            shotTrackingMode = profile.shotTrackingMode
+            shotRows = data.shotRecords
+                .filter { $0.profileID == profileID }
+                .sorted(by: newestShotFirst)
+                .map { record in
+                    ProfileShotRow(
+                        record: record,
+                        club: clubsByID[record.clubID],
+                        clubName: clubsByID[record.clubID].map(formatter.displayName(for:)) ?? "Deleted Club"
+                    )
+                }
+            completedRounds = data.rounds
+                .filter { $0.profileID == profileID && $0.isCompleted }
+                .sorted(by: newestRoundFirst)
+            shotCountsByRoundID = data.shotRecords
+                .filter { $0.profileID == profileID }
+                .reduce(into: [:]) { counts, record in
+                    if let roundID = record.roundID {
+                        counts[roundID, default: 0] += 1
+                    }
+                }
+            errorMessage = nil
+        } catch {
+            shotRows = []
+            completedRounds = []
+            shotCountsByRoundID = [:]
+            errorMessage = "Unable to load profile details."
+        }
+    }
+
+    func updateShotTrackingMode(_ mode: ShotTrackingMode) {
+        do {
+            try repository.updateProfileShotTrackingMode(profileID: profileID, mode: mode)
+            errorMessage = nil
+            load()
+        } catch {
+            errorMessage = "Unable to update shot tracking mode."
+            load()
+        }
+    }
+
+    func saveShotRecord(_ record: ShotRecord) throws {
+        try repository.saveShotRecord(record)
+        load()
+    }
+
+    func deleteShotRecord(_ row: ProfileShotRow) {
+        do {
+            try repository.deleteShotRecord(id: row.record.id)
+            load()
+        } catch {
+            errorMessage = "Unable to delete shot."
+        }
+    }
+
+    func deleteAllShots() {
+        do {
+            try repository.deleteAllShotRecords(for: profileID)
+            load()
+        } catch {
+            errorMessage = "Unable to delete shots."
+        }
+    }
+
+    func deleteRound(_ round: GolfRound) {
+        do {
+            try repository.deleteRound(id: round.id)
+            load()
+        } catch {
+            errorMessage = "Unable to delete round."
+        }
+    }
+
+    func shotCount(for round: GolfRound) -> Int {
+        shotCountsByRoundID[round.id] ?? 0
+    }
+
+    private func newestShotFirst(_ lhs: ShotRecord, _ rhs: ShotRecord) -> Bool {
+        if lhs.createdAt != rhs.createdAt {
+            return lhs.createdAt > rhs.createdAt
+        }
+
+        return lhs.id.uuidString < rhs.id.uuidString
+    }
+
+    private func newestRoundFirst(_ lhs: GolfRound, _ rhs: GolfRound) -> Bool {
+        if lhs.startedAt != rhs.startedAt {
+            return lhs.startedAt > rhs.startedAt
+        }
+
+        return lhs.id.uuidString < rhs.id.uuidString
+    }
+}
+
+private struct ProfileShotRow: Identifiable, Equatable {
+    var id: UUID { record.id }
+
+    let record: ShotRecord
+    let club: Club?
+    let clubName: String
+}
+
+private struct ProfileView: View {
+    let switchProfile: () -> Void
+
+    @StateObject private var viewModel: ProfileDashboardViewModel
+
+    init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
+        self.switchProfile = switchProfile
+        _viewModel = StateObject(wrappedValue: ProfileDashboardViewModel(profile: profile, repository: repository))
+    }
+
+    var body: some View {
+        List {
+            Section("Shot Tracking") {
+                Picker("Shot Tracking Mode", selection: $viewModel.shotTrackingMode) {
+                    ForEach(ShotTrackingMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("shot-tracking-mode-picker")
+                .onChange(of: viewModel.shotTrackingMode) { _, newMode in
+                    viewModel.updateShotTrackingMode(newMode)
+                }
+            }
+
+            Section("Overview") {
+                NavigationLink {
+                    ProfileAllShotsView(viewModel: viewModel)
+                } label: {
+                    ProfileMetricRow(
+                        title: "All Shots",
+                        value: "\(viewModel.shotRows.count)",
+                        systemImage: "list.bullet.rectangle",
+                        valueAccessibilityIdentifier: "profile-all-shots-count"
+                    )
+                }
+                .accessibilityIdentifier("profile-all-shots-row")
+
+                NavigationLink {
+                    ProfileRoundsListView(viewModel: viewModel)
+                } label: {
+                    ProfileMetricRow(
+                        title: "Number of Rounds",
+                        value: "\(viewModel.completedRounds.count)",
+                        systemImage: "flag.checkered",
+                        valueAccessibilityIdentifier: "profile-rounds-count"
+                    )
+                }
+                .accessibilityIdentifier("profile-rounds-row")
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .accessibilityIdentifier("profile-list")
+        .navigationTitle("Profile")
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: switchProfile) {
+                    Image(systemName: "person.2")
+                }
+                .accessibilityLabel("Switch Profile")
+            }
+        }
+        .task {
+            viewModel.load()
+        }
+    }
+}
+
+private struct ProfileMetricRow: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let valueAccessibilityIdentifier: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.green)
+                .frame(width: 32)
+
+            Text(title)
+                .font(.headline)
+
+            Spacer()
+
+            Text(value)
+                .font(.title3.weight(.semibold))
+                .monospacedDigit()
+                .accessibilityIdentifier(valueAccessibilityIdentifier)
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+private struct ProfileAllShotsView: View {
+    @ObservedObject var viewModel: ProfileDashboardViewModel
+
+    @State private var editingRow: ProfileShotRow?
+    @State private var isConfirmingDeleteAll = false
+
+    var body: some View {
+        List {
+            if viewModel.shotRows.isEmpty {
+                ContentUnavailableView(
+                    "No Shots",
+                    systemImage: "list.bullet.rectangle",
+                    description: Text("Tracked shots will appear here.")
+                )
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(viewModel.shotRows) { row in
+                    Button {
+                        if row.club != nil {
+                            editingRow = row
+                        }
+                    } label: {
+                        ProfileShotRecordRowView(row: row)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("profile-shot-row-\(row.record.id.uuidString)")
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            viewModel.deleteShotRecord(row)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("profile-all-shots-list")
+        .navigationTitle("All Shots")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if viewModel.shotRows.isEmpty == false {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Delete All", role: .destructive) {
+                        isConfirmingDeleteAll = true
+                    }
+                    .accessibilityIdentifier("delete-all-shots-button")
+                }
+            }
+        }
+        .alert("Delete All Shots?", isPresented: $isConfirmingDeleteAll) {
+            Button("Delete All", role: .destructive) {
+                viewModel.deleteAllShots()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes every shot for this profile.")
+        }
+        .sheet(item: $editingRow) { row in
+            if let club = row.club {
+                NavigationStack {
+                    ShotRecordEditView(club: club, record: row.record, onSave: viewModel.saveShotRecord)
+                }
+            }
+        }
+        .onAppear {
+            viewModel.load()
+        }
+    }
+}
+
+private struct ProfileShotRecordRowView: View {
+    let row: ProfileShotRow
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.clubName)
+                        .font(.headline)
+
+                    Text(shotTypeText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Text(distanceText)
+                    .font(.headline.weight(.semibold))
+                    .monospacedDigit()
+            }
+
+            HStack(spacing: 12) {
+                Label(dateText, systemImage: "calendar")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text(row.record.grassType.displayName)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                StrikeQualityIcon(quality: row.record.strikeQuality, size: 22)
+                    .accessibilityLabel(row.record.strikeQuality.displayName)
+
+                Image(systemName: row.record.direction.systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(row.record.direction.tint)
+                    .accessibilityLabel(row.record.direction.displayName)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var shotTypeText: String {
+        switch row.record.category {
+        case .normal, .flop:
+            "\(row.record.power.displayName) \(row.record.category.displayName)"
+        case .lowTrajectory:
+            row.record.power.displayName
+        }
+    }
+
+    private var distanceText: String {
+        guard let distance = row.record.distance else {
+            return "- yds"
+        }
+
+        return "\(distance) yds"
+    }
+
+    private var dateText: String {
+        row.record.createdAt.formatted(date: .abbreviated, time: .shortened)
+    }
+}
+
+private struct ProfileRoundsListView: View {
+    @ObservedObject var viewModel: ProfileDashboardViewModel
+
+    var body: some View {
+        List {
+            if viewModel.completedRounds.isEmpty {
+                ContentUnavailableView(
+                    "No Rounds",
+                    systemImage: "flag.checkered",
+                    description: Text("Completed rounds will appear here.")
+                )
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(viewModel.completedRounds) { round in
+                    NavigationLink {
+                        RoundDetailView(round: round, shotCount: viewModel.shotCount(for: round))
+                    } label: {
+                        RoundHistoryRow(round: round, shotCount: viewModel.shotCount(for: round))
+                    }
+                    .accessibilityIdentifier("round-row-\(round.id.uuidString)")
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            viewModel.deleteRound(round)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("profile-rounds-list")
+        .navigationTitle("Rounds")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.load()
+        }
+    }
+}
+
+private struct RoundHistoryRow: View {
+    let round: GolfRound
+    let shotCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(round.name)
+                .font(.headline)
+
+            HStack {
+                Text(dateText)
+                Spacer()
+                Text(shotText)
+                    .monospacedDigit()
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var dateText: String {
+        round.startedAt.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    private var shotText: String {
+        shotCount == 1 ? "1 shot" : "\(shotCount) shots"
+    }
+}
+
+private struct RoundDetailView: View {
+    let round: GolfRound
+    let shotCount: Int
+
+    var body: some View {
+        List {
+            Section("Round") {
+                detailRow(title: "Name", value: round.name)
+                detailRow(title: "Started", value: round.startedAt.formatted(date: .abbreviated, time: .shortened))
+
+                if let endedAt = round.endedAt {
+                    detailRow(title: "Ended", value: endedAt.formatted(date: .abbreviated, time: .shortened))
+                }
+            }
+
+            Section {
+                HStack {
+                    Text("Total Tracked Shots")
+                    Spacer()
+                    Text("\(shotCount)")
+                        .font(.title3.weight(.semibold))
+                        .monospacedDigit()
+                }
+                .accessibilityIdentifier("round-detail-shot-count")
+            }
+        }
+        .navigationTitle(round.name)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func detailRow(title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
         }
     }
 }

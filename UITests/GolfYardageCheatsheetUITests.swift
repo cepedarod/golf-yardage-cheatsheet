@@ -367,6 +367,47 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["230 yds"].exists)
     }
 
+    func testProfileTabShowsTrackingModeAndAllShots() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        let recordShotButton = app.buttons["record-shot-button"]
+        XCTAssertTrue(recordShotButton.waitForExistence(timeout: 2))
+        recordShotButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        let shotDistanceField = app.textFields["record-shot-distance-field"]
+        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
+        shotDistanceField.tap()
+        shotDistanceField.typeText("250")
+        dismissKeyboardIfNeeded(in: app)
+        app.buttons["save-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Profile"].tap()
+
+        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["shot-tracking-mode-picker"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["All Shots"].exists)
+        XCTAssertEqual(app.staticTexts["profile-all-shots-count"].label, "1")
+        XCTAssertTrue(app.staticTexts["Number of Rounds"].exists)
+        XCTAssertEqual(app.staticTexts["profile-rounds-count"].label, "0")
+
+        app.buttons["Manual"].tap()
+
+        let allShotsRow = app.descendants(matching: .any)["profile-all-shots-row"]
+        XCTAssertTrue(allShotsRow.waitForExistence(timeout: 2))
+        allShotsRow.tap()
+
+        XCTAssertTrue(app.navigationBars["All Shots"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Full Normal"].exists)
+        XCTAssertTrue(app.staticTexts["250 yds"].exists)
+    }
+
     func testDashboardEditUpdatesExistingClubDistance() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
