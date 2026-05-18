@@ -4,9 +4,9 @@ An Apple-native iOS app for quickly checking golf club distances on the course.
 
 ## Current Phase
 
-V2 beta validation.
+V3 beta validation.
 
-The app has moved beyond the original V1 distance cheat sheet into the V2 beta scope: distance categories, Manual/Real values, shot recording, club analysis, and recorded-shot history are implemented on `codex/v2-beta`. Current work is focused on simulator validation, physical iPhone beta testing, and final visual polish.
+The app has moved beyond the V2 shot-tracking beta into the V3 GPS-assisted round scope: current round management, GPS shot tracking, pre-save audit maps, round history, and tracking-mode preferences are implemented on `codex/v3-gps-shot-tracking`. Current work is focused on physical iPhone GPS smoke testing and follow-up refinements from outdoor use.
 
 ## Product Goal
 
@@ -30,11 +30,15 @@ Build a simple, offline-first iOS app that lets golfers store club distances by 
 
 ## Current QA Status
 
-- `swift test`: 58 tests passing.
-- iOS simulator smoke suite: 15 UI tests passing.
+- `swift test`: 66 tests passing.
+- iOS simulator smoke suite: 19 UI tests passing.
 - Unsigned `iphoneos` Debug build: passing.
 - Physical iPhone V2 beta signed build: passing with automatic signing.
 - Physical iPhone V2 beta install: passing on `Lemmy Machine`.
 - Physical iPhone V2 beta launch: passing on `Lemmy Machine`.
 - Physical iPhone V1 smoke pass: passed, with follow-up refinements implemented from testing feedback.
 - Physical iPhone V2 beta pass: pending.
+- Physical iPhone V3 beta signed build: passing with automatic signing.
+- Physical iPhone V3 beta install: passing on `Lemmy Machine`.
+- Physical iPhone V3 beta launch: passing on `Lemmy Machine`.
+- Physical iPhone V3 GPS smoke pass: pending.

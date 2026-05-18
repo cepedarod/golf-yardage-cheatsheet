@@ -7,8 +7,12 @@
 - V2 beta `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -destination 'platform=iOS,name=Lemmy Machine' -allowProvisioningUpdates build`: passed with automatic signing.
 - V2 beta `xcrun devicectl device install app --device 0ACBB310-B196-5C2B-87A1-E1D47EC481CC "<DerivedData>/Build/Products/Debug-iphoneos/Caddie Cat.app"`: installed successfully.
 - V2 beta `xcrun devicectl device process launch --device 0ACBB310-B196-5C2B-87A1-E1D47EC481CC com.cepedarod.GolfYardageCheatsheet`: launched successfully.
+- V3 beta `xcodebuild -project GolfYardageCheatsheet.xcodeproj -scheme GolfYardageCheatsheet -configuration Debug -destination 'id=00008130-001A3CE60A3A001C' -derivedDataPath /private/tmp/CaddieCatDeviceBuild build`: passed with automatic signing.
+- V3 beta `xcrun devicectl device install app --device 0ACBB310-B196-5C2B-87A1-E1D47EC481CC "/tmp/CaddieCatDeviceBuild/Build/Products/Debug-iphoneos/Caddie Cat.app"`: installed successfully.
+- V3 beta `xcrun devicectl device process launch --device 0ACBB310-B196-5C2B-87A1-E1D47EC481CC com.cepedarod.GolfYardageCheatsheet`: launched successfully.
 - V1 physical smoke pass: passed.
 - V2 physical beta pass: pending.
+- V3 physical GPS smoke pass: pending.
 
 ## One-Time Xcode Setup
 
@@ -27,6 +31,42 @@
 4. Trust the Apple Development profile in Settings -> General -> VPN & Device Management after the first install.
 5. In Xcode, select the physical iPhone as the run destination.
 6. Run the app from Xcode.
+
+## V3 Physical GPS Smoke Pass
+
+1. Confirm the app launches as `Caddie Cat`.
+2. Profile:
+   - Open Profile.
+   - Confirm Shot Tracking Mode defaults to GPS.
+   - Switch to Manual, then back to GPS.
+3. Round:
+   - Open Round.
+   - Start a round.
+   - Confirm the round name is editable.
+   - Confirm Total Shots starts at 0.
+4. GPS track shot:
+   - Return to Distances.
+   - Tap `Track Shot (Start)`.
+   - Confirm the loading animation lasts about 2 seconds.
+   - Walk to a second location with open sky.
+   - Tap `Track Shot (Finish)`.
+   - Confirm the Record Shot form opens with a distance prefilled.
+   - Confirm the GPS confidence color appears next to the distance.
+5. GPS audit:
+   - Tap Audit.
+   - Confirm the map opens and shows both pins.
+   - Confirm the shot line is thin enough to see map landmarks.
+   - Drag each pin and confirm New Distance changes.
+   - Apply the audit and confirm the form distance updates.
+6. Save shot:
+   - Complete the remaining shot fields and save.
+   - Open Round and confirm Total Shots is 1.
+   - Tap Total Shots and confirm the shot appears in the round shot list.
+7. End round:
+   - End the round.
+   - Open Profile.
+   - Confirm Number of Rounds increments.
+   - Open the round list and confirm the completed round appears.
 
 ## V2 Physical Beta Pass
 
