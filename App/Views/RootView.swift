@@ -232,10 +232,19 @@ private final class CurrentRoundViewModel: ObservableObject {
     private let profileID: UUID
     private let repository: GolfBagRepository
     private let formatter = ClubDisplayNameFormatter()
+    private let locationProvider: any ShotLocationProviding
+    private let courseNameProvider: any GolfCourseNameProviding
 
-    init(profile: GolferProfile, repository: GolfBagRepository) {
+    init(
+        profile: GolferProfile,
+        repository: GolfBagRepository,
+        locationProvider: any ShotLocationProviding,
+        courseNameProvider: any GolfCourseNameProviding
+    ) {
         profileID = profile.id
         self.repository = repository
+        self.locationProvider = locationProvider
+        self.courseNameProvider = courseNameProvider
         roundNameDraft = Self.defaultRoundName(for: Date())
     }
 
@@ -283,12 +292,8 @@ private final class CurrentRoundViewModel: ObservableObject {
     }
 
     func startRound() {
-        do {
-            let name = normalizedRoundName()
-            _ = try repository.startRound(profileID: profileID, name: name)
-            load()
-        } catch {
-            errorMessage = "Unable to start round."
+        Task {
+            await startRoundWithSuggestedCourse()
         }
     }
 
@@ -358,6 +363,37 @@ private final class CurrentRoundViewModel: ObservableObject {
         return trimmedName.isEmpty == false && trimmedName != activeRound.name
     }
 
+    func startLocationWarmup() {
+        locationProvider.startWarmingLocation()
+    }
+
+    func stopLocationWarmup() {
+        locationProvider.stopWarmingLocation()
+    }
+
+    private func startRoundWithSuggestedCourse() async {
+        do {
+            let name = normalizedRoundName()
+            let defaultName = Self.defaultRoundName(for: Date())
+            let userEditedName = name != defaultName
+            let courseName = userEditedName ? nil : await suggestedCourseName()
+            let roundName = courseName ?? name
+            _ = try repository.startRound(profileID: profileID, name: roundName, courseName: courseName)
+            load()
+        } catch {
+            errorMessage = "Unable to start round."
+        }
+    }
+
+    private func suggestedCourseName() async -> String? {
+        do {
+            let anchor = try await locationProvider.currentAnchor()
+            return await courseNameProvider.nearestCourseName(to: anchor.coordinate)
+        } catch {
+            return nil
+        }
+    }
+
     private func normalizedRoundName() -> String {
         let trimmedName = roundNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmedName.isEmpty ? Self.defaultRoundName(for: Date()) : trimmedName
@@ -395,7 +431,36 @@ private struct CurrentRoundView: View {
     init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
         self.profile = profile
         self.switchProfile = switchProfile
-        _viewModel = StateObject(wrappedValue: CurrentRoundViewModel(profile: profile, repository: repository))
+        _viewModel = StateObject(wrappedValue: CurrentRoundViewModel(
+            profile: profile,
+            repository: repository,
+            locationProvider: Self.locationProvider(),
+            courseNameProvider: Self.courseNameProvider()
+        ))
+    }
+
+    @MainActor
+    private static func locationProvider() -> any ShotLocationProviding {
+        if let distanceText = ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"],
+           let distanceYards = Double(distanceText) {
+            let accuracyMeters = ProcessInfo.processInfo.environment["GPS_TEST_ACCURACY_METERS"]
+                .flatMap(Double.init) ?? 1
+            return SimulatedShotLocationProvider(distanceYards: distanceYards, horizontalAccuracyMeters: accuracyMeters)
+        }
+
+        return CoreLocationShotLocationProvider()
+    }
+
+    private static func courseNameProvider() -> any GolfCourseNameProviding {
+        if let courseName = ProcessInfo.processInfo.environment["ROUND_TEST_COURSE_NAME"] {
+            return StaticGolfCourseNameProvider(name: courseName)
+        }
+
+        if ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"] != nil {
+            return StaticGolfCourseNameProvider(name: nil)
+        }
+
+        return MapKitGolfCourseNameProvider()
     }
 
     var body: some View {
@@ -443,6 +508,13 @@ private struct CurrentRoundView: View {
         }
         .onAppear {
             viewModel.load()
+            syncLocationWarmup()
+        }
+        .onDisappear {
+            viewModel.stopLocationWarmup()
+        }
+        .onChange(of: viewModel.activeRound?.id) { _, _ in
+            syncLocationWarmup()
         }
     }
 
@@ -462,6 +534,14 @@ private struct CurrentRoundView: View {
             Text("Round")
         } footer: {
             Text("Start a round to group tracked shots together.")
+        }
+    }
+
+    private func syncLocationWarmup() {
+        if viewModel.activeRound == nil {
+            viewModel.stopLocationWarmup()
+        } else {
+            viewModel.startLocationWarmup()
         }
     }
 

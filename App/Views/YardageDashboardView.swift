@@ -17,10 +17,12 @@ struct YardageDashboardView: View {
     @FocusState private var isTargetYardageFocused: Bool
 
     private let formatter = ClubDisplayNameFormatter()
+    private let courseNameProvider: any GolfCourseNameProviding
 
     init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
         self.profile = profile
         self.switchProfile = switchProfile
+        courseNameProvider = Self.courseNameProvider()
         _viewModel = StateObject(wrappedValue: YardageDashboardViewModel(
             profile: profile,
             repository: repository,
@@ -52,6 +54,18 @@ struct YardageDashboardView: View {
         }
 
         return CoreLocationShotLocationProvider()
+    }
+
+    private static func courseNameProvider() -> any GolfCourseNameProviding {
+        if let courseName = ProcessInfo.processInfo.environment["ROUND_TEST_COURSE_NAME"] {
+            return StaticGolfCourseNameProvider(name: courseName)
+        }
+
+        if ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"] != nil {
+            return StaticGolfCourseNameProvider(name: nil)
+        }
+
+        return MapKitGolfCourseNameProvider()
     }
 
     var body: some View {
@@ -229,6 +243,16 @@ struct YardageDashboardView: View {
         }
         .onAppear {
             viewModel.loadClubs()
+            syncLocationWarmup()
+        }
+        .onDisappear {
+            shotTracker.stopLocationWarmup()
+        }
+        .onChange(of: viewModel.activeRoundID) { _, _ in
+            syncLocationWarmup()
+        }
+        .onChange(of: viewModel.shotTrackingMode) { _, _ in
+            syncLocationWarmup()
         }
         .onChange(of: targetYardageText) { _, newValue in
             let digitsOnly = String(newValue.filter(\.isNumber).prefix(3))
@@ -251,9 +275,7 @@ struct YardageDashboardView: View {
         }
         .alert("Start a Round?", isPresented: $isConfirmingStartRoundForGPS) {
             Button("Start Round") {
-                if viewModel.startRound() {
-                    beginGPSShot()
-                }
+                startRoundAndBeginGPSShot()
             }
 
             Button("Manual Entry") {
@@ -453,6 +475,35 @@ struct YardageDashboardView: View {
         }
     }
 
+    private func startRoundAndBeginGPSShot() {
+        Task {
+            let courseName = await suggestedCourseName()
+
+            if viewModel.startRound(courseName: courseName) {
+                syncLocationWarmup()
+                beginGPSShot()
+            }
+        }
+    }
+
+    private func suggestedCourseName() async -> String? {
+        do {
+            let anchor = try await shotTracker.currentAnchor()
+            return await courseNameProvider.nearestCourseName(to: anchor.coordinate)
+        } catch {
+            return nil
+        }
+    }
+
+    private func syncLocationWarmup() {
+        guard viewModel.activeRoundID != nil, effectiveShotTrackingMode == .gps else {
+            shotTracker.stopLocationWarmup()
+            return
+        }
+
+        shotTracker.startLocationWarmup()
+    }
+
     private func finishGPSShot() {
         Task {
             do {
@@ -570,8 +621,22 @@ private struct GPSFallbackAlert: Identifiable {
 }
 
 @MainActor
-private protocol ShotLocationProviding: AnyObject {
+protocol ShotLocationProviding: AnyObject {
     func captureAnchor(durationNanoseconds: UInt64) async throws -> ShotLocationAnchor
+    func currentAnchor() async throws -> ShotLocationAnchor
+    func startWarmingLocation()
+    func stopWarmingLocation()
+}
+
+@MainActor
+extension ShotLocationProviding {
+    func currentAnchor() async throws -> ShotLocationAnchor {
+        try await captureAnchor(durationNanoseconds: 2_000_000_000)
+    }
+
+    func startWarmingLocation() {}
+
+    func stopWarmingLocation() {}
 }
 
 private enum ShotLocationCaptureError: Error {
@@ -691,13 +756,26 @@ private final class ShotTrackingFlowViewModel: ObservableObject {
     func abort() {
         phase = .idle
     }
+
+    func currentAnchor() async throws -> ShotLocationAnchor {
+        try await locationProvider.currentAnchor()
+    }
+
+    func startLocationWarmup() {
+        locationProvider.startWarmingLocation()
+    }
+
+    func stopLocationWarmup() {
+        locationProvider.stopWarmingLocation()
+    }
 }
 
 @MainActor
-private final class CoreLocationShotLocationProvider: NSObject, @preconcurrency CLLocationManagerDelegate, ShotLocationProviding {
+final class CoreLocationShotLocationProvider: NSObject, @preconcurrency CLLocationManagerDelegate, ShotLocationProviding {
     private let manager = CLLocationManager()
     private var authorizationContinuation: CheckedContinuation<Void, Error>?
     private var locations: [CLLocation] = []
+    private var isWarmingLocation = false
 
     override init() {
         super.init()
@@ -721,7 +799,9 @@ private final class CoreLocationShotLocationProvider: NSObject, @preconcurrency 
         locations = []
         manager.startUpdatingLocation()
         defer {
-            manager.stopUpdatingLocation()
+            if isWarmingLocation == false {
+                manager.stopUpdatingLocation()
+            }
         }
 
         try await Task.sleep(nanoseconds: durationNanoseconds)
@@ -738,7 +818,54 @@ private final class CoreLocationShotLocationProvider: NSObject, @preconcurrency 
         )
     }
 
+    func currentAnchor() async throws -> ShotLocationAnchor {
+        if let location = bestLocation() {
+            return ShotLocationAnchor(
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude,
+                horizontalAccuracyMeters: location.horizontalAccuracy,
+                capturedAt: location.timestamp
+            )
+        }
+
+        return try await captureAnchor(durationNanoseconds: 2_000_000_000)
+    }
+
+    func startWarmingLocation() {
+        guard CLLocationManager.locationServicesEnabled() else {
+            return
+        }
+
+        isWarmingLocation = true
+
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            guard manager.accuracyAuthorization == .fullAccuracy else {
+                return
+            }
+
+            manager.startUpdatingLocation()
+        case .notDetermined:
+            manager.requestWhenInUseAuthorization()
+        case .denied, .restricted:
+            break
+        @unknown default:
+            break
+        }
+    }
+
+    func stopWarmingLocation() {
+        isWarmingLocation = false
+        manager.stopUpdatingLocation()
+    }
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if isWarmingLocation,
+           manager.authorizationStatus == .authorizedAlways || manager.authorizationStatus == .authorizedWhenInUse,
+           manager.accuracyAuthorization == .fullAccuracy {
+            manager.startUpdatingLocation()
+        }
+
         guard let continuation = authorizationContinuation else {
             return
         }
@@ -792,7 +919,7 @@ private final class CoreLocationShotLocationProvider: NSObject, @preconcurrency 
 }
 
 @MainActor
-private final class SimulatedShotLocationProvider: ShotLocationProviding {
+final class SimulatedShotLocationProvider: ShotLocationProviding {
     private var captureCount = 0
     private let distanceYards: Double
     private let horizontalAccuracyMeters: Double
@@ -824,6 +951,14 @@ private final class SimulatedShotLocationProvider: ShotLocationProviding {
         return ShotLocationAnchor(
             latitude: latitude,
             longitude: startLongitude + longitudeDelta,
+            horizontalAccuracyMeters: horizontalAccuracyMeters
+        )
+    }
+
+    func currentAnchor() async throws -> ShotLocationAnchor {
+        ShotLocationAnchor(
+            latitude: 41.0,
+            longitude: -87.0,
             horizontalAccuracyMeters: horizontalAccuracyMeters
         )
     }
@@ -1622,7 +1757,7 @@ private extension GPSConfidence {
     }
 }
 
-private extension ShotLocationAnchor {
+extension ShotLocationAnchor {
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }

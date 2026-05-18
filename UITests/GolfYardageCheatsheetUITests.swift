@@ -470,6 +470,27 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["profile-rounds-count"].label, "1")
     }
 
+    func testRoundStartUsesNearestCourseNameWhenAvailable() {
+        let app = launchFreshApp(environment: [
+            "GPS_TEST_DISTANCE_YARDS": "1",
+            "GPS_TEST_ACCURACY_METERS": "1",
+            "ROUND_TEST_COURSE_NAME": "Torrey Pines"
+        ])
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Round"].tap()
+
+        XCTAssertTrue(app.navigationBars["Current Round"].waitForExistence(timeout: 5))
+        app.buttons["start-round-button"].tap()
+
+        let roundNameField = app.textFields["active-round-name-field"]
+        XCTAssertTrue(roundNameField.waitForExistence(timeout: 5))
+        XCTAssertEqual(roundNameField.value as? String, "Torrey Pines")
+    }
+
     func testGPSShotTrackingPrefillsMeasuredDistance() {
         let app = launchFreshApp(environment: [
             "SHOT_TRACKING_MODE_OVERRIDE": "gps",

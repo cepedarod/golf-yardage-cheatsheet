@@ -146,9 +146,13 @@ final class YardageDashboardViewModel: ObservableObject {
     }
 
     @discardableResult
-    func startRound() -> Bool {
+    func startRound(courseName: String? = nil) -> Bool {
         do {
-            let round = try repository.startRound(profileID: profile.id, name: Self.defaultRoundName(for: Date()))
+            let suggestedName = courseName?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .nilIfEmpty
+            let roundName = suggestedName ?? Self.defaultRoundName(for: Date())
+            let round = try repository.startRound(profileID: profile.id, name: roundName, courseName: suggestedName)
             activeRoundID = round.id
             loadClubs()
             return true
@@ -236,5 +240,11 @@ final class YardageDashboardViewModel: ObservableObject {
         } catch {
             self.errorMessage = errorMessage
         }
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }
