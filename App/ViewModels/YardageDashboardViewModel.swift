@@ -6,6 +6,7 @@ final class YardageDashboardViewModel: ObservableObject {
     @Published private(set) var inactiveClubs: [Club] = []
     @Published private(set) var shotRecords: [ShotRecord] = []
     @Published private(set) var activeRoundID: UUID?
+    @Published private(set) var shotTrackingMode: ShotTrackingMode
     @Published private(set) var matches: [YardageMatch] = []
     @Published private(set) var targetYardageText = "" {
         didSet {
@@ -48,6 +49,7 @@ final class YardageDashboardViewModel: ObservableObject {
         self.matcher = matcher
         self.distanceValueResolver = DistanceValueResolver()
         self.targetClearDelayNanoseconds = targetClearDelayNanoseconds
+        self.shotTrackingMode = profile.shotTrackingMode
     }
 
     deinit {
@@ -56,13 +58,25 @@ final class YardageDashboardViewModel: ObservableObject {
 
     func loadClubs() {
         do {
-            let clubs = clubSorter.sortedForDistanceTab(try repository.clubs(for: profile.id, includeInactive: true))
-            let shotRecords = try repository.shotRecords(for: profile.id)
-            let activeRound = try repository.activeRound(for: profile.id)
+            let data = try repository.loadData()
+
+            guard let currentProfile = data.profiles.first(where: { $0.id == profile.id }) else {
+                throw GolfBagRepositoryError.profileNotFound
+            }
+
+            let clubs = clubSorter.sortedForDistanceTab(data.clubs(for: profile.id))
+            let shotRecords = data.shotRecords
+                .filter { $0.profileID == profile.id }
+                .sorted(by: oldestShotFirst)
+            let activeRound = data.rounds
+                .filter { $0.profileID == profile.id && $0.isCompleted == false }
+                .sorted(by: newestRoundFirst)
+                .first
             activeClubs = clubs.filter(\.isActive)
             inactiveClubs = clubs.filter { $0.isActive == false }
             self.shotRecords = shotRecords
             activeRoundID = activeRound?.id
+            shotTrackingMode = currentProfile.shotTrackingMode
             updateMatches()
             errorMessage = nil
         } catch {
@@ -70,6 +84,7 @@ final class YardageDashboardViewModel: ObservableObject {
             inactiveClubs = []
             shotRecords = []
             activeRoundID = nil
+            shotTrackingMode = profile.shotTrackingMode
             matches = []
             errorMessage = "Unable to load clubs."
         }
@@ -130,6 +145,19 @@ final class YardageDashboardViewModel: ObservableObject {
         loadClubs()
     }
 
+    @discardableResult
+    func startRound() -> Bool {
+        do {
+            let round = try repository.startRound(profileID: profile.id, name: Self.defaultRoundName(for: Date()))
+            activeRoundID = round.id
+            loadClubs()
+            return true
+        } catch {
+            errorMessage = "Unable to start round."
+            return false
+        }
+    }
+
     func deleteShotRecord(_ record: ShotRecord) {
         do {
             try repository.deleteShotRecord(id: record.id)
@@ -179,6 +207,26 @@ final class YardageDashboardViewModel: ObservableObject {
 
             self?.clearTargetYardage()
         }
+    }
+
+    private static func defaultRoundName(for date: Date) -> String {
+        "Round \(date.formatted(.dateTime.month(.abbreviated).day()))"
+    }
+
+    private func newestRoundFirst(_ lhs: GolfRound, _ rhs: GolfRound) -> Bool {
+        if lhs.startedAt != rhs.startedAt {
+            return lhs.startedAt > rhs.startedAt
+        }
+
+        return lhs.id.uuidString < rhs.id.uuidString
+    }
+
+    private func oldestShotFirst(_ lhs: ShotRecord, _ rhs: ShotRecord) -> Bool {
+        if lhs.createdAt != rhs.createdAt {
+            return lhs.createdAt < rhs.createdAt
+        }
+
+        return lhs.id.uuidString < rhs.id.uuidString
     }
 
     private func setClub(_ club: Club, active: Bool, errorMessage: String) {

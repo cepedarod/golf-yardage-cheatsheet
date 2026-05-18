@@ -1,3 +1,4 @@
+import CoreLocation
 import SwiftUI
 
 struct YardageDashboardView: View {
@@ -5,9 +6,12 @@ struct YardageDashboardView: View {
     let switchProfile: () -> Void
 
     @StateObject private var viewModel: YardageDashboardViewModel
+    @StateObject private var shotTracker: ShotTrackingFlowViewModel
     @State private var clubForm: ClubForm?
     @State private var didOfferInitialBagSetup = false
-    @State private var isShowingRecordShot = false
+    @State private var recordShotContext: RecordShotContext?
+    @State private var isConfirmingStartRoundForGPS = false
+    @State private var gpsFallbackAlert: GPSFallbackAlert?
     @State private var targetYardageText = ""
     @FocusState private var isTargetYardageFocused: Bool
 
@@ -21,11 +25,32 @@ struct YardageDashboardView: View {
             repository: repository,
             targetClearDelayNanoseconds: Self.targetClearDelayNanoseconds
         ))
+        _shotTracker = StateObject(wrappedValue: ShotTrackingFlowViewModel(
+            locationProvider: Self.locationProvider(),
+            captureDurationNanoseconds: Self.gpsCaptureDurationNanoseconds
+        ))
     }
 
     private static var targetClearDelayNanoseconds: UInt64 {
         ProcessInfo.processInfo.environment["TARGET_YARDAGE_CLEAR_DELAY_NANOSECONDS"]
             .flatMap(UInt64.init) ?? 120_000_000_000
+    }
+
+    private static var gpsCaptureDurationNanoseconds: UInt64 {
+        ProcessInfo.processInfo.environment["GPS_CAPTURE_DURATION_NANOSECONDS"]
+            .flatMap(UInt64.init) ?? 2_000_000_000
+    }
+
+    @MainActor
+    private static func locationProvider() -> any ShotLocationProviding {
+        if let distanceText = ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"],
+           let distanceYards = Double(distanceText) {
+            let accuracyMeters = ProcessInfo.processInfo.environment["GPS_TEST_ACCURACY_METERS"]
+                .flatMap(Double.init) ?? 1
+            return SimulatedShotLocationProvider(distanceYards: distanceYards, horizontalAccuracyMeters: accuracyMeters)
+        }
+
+        return CoreLocationShotLocationProvider()
     }
 
     var body: some View {
@@ -181,12 +206,13 @@ struct YardageDashboardView: View {
                 }
             }
         }
-        .sheet(isPresented: $isShowingRecordShot) {
+        .sheet(item: $recordShotContext) { context in
             NavigationStack {
                 RecordShotView(
                     profile: profile,
                     clubs: viewModel.recordableActiveClubs,
-                    roundID: viewModel.activeRoundID,
+                    roundID: context.roundID,
+                    gpsMeasurement: context.gpsMeasurement,
                     onSave: viewModel.saveShotRecord
                 )
             }
@@ -221,6 +247,34 @@ struct YardageDashboardView: View {
             if targetYardageText != newValue {
                 targetYardageText = newValue
             }
+        }
+        .alert("Start a Round?", isPresented: $isConfirmingStartRoundForGPS) {
+            Button("Start Round") {
+                if viewModel.startRound() {
+                    beginGPSShot()
+                }
+            }
+
+            Button("Manual Entry") {
+                recordShotContext = RecordShotContext(roundID: nil, gpsMeasurement: nil)
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("GPS shot tracking works best inside an active round.")
+        }
+        .alert(item: $gpsFallbackAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                primaryButton: .default(Text("Manual Entry")) {
+                    shotTracker.abort()
+                    recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsMeasurement: nil)
+                },
+                secondaryButton: .default(Text("Retry Location")) {
+                    retryGPSCapture()
+                }
+            )
         }
     }
 
@@ -297,21 +351,135 @@ struct YardageDashboardView: View {
         VStack(spacing: 0) {
             Divider()
 
-            Button {
-                isShowingRecordShot = true
-            } label: {
-                Label("Record Shot", systemImage: "plus.circle.fill")
+            HStack(spacing: 10) {
+                Button {
+                    handleShotTrackingTap()
+                } label: {
+                    HStack(spacing: 8) {
+                        if shotTracker.isCapturing {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: recordShotSystemImage)
+                        }
+
+                        Text(recordShotTitle)
+                    }
                     .font(.headline)
                     .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                .disabled(viewModel.recordableActiveClubs.isEmpty || shotTracker.isCapturing)
+                .accessibilityIdentifier("record-shot-button")
+
+                if shotTracker.canAbort {
+                    Button {
+                        shotTracker.abort()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                    .accessibilityLabel("Abort Shot")
+                    .accessibilityIdentifier("abort-shot-button")
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
-            .disabled(viewModel.recordableActiveClubs.isEmpty)
-            .accessibilityIdentifier("record-shot-button")
             .padding(.horizontal)
             .padding(.vertical, 10)
         }
         .background(.bar)
+    }
+
+    private var recordShotTitle: String {
+        switch effectiveShotTrackingMode {
+        case .manual:
+            return "Record Shot"
+        case .gps:
+            return shotTracker.primaryButtonTitle
+        }
+    }
+
+    private var recordShotSystemImage: String {
+        switch effectiveShotTrackingMode {
+        case .manual:
+            return "plus.circle.fill"
+        case .gps:
+            return shotTracker.primaryButtonSystemImage
+        }
+    }
+
+    private var effectiveShotTrackingMode: ShotTrackingMode {
+        switch ProcessInfo.processInfo.environment["SHOT_TRACKING_MODE_OVERRIDE"] {
+        case "manual":
+            return .manual
+        case "gps":
+            return .gps
+        default:
+            return viewModel.shotTrackingMode
+        }
+    }
+
+    private func handleShotTrackingTap() {
+        switch effectiveShotTrackingMode {
+        case .manual:
+            recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsMeasurement: nil)
+        case .gps:
+            switch shotTracker.phase {
+            case .idle:
+                if viewModel.activeRoundID == nil {
+                    isConfirmingStartRoundForGPS = true
+                } else {
+                    beginGPSShot()
+                }
+            case .readyToFinish:
+                finishGPSShot()
+            case .capturingStart, .capturingFinish:
+                break
+            }
+        }
+    }
+
+    private func beginGPSShot() {
+        Task {
+            do {
+                try await shotTracker.captureStart()
+            } catch {
+                gpsFallbackAlert = GPSFallbackAlert(message: message(for: error))
+            }
+        }
+    }
+
+    private func finishGPSShot() {
+        Task {
+            do {
+                let measurement = try await shotTracker.captureFinish()
+                recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsMeasurement: measurement)
+            } catch {
+                gpsFallbackAlert = GPSFallbackAlert(message: message(for: error))
+            }
+        }
+    }
+
+    private func retryGPSCapture() {
+        switch shotTracker.phase {
+        case .idle:
+            beginGPSShot()
+        case .readyToFinish:
+            finishGPSShot()
+        case .capturingStart, .capturingFinish:
+            break
+        }
+    }
+
+    private func message(for error: Error) -> String {
+        if let locationError = error as? ShotLocationCaptureError {
+            return locationError.userMessage
+        }
+
+        return "Caddie Cat could not get a reliable location. You can retry GPS or enter the shot manually."
     }
 
     private var emptyClubsTitle: String {
@@ -382,10 +550,278 @@ struct YardageDashboardView: View {
     )
 }
 
+private struct RecordShotContext: Identifiable {
+    let id = UUID()
+    let roundID: UUID?
+    let gpsMeasurement: ShotGPSMeasurement?
+}
+
+private struct GPSFallbackAlert: Identifiable {
+    let id = UUID()
+    let title = "GPS Unavailable"
+    let message: String
+}
+
+@MainActor
+private protocol ShotLocationProviding: AnyObject {
+    func captureAnchor(durationNanoseconds: UInt64) async throws -> ShotLocationAnchor
+}
+
+private enum ShotLocationCaptureError: Error {
+    case locationServicesDisabled
+    case permissionDenied
+    case reducedAccuracy
+    case locationUnavailable
+
+    var userMessage: String {
+        switch self {
+        case .locationServicesDisabled:
+            return "Location Services are turned off. Turn them on or enter this shot manually."
+        case .permissionDenied:
+            return "GPS shot tracking needs location permission. You can retry after changing permissions or enter this shot manually."
+        case .reducedAccuracy:
+            return "GPS shot tracking needs Precise Location. Approximate location is too broad for golf yardages."
+        case .locationUnavailable:
+            return "Caddie Cat could not get a fresh GPS reading in 2 seconds. You can retry GPS or enter the shot manually."
+        }
+    }
+}
+
+@MainActor
+private final class ShotTrackingFlowViewModel: ObservableObject {
+    enum Phase: Equatable {
+        case idle
+        case capturingStart
+        case readyToFinish(ShotLocationAnchor)
+        case capturingFinish(ShotLocationAnchor)
+    }
+
+    @Published private(set) var phase: Phase = .idle
+
+    private let locationProvider: any ShotLocationProviding
+    private let calculator = ShotGPSMeasurementCalculator()
+    private let captureDurationNanoseconds: UInt64
+
+    init(locationProvider: any ShotLocationProviding, captureDurationNanoseconds: UInt64) {
+        self.locationProvider = locationProvider
+        self.captureDurationNanoseconds = captureDurationNanoseconds
+    }
+
+    var isCapturing: Bool {
+        switch phase {
+        case .capturingStart, .capturingFinish:
+            return true
+        case .idle, .readyToFinish:
+            return false
+        }
+    }
+
+    var canAbort: Bool {
+        switch phase {
+        case .readyToFinish, .capturingFinish:
+            return true
+        case .idle, .capturingStart:
+            return false
+        }
+    }
+
+    var primaryButtonTitle: String {
+        switch phase {
+        case .idle:
+            return "Track Shot (Start)"
+        case .capturingStart:
+            return "Measuring Start..."
+        case .readyToFinish:
+            return "Track Shot (Finish)"
+        case .capturingFinish:
+            return "Measuring Finish..."
+        }
+    }
+
+    var primaryButtonSystemImage: String {
+        switch phase {
+        case .idle, .capturingStart:
+            return "location.circle.fill"
+        case .readyToFinish, .capturingFinish:
+            return "flag.checkered.circle.fill"
+        }
+    }
+
+    func captureStart() async throws {
+        phase = .capturingStart
+
+        do {
+            let anchor = try await locationProvider.captureAnchor(durationNanoseconds: captureDurationNanoseconds)
+            phase = .readyToFinish(anchor)
+        } catch {
+            phase = .idle
+            throw error
+        }
+    }
+
+    func captureFinish() async throws -> ShotGPSMeasurement {
+        guard case let .readyToFinish(startAnchor) = phase else {
+            throw ShotLocationCaptureError.locationUnavailable
+        }
+
+        phase = .capturingFinish(startAnchor)
+
+        do {
+            let endAnchor = try await locationProvider.captureAnchor(durationNanoseconds: captureDurationNanoseconds)
+            phase = .idle
+            return calculator.measurement(from: startAnchor, to: endAnchor)
+        } catch {
+            phase = .readyToFinish(startAnchor)
+            throw error
+        }
+    }
+
+    func abort() {
+        phase = .idle
+    }
+}
+
+@MainActor
+private final class CoreLocationShotLocationProvider: NSObject, @preconcurrency CLLocationManagerDelegate, ShotLocationProviding {
+    private let manager = CLLocationManager()
+    private var authorizationContinuation: CheckedContinuation<Void, Error>?
+    private var locations: [CLLocation] = []
+
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        manager.distanceFilter = kCLDistanceFilterNone
+        manager.activityType = .fitness
+    }
+
+    func captureAnchor(durationNanoseconds: UInt64) async throws -> ShotLocationAnchor {
+        guard CLLocationManager.locationServicesEnabled() else {
+            throw ShotLocationCaptureError.locationServicesDisabled
+        }
+
+        try await ensureAuthorized()
+
+        guard manager.accuracyAuthorization == .fullAccuracy else {
+            throw ShotLocationCaptureError.reducedAccuracy
+        }
+
+        locations = []
+        manager.startUpdatingLocation()
+        defer {
+            manager.stopUpdatingLocation()
+        }
+
+        try await Task.sleep(nanoseconds: durationNanoseconds)
+
+        guard let location = bestLocation() else {
+            throw ShotLocationCaptureError.locationUnavailable
+        }
+
+        return ShotLocationAnchor(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude,
+            horizontalAccuracyMeters: location.horizontalAccuracy,
+            capturedAt: location.timestamp
+        )
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        guard let continuation = authorizationContinuation else {
+            return
+        }
+
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            authorizationContinuation = nil
+            continuation.resume()
+        case .denied, .restricted:
+            authorizationContinuation = nil
+            continuation.resume(throwing: ShotLocationCaptureError.permissionDenied)
+        case .notDetermined:
+            break
+        @unknown default:
+            authorizationContinuation = nil
+            continuation.resume(throwing: ShotLocationCaptureError.permissionDenied)
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        self.locations.append(contentsOf: locations)
+    }
+
+    private func ensureAuthorized() async throws {
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            return
+        case .denied, .restricted:
+            throw ShotLocationCaptureError.permissionDenied
+        case .notDetermined:
+            try await withCheckedThrowingContinuation { continuation in
+                authorizationContinuation = continuation
+                manager.requestWhenInUseAuthorization()
+            }
+        @unknown default:
+            throw ShotLocationCaptureError.permissionDenied
+        }
+    }
+
+    private func bestLocation() -> CLLocation? {
+        locations
+            .filter { $0.horizontalAccuracy > 0 }
+            .min { lhs, rhs in
+                if lhs.horizontalAccuracy != rhs.horizontalAccuracy {
+                    return lhs.horizontalAccuracy < rhs.horizontalAccuracy
+                }
+
+                return lhs.timestamp > rhs.timestamp
+            }
+    }
+}
+
+@MainActor
+private final class SimulatedShotLocationProvider: ShotLocationProviding {
+    private var captureCount = 0
+    private let distanceYards: Double
+    private let horizontalAccuracyMeters: Double
+
+    init(distanceYards: Double, horizontalAccuracyMeters: Double) {
+        self.distanceYards = distanceYards
+        self.horizontalAccuracyMeters = horizontalAccuracyMeters
+    }
+
+    func captureAnchor(durationNanoseconds: UInt64) async throws -> ShotLocationAnchor {
+        try await Task.sleep(nanoseconds: durationNanoseconds)
+        captureCount += 1
+
+        let latitude = 41.0
+        let startLongitude = -87.0
+
+        guard captureCount > 1 else {
+            return ShotLocationAnchor(
+                latitude: latitude,
+                longitude: startLongitude,
+                horizontalAccuracyMeters: horizontalAccuracyMeters
+            )
+        }
+
+        let distanceMeters = distanceYards / ShotGPSMeasurementCalculator.yardsPerMeter
+        let earthRadiusMeters = 6_371_000.0
+        let longitudeDelta = (distanceMeters / (earthRadiusMeters * cos(latitude * .pi / 180))) * 180 / .pi
+
+        return ShotLocationAnchor(
+            latitude: latitude,
+            longitude: startLongitude + longitudeDelta,
+            horizontalAccuracyMeters: horizontalAccuracyMeters
+        )
+    }
+}
+
 private struct RecordShotView: View {
     let profile: GolferProfile
     let clubs: [Club]
     let roundID: UUID?
+    let gpsMeasurement: ShotGPSMeasurement?
     let onSave: (ShotRecord) throws -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -400,12 +836,20 @@ private struct RecordShotView: View {
     @State private var direction: ShotDirection = .straight
     @State private var errorMessage: String?
 
-    init(profile: GolferProfile, clubs: [Club], roundID: UUID? = nil, onSave: @escaping (ShotRecord) throws -> Void) {
+    init(
+        profile: GolferProfile,
+        clubs: [Club],
+        roundID: UUID? = nil,
+        gpsMeasurement: ShotGPSMeasurement? = nil,
+        onSave: @escaping (ShotRecord) throws -> Void
+    ) {
         self.profile = profile
         self.clubs = clubs
         self.roundID = roundID
+        self.gpsMeasurement = gpsMeasurement
         self.onSave = onSave
         _selectedClubID = State(initialValue: clubs.first?.id ?? UUID())
+        _distanceText = State(initialValue: gpsMeasurement.map { String($0.measuredDistanceYards) } ?? "")
     }
 
     var body: some View {
@@ -433,6 +877,17 @@ private struct RecordShotView: View {
                     HStack {
                         Text("Distance (Yards)")
                         Spacer()
+                        if distanceText.isEmpty == false {
+                            Button {
+                                distanceText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Clear Distance")
+                            .accessibilityIdentifier("clear-record-shot-distance-button")
+                        }
                         NumericTextField(
                             title: "Optional",
                             text: $distanceText,
@@ -441,6 +896,22 @@ private struct RecordShotView: View {
                         )
                             .accessibilityIdentifier("record-shot-distance-field")
                             .frame(maxWidth: 112)
+                    }
+
+                    if let gpsMeasurement {
+                        HStack(spacing: 8) {
+                            Image(systemName: "location.circle.fill")
+                            Text("GPS +/- \(Int(gpsMeasurement.estimatedUncertaintyYards.rounded())) yds")
+                            Spacer()
+                            Text(gpsMeasurement.confidence.displayName)
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(gpsMeasurement.confidence.tint.opacity(0.16), in: Capsule())
+                        }
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(gpsMeasurement.confidence.tint)
+                        .accessibilityIdentifier("gps-confidence-row")
                     }
                 }
 
@@ -580,6 +1051,8 @@ private struct RecordShotView: View {
             category: selectedCategory,
             power: selectedPower,
             distance: distance(from: distanceText),
+            distanceSource: distanceSource(),
+            gpsMeasurement: savedGPSMeasurement(),
             strikeQuality: strikeQuality,
             direction: direction,
             createdAt: Date()
@@ -599,6 +1072,19 @@ private struct RecordShotView: View {
         Int(text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
+    private func distanceSource() -> ShotDistanceSource {
+        guard let gpsMeasurement,
+              let distance = distance(from: distanceText) else {
+            return .manual
+        }
+
+        return distance == gpsMeasurement.measuredDistanceYards ? .gps : .editedGPS
+    }
+
+    private func savedGPSMeasurement() -> ShotGPSMeasurement? {
+        distanceSource() == .manual ? nil : gpsMeasurement
+    }
+
     private func validationMessage(for errors: [ShotRecordValidationError]) -> String {
         if errors.contains(.nonPositiveDistance) {
             return "Distance must be greater than 0."
@@ -613,6 +1099,21 @@ private struct RecordShotView: View {
         }
 
         return "Check the shot details and try again."
+    }
+}
+
+private extension GPSConfidence {
+    var tint: Color {
+        switch self {
+        case .green:
+            return .green
+        case .yellow:
+            return .yellow
+        case .orange:
+            return .orange
+        case .red:
+            return .red
+        }
     }
 }
 

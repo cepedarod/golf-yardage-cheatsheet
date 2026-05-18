@@ -214,6 +214,68 @@ public struct ShotGPSMeasurement: Codable, Equatable, Sendable {
     }
 }
 
+public struct ShotLocationAnchor: Equatable, Sendable {
+    public var latitude: Double
+    public var longitude: Double
+    public var horizontalAccuracyMeters: Double
+    public var capturedAt: Date
+
+    public init(
+        latitude: Double,
+        longitude: Double,
+        horizontalAccuracyMeters: Double,
+        capturedAt: Date = Date()
+    ) {
+        self.latitude = latitude
+        self.longitude = longitude
+        self.horizontalAccuracyMeters = horizontalAccuracyMeters
+        self.capturedAt = capturedAt
+    }
+}
+
+public struct ShotGPSMeasurementCalculator: Sendable {
+    public init() {}
+
+    public func measurement(
+        from start: ShotLocationAnchor,
+        to end: ShotLocationAnchor,
+        capturedAt: Date = Date()
+    ) -> ShotGPSMeasurement {
+        let distanceMeters = distanceMeters(from: start, to: end)
+        let distanceYards = Int((distanceMeters * Self.yardsPerMeter).rounded())
+        let uncertaintyMeters = sqrt(
+            pow(max(start.horizontalAccuracyMeters, 0), 2) +
+                pow(max(end.horizontalAccuracyMeters, 0), 2)
+        )
+        let uncertaintyYards = uncertaintyMeters * Self.yardsPerMeter
+
+        return ShotGPSMeasurement(
+            measuredDistanceYards: distanceYards,
+            estimatedUncertaintyYards: uncertaintyYards,
+            startHorizontalAccuracyMeters: start.horizontalAccuracyMeters,
+            endHorizontalAccuracyMeters: end.horizontalAccuracyMeters,
+            capturedAt: capturedAt
+        )
+    }
+
+    public func distanceMeters(from start: ShotLocationAnchor, to end: ShotLocationAnchor) -> Double {
+        let startLatitude = start.latitude * Self.radiansPerDegree
+        let endLatitude = end.latitude * Self.radiansPerDegree
+        let deltaLatitude = (end.latitude - start.latitude) * Self.radiansPerDegree
+        let deltaLongitude = (end.longitude - start.longitude) * Self.radiansPerDegree
+
+        let haversine = pow(sin(deltaLatitude / 2), 2) +
+            cos(startLatitude) * cos(endLatitude) * pow(sin(deltaLongitude / 2), 2)
+        let centralAngle = 2 * atan2(sqrt(haversine), sqrt(1 - haversine))
+
+        return Self.earthRadiusMeters * centralAngle
+    }
+
+    public static let yardsPerMeter = 1.0936132983
+    private static let earthRadiusMeters = 6_371_000.0
+    private static let radiansPerDegree = Double.pi / 180
+}
+
 public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var profileID: UUID

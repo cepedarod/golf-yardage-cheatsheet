@@ -463,6 +463,40 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["profile-rounds-count"].label, "1")
     }
 
+    func testGPSShotTrackingPrefillsMeasuredDistance() {
+        let app = launchFreshApp(environment: [
+            "SHOT_TRACKING_MODE_OVERRIDE": "gps",
+            "GPS_TEST_DISTANCE_YARDS": "165",
+            "GPS_TEST_ACCURACY_METERS": "1",
+            "GPS_CAPTURE_DURATION_NANOSECONDS": "1000000"
+        ])
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "170", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.buttons["record-shot-button"].tap()
+
+        XCTAssertTrue(app.alerts.buttons["Start Round"].waitForExistence(timeout: 2))
+        app.alerts.buttons["Start Round"].tap()
+
+        XCTAssertTrue(app.staticTexts["Track Shot (Finish)"].waitForExistence(timeout: 3))
+        app.buttons["record-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        let shotDistanceField = app.textFields["record-shot-distance-field"]
+        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
+        XCTAssertEqual(shotDistanceField.value as? String, "165")
+        XCTAssertTrue(app.descendants(matching: .any)["gps-confidence-row"].waitForExistence(timeout: 2))
+
+        app.buttons["save-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Round"].tap()
+        XCTAssertTrue(app.navigationBars["Current Round"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["current-round-shot-count"].label, "1")
+    }
+
     func testDashboardEditUpdatesExistingClubDistance() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
@@ -586,16 +620,24 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
     private func launchFreshApp(environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing-reset-data"]
-        app.launchEnvironment = environment
+        app.launchEnvironment = uiTestEnvironment(overrides: environment)
         app.launch()
         return app
     }
 
     private func launchAppPreservingData(environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchEnvironment = environment
+        app.launchEnvironment = uiTestEnvironment(overrides: environment)
         app.launch()
         return app
+    }
+
+    private func uiTestEnvironment(overrides: [String: String]) -> [String: String] {
+        var environment = ["SHOT_TRACKING_MODE_OVERRIDE": "manual"]
+        overrides.forEach { key, value in
+            environment[key] = value
+        }
+        return environment
     }
 
     private func createProfile(named name: String, in app: XCUIApplication) {
