@@ -12,6 +12,7 @@ struct GolfYardageCheatsheetApp: App {
 
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset-data") {
             try? FileManager.default.removeItem(at: storeURL)
+            UIView.setAnimationsEnabled(false)
         }
 
         repository = GolfBagRepository(store: FileGolfBagStore(fileURL: storeURL))

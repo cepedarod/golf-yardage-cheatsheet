@@ -61,19 +61,6 @@ private struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                YardageDashboardView(
-                    profile: profile,
-                    repository: repository,
-                    switchProfile: switchProfile
-                )
-            }
-            .tabItem {
-                Label("Distances", systemImage: "scope")
-            }
-            .tag(Tab.distances)
-            .accessibilityIdentifier("distances-tab")
-
-            NavigationStack {
                 CurrentRoundView(
                     profile: profile,
                     repository: repository,
@@ -85,6 +72,19 @@ private struct MainTabView: View {
             }
             .tag(Tab.round)
             .accessibilityIdentifier("round-tab")
+
+            NavigationStack {
+                YardageDashboardView(
+                    profile: profile,
+                    repository: repository,
+                    switchProfile: switchProfile
+                )
+            }
+            .tabItem {
+                Label("Distances", systemImage: "scope")
+            }
+            .tag(Tab.distances)
+            .accessibilityIdentifier("distances-tab")
 
             NavigationStack {
                 AnalysisView(
@@ -793,14 +793,7 @@ private struct CurrentRoundView: View {
 
     private var startRoundSection: some View {
         Section {
-            TextField("Round Name", text: $viewModel.roundNameDraft)
-                .textInputAutocapitalization(.words)
-                .submitLabel(.done)
-                .focused($isRoundNameFocused)
-                .onSubmit {
-                    isRoundNameFocused = false
-                }
-                .accessibilityIdentifier("round-name-field")
+            roundNameEditor(accessibilityIdentifier: "round-name-field")
 
             Button {
                 viewModel.startRound()
@@ -828,15 +821,11 @@ private struct CurrentRoundView: View {
             HStack {
                 Text("Name")
                 Spacer()
-                TextField("Round Name", text: $viewModel.roundNameDraft)
-                    .multilineTextAlignment(.trailing)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.done)
-                    .focused($isRoundNameFocused)
-                    .onSubmit {
-                        isRoundNameFocused = false
-                    }
-                    .accessibilityIdentifier("active-round-name-field")
+                roundNameEditor(
+                    alignment: .trailing,
+                    accessibilityIdentifier: "active-round-name-field"
+                )
+                .frame(maxWidth: 240)
             }
 
             if viewModel.hasRoundNameChanges {
@@ -852,6 +841,35 @@ private struct CurrentRoundView: View {
                 Text(round.startedAt.formatted(date: .abbreviated, time: .shortened))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
+            }
+        }
+    }
+
+    private func roundNameEditor(
+        alignment: TextAlignment = .leading,
+        accessibilityIdentifier: String
+    ) -> some View {
+        HStack(spacing: 6) {
+            TextField("Round Name", text: $viewModel.roundNameDraft)
+                .multilineTextAlignment(alignment)
+                .textInputAutocapitalization(.words)
+                .submitLabel(.done)
+                .focused($isRoundNameFocused)
+                .onSubmit {
+                    isRoundNameFocused = false
+                }
+                .accessibilityIdentifier(accessibilityIdentifier)
+
+            if viewModel.roundNameDraft.isEmpty == false {
+                Button {
+                    viewModel.roundNameDraft = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear Round Name")
+                .accessibilityIdentifier("\(accessibilityIdentifier)-clear-button")
             }
         }
     }

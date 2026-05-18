@@ -1074,7 +1074,7 @@ private struct RecordShotView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 0)
                 }
 
                 Section("Distance") {
@@ -1110,7 +1110,7 @@ private struct RecordShotView: View {
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 0)
 
                     if let gpsMeasurement {
                         HStack(spacing: 6) {
@@ -1126,14 +1126,16 @@ private struct RecordShotView: View {
                             Text(isGPSManuallyVerified ? "Manually Verified" : "+/- \(Int(gpsMeasurement.estimatedUncertaintyYards.rounded())) yds")
                                 .font(.caption2.weight(.semibold))
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.85)
 
                             Spacer(minLength: 4)
 
                             Button {
                                 isShowingGPSAudit = true
                             } label: {
-                                Label("Audit", systemImage: "map")
-                                    .font(.caption2.weight(.semibold))
+                                Image(systemName: "map")
+                                    .font(.caption.weight(.semibold))
+                                    .frame(width: 32, height: 28)
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.mini)
@@ -1144,13 +1146,14 @@ private struct RecordShotView: View {
                                 Text(gpsMeasurement.confidence.displayName)
                                     .font(.caption2.weight(.semibold))
                                     .lineLimit(1)
+                                    .minimumScaleFactor(0.85)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 3)
                                     .background(gpsMeasurement.confidence.tint.opacity(0.16), in: Capsule())
                             }
                         }
                         .foregroundStyle(isGPSManuallyVerified ? .green : gpsMeasurement.confidence.tint)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 0)
                     }
                 }
 
@@ -1235,6 +1238,7 @@ private struct RecordShotView: View {
             }
         }
         .accessibilityIdentifier("record-shot-form")
+        .listSectionSpacing(10)
         .navigationTitle("Record Shot")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1368,7 +1372,7 @@ private struct RecordShotView: View {
             content()
                 .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 0)
     }
 
     private func powers(for category: ShotCategory) -> [ShotPower] {
@@ -1573,6 +1577,14 @@ private struct GPSAuditMapView: View {
                         }
                     }
                     .mapStyle(.imagery(elevation: .realistic))
+                    .simultaneousGesture(
+                        SpatialTapGesture()
+                            .onEnded { value in
+                                if let coordinate = proxy.convert(value.location, from: .local) {
+                                    moveNearestAnchor(to: coordinate)
+                                }
+                            }
+                    )
                 }
 
                 auditControls
@@ -1680,7 +1692,7 @@ private struct GPSAuditMapView: View {
     }
 
     private func anchorDragGesture(_ anchor: EditableAnchor, proxy: MapProxy) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.2)
+        LongPressGesture(minimumDuration: 0.08)
             .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
             .onChanged { value in
                 guard case let .second(true, drag?) = value,
@@ -1711,6 +1723,18 @@ private struct GPSAuditMapView: View {
         case .end:
             endAnchor.latitude = coordinate.latitude
             endAnchor.longitude = coordinate.longitude
+        }
+    }
+
+    private func moveNearestAnchor(to coordinate: CLLocationCoordinate2D) {
+        let tappedLocation = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let startLocation = CLLocation(latitude: startAnchor.latitude, longitude: startAnchor.longitude)
+        let endLocation = CLLocation(latitude: endAnchor.latitude, longitude: endAnchor.longitude)
+
+        if tappedLocation.distance(from: startLocation) <= tappedLocation.distance(from: endLocation) {
+            move(.start, to: coordinate)
+        } else {
+            move(.end, to: coordinate)
         }
     }
 

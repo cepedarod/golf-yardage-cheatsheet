@@ -405,6 +405,10 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.tabBars.buttons.element(boundBy: 0).label, "Round")
+        XCTAssertEqual(app.tabBars.buttons.element(boundBy: 1).label, "Distances")
+        XCTAssertEqual(app.tabBars.buttons.element(boundBy: 2).label, "Analysis")
+        XCTAssertEqual(app.tabBars.buttons.element(boundBy: 3).label, "Profile")
         app.tabBars.buttons["Round"].tap()
 
         XCTAssertTrue(app.navigationBars["Current Round"].waitForExistence(timeout: 5))
@@ -469,6 +473,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         let roundNameField = app.textFields["active-round-name-field"]
         XCTAssertTrue(roundNameField.waitForExistence(timeout: 5))
         XCTAssertEqual(roundNameField.value as? String, "Torrey Pines")
+        XCTAssertTrue(app.buttons["active-round-name-field-clear-button"].exists)
     }
 
     func testGPSShotTrackingPrefillsMeasuredDistance() {
