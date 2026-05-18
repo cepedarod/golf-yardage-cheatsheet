@@ -1,4 +1,5 @@
 import XCTest
+import CoreLocation
 @testable import GolfYardageCheatsheet
 
 final class ShotGPSMeasurementCalculatorTests: XCTestCase {
@@ -10,6 +11,19 @@ final class ShotGPSMeasurementCalculatorTests: XCTestCase {
         let measurement = calculator.measurement(from: start, to: end)
 
         XCTAssertEqual(Double(measurement.measuredDistanceYards), 100, accuracy: 1)
+    }
+
+    func testMeasurementMatchesCoreLocationForKnownMapPoints() {
+        let calculator = ShotGPSMeasurementCalculator()
+        let start = ShotLocationAnchor(latitude: 37.8199286, longitude: -122.4782551, horizontalAccuracyMeters: 1)
+        let end = ShotLocationAnchor(latitude: 37.8192737, longitude: -122.4776784, horizontalAccuracyMeters: 1)
+        let expectedYards = CLLocation(latitude: start.latitude, longitude: start.longitude)
+            .distance(from: CLLocation(latitude: end.latitude, longitude: end.longitude)) *
+            ShotGPSMeasurementCalculator.yardsPerMeter
+
+        let measurement = calculator.measurement(from: start, to: end)
+
+        XCTAssertEqual(Double(measurement.measuredDistanceYards), expectedYards.rounded(), accuracy: 1)
     }
 
     func testMeasurementUsesTypicalCombinedUncertaintyForConfidence() {

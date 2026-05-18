@@ -662,6 +662,7 @@ private struct CurrentRoundView: View {
     @StateObject private var viewModel: CurrentRoundViewModel
     @State private var isConfirmingEndRound = false
     @State private var isConfirmingAbortRound = false
+    @FocusState private var isRoundNameFocused: Bool
 
     init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
         self.profile = profile
@@ -731,6 +732,7 @@ private struct CurrentRoundView: View {
             }
         }
         .accessibilityIdentifier("current-round-list")
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("Current Round")
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -738,6 +740,16 @@ private struct CurrentRoundView: View {
                     Image(systemName: "person.2")
                 }
                 .accessibilityLabel("Switch Profile")
+            }
+
+            ToolbarItemGroup(placement: .keyboard) {
+                if isRoundNameFocused {
+                    Spacer()
+                    Button("Done") {
+                        isRoundNameFocused = false
+                    }
+                    .accessibilityIdentifier("dismiss-round-name-keyboard-button")
+                }
             }
         }
         .alert("End Round?", isPresented: $isConfirmingEndRound) {
@@ -783,6 +795,11 @@ private struct CurrentRoundView: View {
         Section {
             TextField("Round Name", text: $viewModel.roundNameDraft)
                 .textInputAutocapitalization(.words)
+                .submitLabel(.done)
+                .focused($isRoundNameFocused)
+                .onSubmit {
+                    isRoundNameFocused = false
+                }
                 .accessibilityIdentifier("round-name-field")
 
             Button {
@@ -814,6 +831,11 @@ private struct CurrentRoundView: View {
                 TextField("Round Name", text: $viewModel.roundNameDraft)
                     .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+                    .focused($isRoundNameFocused)
+                    .onSubmit {
+                        isRoundNameFocused = false
+                    }
                     .accessibilityIdentifier("active-round-name-field")
             }
 
@@ -876,14 +898,14 @@ private struct CurrentRoundView: View {
             Button {
                 isConfirmingEndRound = true
             } label: {
-                Label("End Round", systemImage: "checkmark.circle.fill")
+                Text("End Round")
             }
             .accessibilityIdentifier("end-round-button")
 
             Button(role: .destructive) {
                 isConfirmingAbortRound = true
             } label: {
-                Label("Abort Round", systemImage: "xmark.circle.fill")
+                Text("Abort Round")
             }
             .tint(.red)
             .accessibilityIdentifier("abort-round-button")
@@ -954,11 +976,13 @@ private struct CurrentRoundShotListView: View {
 }
 
 private struct ProfileView: View {
+    let profile: GolferProfile
     let switchProfile: () -> Void
 
     @StateObject private var viewModel: ProfileDashboardViewModel
 
     init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
+        self.profile = profile
         self.switchProfile = switchProfile
         _viewModel = StateObject(wrappedValue: ProfileDashboardViewModel(profile: profile, repository: repository))
     }
@@ -1012,7 +1036,7 @@ private struct ProfileView: View {
             }
         }
         .accessibilityIdentifier("profile-list")
-        .navigationTitle("Profile")
+        .navigationTitle(profile.name)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button(action: switchProfile) {

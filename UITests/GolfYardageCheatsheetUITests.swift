@@ -379,7 +379,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Profile"].tap()
 
-        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Rod"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["shot-tracking-mode-picker"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["All Shots"].exists)
         XCTAssertEqual(app.staticTexts["profile-all-shots-count"].label, "1")
@@ -446,7 +446,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["start-round-button"].waitForExistence(timeout: 2))
         app.tabBars.buttons["Profile"].tap()
-        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Rod"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.staticTexts["profile-rounds-count"].label, "1")
     }
 
@@ -508,6 +508,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         app.buttons["apply-gps-audit-button"].tap()
         XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Manually Verified"].waitForExistence(timeout: 2))
 
         app.buttons["save-shot-button"].tap()
 

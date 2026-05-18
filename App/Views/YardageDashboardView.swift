@@ -14,6 +14,7 @@ struct YardageDashboardView: View {
     @State private var isConfirmingStartRoundForGPS = false
     @State private var gpsFallbackAlert: GPSFallbackAlert?
     @State private var targetYardageText = ""
+    @State private var shotTrackingProgress = 0.0
     @FocusState private var isTargetYardageFocused: Bool
 
     private let formatter = ClubDisplayNameFormatter()
@@ -42,6 +43,10 @@ struct YardageDashboardView: View {
     private static var gpsCaptureDurationNanoseconds: UInt64 {
         ProcessInfo.processInfo.environment["GPS_CAPTURE_DURATION_NANOSECONDS"]
             .flatMap(UInt64.init) ?? 2_000_000_000
+    }
+
+    private static var gpsCaptureDurationSeconds: TimeInterval {
+        TimeInterval(gpsCaptureDurationNanoseconds) / 1_000_000_000
     }
 
     @MainActor
@@ -270,6 +275,9 @@ struct YardageDashboardView: View {
             viewModel.loadClubs()
             syncLocationWarmup()
         }
+        .onChange(of: shotTracker.isCapturing) { _, isCapturing in
+            animateShotTrackingProgress(isCapturing: isCapturing)
+        }
         .onChange(of: targetYardageText) { _, newValue in
             let digitsOnly = String(newValue.filter(\.isNumber).prefix(3))
 
@@ -314,6 +322,18 @@ struct YardageDashboardView: View {
                     retryGPSCapture()
                 }
             )
+        }
+    }
+
+    private func animateShotTrackingProgress(isCapturing: Bool) {
+        guard isCapturing else {
+            shotTrackingProgress = 0
+            return
+        }
+
+        shotTrackingProgress = 0
+        withAnimation(.linear(duration: max(Self.gpsCaptureDurationSeconds, 0.2))) {
+            shotTrackingProgress = 1
         }
     }
 
@@ -394,21 +414,32 @@ struct YardageDashboardView: View {
                 Button {
                     handleShotTrackingTap()
                 } label: {
-                    HStack(spacing: 8) {
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(shotTracker.isCapturing ? Color.green.opacity(0.24) : Color.green)
+
                         if shotTracker.isCapturing {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Image(systemName: recordShotSystemImage)
+                            GeometryReader { proxy in
+                                Capsule()
+                                    .fill(Color.green)
+                                    .frame(width: proxy.size.width * shotTrackingProgress)
+                            }
+                            .clipShape(Capsule())
                         }
 
-                        Text(recordShotTitle)
+                        HStack(spacing: 8) {
+                            Image(systemName: recordShotSystemImage)
+                            Text(recordShotTitle)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(.white)
                     }
                     .font(.headline)
                     .frame(maxWidth: .infinity)
+                    .frame(height: 50)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .buttonStyle(.plain)
+                .opacity(viewModel.recordableActiveClubs.isEmpty ? 0.45 : 1)
                 .disabled(viewModel.recordableActiveClubs.isEmpty || shotTracker.isCapturing)
                 .accessibilityIdentifier("record-shot-button")
 
@@ -998,6 +1029,7 @@ private struct RecordShotView: View {
     @State private var direction: ShotDirection = .straight
     @State private var grassType: GrassType = .fairway
     @State private var gpsCapture: ShotGPSCapture?
+    @State private var isGPSManuallyVerified: Bool
     @State private var isShowingGPSAudit = false
     @State private var errorMessage: String?
 
@@ -1015,6 +1047,7 @@ private struct RecordShotView: View {
         _selectedClubID = State(initialValue: clubs.first?.id ?? UUID())
         _distanceText = State(initialValue: gpsCapture.map { String($0.measurement.measuredDistanceYards) } ?? "")
         _gpsCapture = State(initialValue: gpsCapture)
+        _isGPSManuallyVerified = State(initialValue: false)
     }
 
     var body: some View {
@@ -1081,16 +1114,16 @@ private struct RecordShotView: View {
 
                     if let gpsMeasurement {
                         HStack(spacing: 6) {
-                            Text("GPS")
+                            Text(isGPSManuallyVerified ? "Audit" : "GPS")
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 58, alignment: .leading)
                                 .accessibilityIdentifier("gps-confidence-row")
 
-                            Image(systemName: "location.circle.fill")
+                            Image(systemName: isGPSManuallyVerified ? "checkmark.seal.fill" : "location.circle.fill")
                                 .font(.caption)
 
-                            Text("+/- \(Int(gpsMeasurement.estimatedUncertaintyYards.rounded())) yds")
+                            Text(isGPSManuallyVerified ? "Manually Verified" : "+/- \(Int(gpsMeasurement.estimatedUncertaintyYards.rounded())) yds")
                                 .font(.caption2.weight(.semibold))
                                 .lineLimit(1)
 
@@ -1107,14 +1140,16 @@ private struct RecordShotView: View {
                             .accessibilityLabel("Audit GPS Distance")
                             .accessibilityIdentifier("gps-audit-button")
 
-                            Text(gpsMeasurement.confidence.displayName)
-                                .font(.caption2.weight(.semibold))
-                                .lineLimit(1)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(gpsMeasurement.confidence.tint.opacity(0.16), in: Capsule())
+                            if isGPSManuallyVerified == false {
+                                Text(gpsMeasurement.confidence.displayName)
+                                    .font(.caption2.weight(.semibold))
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(gpsMeasurement.confidence.tint.opacity(0.16), in: Capsule())
+                            }
                         }
-                        .foregroundStyle(gpsMeasurement.confidence.tint)
+                        .foregroundStyle(isGPSManuallyVerified ? .green : gpsMeasurement.confidence.tint)
                         .padding(.vertical, 2)
                     }
                 }
@@ -1222,6 +1257,7 @@ private struct RecordShotView: View {
             if let gpsCapture {
                 GPSAuditMapView(capture: gpsCapture) { auditedCapture in
                     self.gpsCapture = auditedCapture
+                    isGPSManuallyVerified = true
                     distanceText = String(auditedCapture.measurement.measuredDistanceYards)
                 }
             }
@@ -1397,6 +1433,10 @@ private struct RecordShotView: View {
             return .manual
         }
 
+        if isGPSManuallyVerified {
+            return .editedGPS
+        }
+
         return distance == gpsMeasurement.measuredDistanceYards ? .gps : .editedGPS
     }
 
@@ -1486,6 +1526,11 @@ private struct RecordShotView: View {
 }
 
 private struct GPSAuditMapView: View {
+    private enum EditableAnchor {
+        case start
+        case end
+    }
+
     let capture: ShotGPSCapture
     let onApply: (ShotGPSCapture) -> Void
 
@@ -1509,39 +1554,25 @@ private struct GPSAuditMapView: View {
             VStack(spacing: 0) {
                 MapReader { proxy in
                     Map(position: $position, interactionModes: [.pan, .zoom, .rotate]) {
-                        MapCircle(center: startCoordinate, radius: max(startAnchor.horizontalAccuracyMeters, 1))
-                            .foregroundStyle(Color.blue.opacity(0.14))
-                            .stroke(Color.blue.opacity(0.55), lineWidth: 1)
-
-                        MapCircle(center: endCoordinate, radius: max(endAnchor.horizontalAccuracyMeters, 1))
-                            .foregroundStyle(Color.green.opacity(0.14))
-                            .stroke(Color.green.opacity(0.55), lineWidth: 1)
+                        MapPolyline(coordinates: [startCoordinate, endCoordinate])
+                            .stroke(Color.white.opacity(0.85), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
 
                         MapPolyline(coordinates: [startCoordinate, endCoordinate])
-                            .stroke(Color.white.opacity(0.9), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-
-                        MapPolyline(coordinates: [startCoordinate, endCoordinate])
-                            .stroke(Color.green.opacity(0.85), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                            .stroke(Color.green.opacity(0.85), style: StrokeStyle(lineWidth: 0.8, lineCap: .round))
 
                         Annotation("Start", coordinate: startCoordinate, anchor: .center) {
                             auditMarker(systemName: "figure.golf", color: .blue)
+                                .gesture(anchorDragGesture(.start, proxy: proxy))
                                 .accessibilityIdentifier("gps-audit-start-marker")
                         }
 
                         Annotation("Finish", coordinate: endCoordinate, anchor: .center) {
                             auditMarker(systemName: "flag.checkered", color: .green)
+                                .gesture(anchorDragGesture(.end, proxy: proxy))
                                 .accessibilityIdentifier("gps-audit-end-marker")
                         }
                     }
                     .mapStyle(.imagery(elevation: .realistic))
-                    .simultaneousGesture(
-                        SpatialTapGesture()
-                            .onEnded { value in
-                                if let coordinate = proxy.convert(value.location, from: .local) {
-                                    moveNearestAnchor(to: coordinate)
-                                }
-                            }
-                    )
                 }
 
                 auditControls
@@ -1641,11 +1672,24 @@ private struct GPSAuditMapView: View {
 
     private func auditMarker(systemName: String, color: Color) -> some View {
         Image(systemName: systemName)
-            .font(.caption.weight(.bold))
+            .font(.caption2.weight(.bold))
             .foregroundStyle(.white)
-            .frame(width: 30, height: 30)
+            .frame(width: 24, height: 24)
             .background(color, in: Circle())
             .shadow(radius: 3, y: 1)
+    }
+
+    private func anchorDragGesture(_ anchor: EditableAnchor, proxy: MapProxy) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.2)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+            .onChanged { value in
+                guard case let .second(true, drag?) = value,
+                      let coordinate = proxy.convert(drag.location, from: .global) else {
+                    return
+                }
+
+                move(anchor, to: coordinate)
+            }
     }
 
     private func auditLegendItem(_ title: String, color: Color) -> some View {
@@ -1659,15 +1703,12 @@ private struct GPSAuditMapView: View {
         .foregroundStyle(.secondary)
     }
 
-    private func moveNearestAnchor(to coordinate: CLLocationCoordinate2D) {
-        let tappedLocation = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        let startLocation = CLLocation(latitude: startAnchor.latitude, longitude: startAnchor.longitude)
-        let endLocation = CLLocation(latitude: endAnchor.latitude, longitude: endAnchor.longitude)
-
-        if tappedLocation.distance(from: startLocation) <= tappedLocation.distance(from: endLocation) {
+    private func move(_ anchor: EditableAnchor, to coordinate: CLLocationCoordinate2D) {
+        switch anchor {
+        case .start:
             startAnchor.latitude = coordinate.latitude
             startAnchor.longitude = coordinate.longitude
-        } else {
+        case .end:
             endAnchor.latitude = coordinate.latitude
             endAnchor.longitude = coordinate.longitude
         }
