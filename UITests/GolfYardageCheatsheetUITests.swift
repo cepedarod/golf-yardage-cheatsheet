@@ -179,10 +179,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.buttons["grass-type-Rough"].tap()
 
         let shotDistanceField = app.textFields["record-shot-distance-field"]
-        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
-        shotDistanceField.tap()
-        shotDistanceField.typeText("250")
-        dismissKeyboardIfNeeded(in: app)
+        enterNumberPadValue("250", into: shotDistanceField, in: app)
         app.buttons["save-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
@@ -241,10 +238,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
         let shotDistanceField = app.textFields["record-shot-distance-field"]
-        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
-        shotDistanceField.tap()
-        shotDistanceField.typeText("250")
-        dismissKeyboardIfNeeded(in: app)
+        enterNumberPadValue("250", into: shotDistanceField, in: app)
         app.buttons["save-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
@@ -285,10 +279,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
         let shotDistanceField = app.textFields["record-shot-distance-field"]
-        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
-        shotDistanceField.tap()
-        shotDistanceField.typeText("250")
-        dismissKeyboardIfNeeded(in: app)
+        enterNumberPadValue("250", into: shotDistanceField, in: app)
         app.buttons["save-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
@@ -303,10 +294,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(stingerButton.waitForExistence(timeout: 2))
         stingerButton.tap()
         let stingerDistanceField = app.textFields["record-shot-distance-field"]
-        XCTAssertTrue(stingerDistanceField.waitForExistence(timeout: 2))
-        stingerDistanceField.tap()
-        stingerDistanceField.typeText("230")
-        dismissKeyboardIfNeeded(in: app)
+        enterNumberPadValue("230", into: stingerDistanceField, in: app)
         app.buttons["save-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
@@ -343,9 +331,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         let editDistanceField = app.textFields["edit-shot-distance-field"]
         XCTAssertTrue(app.buttons["clear-edit-shot-distance-button"].waitForExistence(timeout: 2))
         app.buttons["clear-edit-shot-distance-button"].tap()
-        editDistanceField.tap()
-        editDistanceField.typeText("251")
-        dismissKeyboardIfNeeded(in: app)
+        enterNumberPadValue("251", into: editDistanceField, in: app)
         app.buttons["save-shot-edit-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Recorded Shots"].waitForExistence(timeout: 5))
@@ -387,10 +373,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
         let shotDistanceField = app.textFields["record-shot-distance-field"]
-        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
-        shotDistanceField.tap()
-        shotDistanceField.typeText("250")
-        dismissKeyboardIfNeeded(in: app)
+        enterNumberPadValue("250", into: shotDistanceField, in: app)
         app.buttons["save-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
@@ -437,10 +420,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
         let shotDistanceField = app.textFields["record-shot-distance-field"]
-        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
-        shotDistanceField.tap()
-        shotDistanceField.typeText("250")
-        dismissKeyboardIfNeeded(in: app)
+        enterNumberPadValue("250", into: shotDistanceField, in: app)
         app.buttons["save-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
@@ -705,17 +685,20 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
     private func enterTargetYardage(_ yardage: String, in app: XCUIApplication) {
         let targetField = app.textFields["target-yardage-field"]
-        XCTAssertTrue(targetField.waitForExistence(timeout: 2))
-        targetField.tap()
+        enterNumberPadValue(yardage, into: targetField, in: app)
+    }
 
-        for digit in yardage {
-            app.keys[String(digit)].tap()
+    private func enterNumberPadValue(_ value: String, into textField: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(textField.waitForExistence(timeout: 2))
+        textField.tap()
+
+        for digit in value {
+            let key = app.keys[String(digit)]
+            XCTAssertTrue(key.waitForExistence(timeout: 2))
+            key.tap()
         }
 
-        let doneButton = app.buttons["Done"]
-        if doneButton.waitForExistence(timeout: 1) {
-            doneButton.tap()
-        }
+        dismissKeyboardIfNeeded(in: app)
     }
 
     private func dismissKeyboardIfNeeded(in app: XCUIApplication) {
