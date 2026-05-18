@@ -36,19 +36,22 @@ final class YardageDashboardViewModel: ObservableObject {
     private let distanceValueResolver: DistanceValueResolver
     private let clubSorter = ClubSorter()
     private let targetClearDelayNanoseconds: UInt64
+    private let roundReminderScheduler: RoundReminderScheduler
     private var clearTargetTask: Task<Void, Never>?
 
     init(
         profile: GolferProfile,
         repository: GolfBagRepository,
         matcher: YardageMatcher = YardageMatcher(),
-        targetClearDelayNanoseconds: UInt64 = 120_000_000_000
+        targetClearDelayNanoseconds: UInt64 = 120_000_000_000,
+        roundReminderScheduler: RoundReminderScheduler = .shared
     ) {
         self.profile = profile
         self.repository = repository
         self.matcher = matcher
         self.distanceValueResolver = DistanceValueResolver()
         self.targetClearDelayNanoseconds = targetClearDelayNanoseconds
+        self.roundReminderScheduler = roundReminderScheduler
         self.shotTrackingMode = profile.shotTrackingMode
     }
 
@@ -76,6 +79,11 @@ final class YardageDashboardViewModel: ObservableObject {
             inactiveClubs = clubs.filter { $0.isActive == false }
             self.shotRecords = shotRecords
             activeRoundID = activeRound?.id
+            if let activeRound, roundReminderScheduler.isStale(activeRound) == false {
+                Task {
+                    await roundReminderScheduler.scheduleStaleRoundReminder(for: activeRound)
+                }
+            }
             shotTrackingMode = currentProfile.shotTrackingMode
             updateMatches()
             errorMessage = nil
@@ -154,6 +162,9 @@ final class YardageDashboardViewModel: ObservableObject {
             let roundName = suggestedName ?? Self.defaultRoundName(for: Date())
             let round = try repository.startRound(profileID: profile.id, name: roundName, courseName: suggestedName)
             activeRoundID = round.id
+            Task {
+                await roundReminderScheduler.scheduleStaleRoundReminder(for: round)
+            }
             loadClubs()
             return true
         } catch {

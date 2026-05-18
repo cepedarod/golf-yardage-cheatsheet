@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A1111111111111111111111 /* CaddieCatAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2111111111111111111111 /* CaddieCatAppDelegate.swift */; };
+		0A1111111111111111111112 /* RoundReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2111111111111111111112 /* RoundReminderScheduler.swift */; };
 		15620CE59DCCE338A12A86BF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA91D8731B12729B7B498A /* RootView.swift */; };
 		19FE6CBB1D50D9E094176372 /* ProfileSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */; };
 		1C86432BD39FE965589C2FAC /* ClubSummaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C182F74E38637D8F02C6AE /* ClubSummaryRow.swift */; };
@@ -53,6 +55,8 @@
 
 /* Begin PBXFileReference section */
 		0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubValidator.swift; sourceTree = "<group>"; };
+		0A2111111111111111111111 /* CaddieCatAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaddieCatAppDelegate.swift; sourceTree = "<group>"; };
+		0A2111111111111111111112 /* RoundReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundReminderScheduler.swift; sourceTree = "<group>"; };
 		0E4DE40234983AAFB5CAC5D8 /* NumericTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumericTextField.swift; sourceTree = "<group>"; };
 		14C5037BE3028841865C65B0 /* Caddie Cat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Caddie Cat.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfYardageCheatsheetApp.swift; sourceTree = "<group>"; };
@@ -105,7 +109,9 @@
 		3C0110C92D544D5AA61B998E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				0A2111111111111111111111 /* CaddieCatAppDelegate.swift */,
 				E8DF497550BA44C6A9F859A0 /* GolfCourseNameProvider.swift */,
+				0A2111111111111111111112 /* RoundReminderScheduler.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -330,6 +336,7 @@
 				8FB6D896167101990DA105E4 /* ClubType.swift in Sources */,
 				784211DA2E7B23551D7351DF /* ClubValidator.swift in Sources */,
 				BBC36FE04A72F4A5E366ADD7 /* CreateProfileView.swift in Sources */,
+				0A1111111111111111111111 /* CaddieCatAppDelegate.swift in Sources */,
 				A416BA1157F9B938B7850AEA /* DistanceLabel.swift in Sources */,
 				F90FAA760CFE8DD9D9EE22E1 /* FileGolfBagStore.swift in Sources */,
 				F70A07FFB90C912411878F7B /* GolfBagData.swift in Sources */,
@@ -345,6 +352,7 @@
 				852242B99C32C25C2229FED3 /* ProfileSelectionViewModel.swift in Sources */,
 				254B6C988932BD6E63178B35 /* PutterDistanceSet.swift in Sources */,
 				15620CE59DCCE338A12A86BF /* RootView.swift in Sources */,
+				0A1111111111111111111112 /* RoundReminderScheduler.swift in Sources */,
 				BCB562A815538F1F61E91617 /* ShotFilter.swift in Sources */,
 				F9CBFF6E3CDEF67DB877AF9D /* ShotType.swift in Sources */,
 				9DD75F031FE837A6FD429A79 /* SwingDistanceSet.swift in Sources */,

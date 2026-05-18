@@ -33,12 +33,21 @@ struct RootView: View {
 }
 
 private struct MainTabView: View {
+    private enum Tab: Hashable {
+        case distances
+        case round
+        case analysis
+        case profile
+    }
+
     let profile: GolferProfile
     let repository: GolfBagRepository
     let switchProfile: () -> Void
 
+    @State private var selectedTab: Tab = .distances
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack {
                 YardageDashboardView(
                     profile: profile,
@@ -49,6 +58,7 @@ private struct MainTabView: View {
             .tabItem {
                 Label("Distances", systemImage: "scope")
             }
+            .tag(Tab.distances)
             .accessibilityIdentifier("distances-tab")
 
             NavigationStack {
@@ -61,6 +71,7 @@ private struct MainTabView: View {
             .tabItem {
                 Label("Round", systemImage: "flag.fill")
             }
+            .tag(Tab.round)
             .accessibilityIdentifier("round-tab")
 
             NavigationStack {
@@ -73,6 +84,7 @@ private struct MainTabView: View {
             .tabItem {
                 Label("Analysis", systemImage: "chart.bar.xaxis")
             }
+            .tag(Tab.analysis)
             .accessibilityIdentifier("analysis-tab")
 
             NavigationStack {
@@ -85,7 +97,11 @@ private struct MainTabView: View {
             .tabItem {
                 Label("Profile", systemImage: "person.crop.circle")
             }
+            .tag(Tab.profile)
             .accessibilityIdentifier("profile-tab")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .roundReminderOpenRound)) { _ in
+            selectedTab = .round
         }
     }
 }
@@ -226,6 +242,7 @@ private struct ProfileShotRow: Identifiable, Equatable {
 private final class CurrentRoundViewModel: ObservableObject {
     @Published private(set) var activeRound: GolfRound?
     @Published private(set) var shotRows: [ProfileShotRow] = []
+    @Published private(set) var isRoundStale = false
     @Published var roundNameDraft: String
     @Published var errorMessage: String?
 
@@ -234,17 +251,20 @@ private final class CurrentRoundViewModel: ObservableObject {
     private let formatter = ClubDisplayNameFormatter()
     private let locationProvider: any ShotLocationProviding
     private let courseNameProvider: any GolfCourseNameProviding
+    private let roundReminderScheduler: RoundReminderScheduler
 
     init(
         profile: GolferProfile,
         repository: GolfBagRepository,
         locationProvider: any ShotLocationProviding,
-        courseNameProvider: any GolfCourseNameProviding
+        courseNameProvider: any GolfCourseNameProviding,
+        roundReminderScheduler: RoundReminderScheduler = .shared
     ) {
         profileID = profile.id
         self.repository = repository
         self.locationProvider = locationProvider
         self.courseNameProvider = courseNameProvider
+        self.roundReminderScheduler = roundReminderScheduler
         roundNameDraft = Self.defaultRoundName(for: Date())
     }
 
@@ -263,9 +283,15 @@ private final class CurrentRoundViewModel: ObservableObject {
                 .first
 
             activeRound = round
+            isRoundStale = round.map { roundReminderScheduler.isStale($0) } ?? false
 
             if let round {
                 roundNameDraft = round.name
+                if roundReminderScheduler.isStale(round) == false {
+                    Task {
+                        await roundReminderScheduler.scheduleStaleRoundReminder(for: round)
+                    }
+                }
                 shotRows = data.shotRecords
                     .filter { $0.profileID == profileID && $0.roundID == round.id }
                     .sorted(by: oldestShotFirst)
@@ -281,12 +307,14 @@ private final class CurrentRoundViewModel: ObservableObject {
                     roundNameDraft = Self.defaultRoundName(for: Date())
                 }
                 shotRows = []
+                isRoundStale = false
             }
 
             errorMessage = nil
         } catch {
             activeRound = nil
             shotRows = []
+            isRoundStale = false
             errorMessage = "Unable to load round."
         }
     }
@@ -319,6 +347,7 @@ private final class CurrentRoundViewModel: ObservableObject {
 
         do {
             _ = try repository.endRound(id: activeRound.id)
+            roundReminderScheduler.cancelReminder(for: activeRound.id)
             roundNameDraft = Self.defaultRoundName(for: Date())
             load()
         } catch {
@@ -333,6 +362,7 @@ private final class CurrentRoundViewModel: ObservableObject {
 
         do {
             try repository.abortRound(id: activeRound.id)
+            roundReminderScheduler.cancelReminder(for: activeRound.id)
             roundNameDraft = Self.defaultRoundName(for: Date())
             load()
         } catch {
@@ -371,6 +401,17 @@ private final class CurrentRoundViewModel: ObservableObject {
         locationProvider.stopWarmingLocation()
     }
 
+    func keepPlaying() {
+        guard let activeRound else {
+            return
+        }
+
+        isRoundStale = false
+        Task {
+            await roundReminderScheduler.scheduleKeepPlayingReminder(for: activeRound)
+        }
+    }
+
     private func startRoundWithSuggestedCourse() async {
         do {
             let name = normalizedRoundName()
@@ -378,7 +419,10 @@ private final class CurrentRoundViewModel: ObservableObject {
             let userEditedName = name != defaultName
             let courseName = userEditedName ? nil : await suggestedCourseName()
             let roundName = courseName ?? name
-            _ = try repository.startRound(profileID: profileID, name: roundName, courseName: courseName)
+            let round = try repository.startRound(profileID: profileID, name: roundName, courseName: courseName)
+            Task {
+                await roundReminderScheduler.scheduleStaleRoundReminder(for: round)
+            }
             load()
         } catch {
             errorMessage = "Unable to start round."
@@ -441,6 +485,14 @@ private struct CurrentRoundView: View {
 
     @MainActor
     private static func locationProvider() -> any ShotLocationProviding {
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset-data") {
+            let distanceYards = ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"]
+                .flatMap(Double.init) ?? 1
+            let accuracyMeters = ProcessInfo.processInfo.environment["GPS_TEST_ACCURACY_METERS"]
+                .flatMap(Double.init) ?? 1
+            return SimulatedShotLocationProvider(distanceYards: distanceYards, horizontalAccuracyMeters: accuracyMeters)
+        }
+
         if let distanceText = ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"],
            let distanceYards = Double(distanceText) {
             let accuracyMeters = ProcessInfo.processInfo.environment["GPS_TEST_ACCURACY_METERS"]
@@ -456,6 +508,10 @@ private struct CurrentRoundView: View {
             return StaticGolfCourseNameProvider(name: courseName)
         }
 
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset-data") {
+            return StaticGolfCourseNameProvider(name: nil)
+        }
+
         if ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"] != nil {
             return StaticGolfCourseNameProvider(name: nil)
         }
@@ -468,6 +524,9 @@ private struct CurrentRoundView: View {
             if let activeRound = viewModel.activeRound {
                 activeRoundSection(activeRound)
                 activeRoundShotsSection
+                if viewModel.isRoundStale {
+                    staleRoundSection
+                }
                 activeRoundActionsSection
             } else {
                 startRoundSection
@@ -514,6 +573,10 @@ private struct CurrentRoundView: View {
             viewModel.stopLocationWarmup()
         }
         .onChange(of: viewModel.activeRound?.id) { _, _ in
+            syncLocationWarmup()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
+            viewModel.load()
             syncLocationWarmup()
         }
     }
@@ -586,6 +649,27 @@ private struct CurrentRoundView: View {
                 )
             }
             .accessibilityIdentifier("current-round-total-shots-row")
+        }
+    }
+
+    private var staleRoundSection: some View {
+        Section("Reminder") {
+            Text("This round has been active for a while.")
+                .foregroundStyle(.secondary)
+
+            Button {
+                isConfirmingEndRound = true
+            } label: {
+                Label("Finish Round", systemImage: "checkmark.circle.fill")
+            }
+            .accessibilityIdentifier("finish-stale-round-button")
+
+            Button {
+                viewModel.keepPlaying()
+            } label: {
+                Label("Keep Playing", systemImage: "figure.golf")
+            }
+            .accessibilityIdentifier("keep-playing-button")
         }
     }
 
@@ -740,6 +824,9 @@ private struct ProfileView: View {
             }
         }
         .task {
+            viewModel.load()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
             viewModel.load()
         }
     }

@@ -46,6 +46,14 @@ struct YardageDashboardView: View {
 
     @MainActor
     private static func locationProvider() -> any ShotLocationProviding {
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset-data") {
+            let distanceYards = ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"]
+                .flatMap(Double.init) ?? 1
+            let accuracyMeters = ProcessInfo.processInfo.environment["GPS_TEST_ACCURACY_METERS"]
+                .flatMap(Double.init) ?? 1
+            return SimulatedShotLocationProvider(distanceYards: distanceYards, horizontalAccuracyMeters: accuracyMeters)
+        }
+
         if let distanceText = ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"],
            let distanceYards = Double(distanceText) {
             let accuracyMeters = ProcessInfo.processInfo.environment["GPS_TEST_ACCURACY_METERS"]
@@ -59,6 +67,10 @@ struct YardageDashboardView: View {
     private static func courseNameProvider() -> any GolfCourseNameProviding {
         if let courseName = ProcessInfo.processInfo.environment["ROUND_TEST_COURSE_NAME"] {
             return StaticGolfCourseNameProvider(name: courseName)
+        }
+
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset-data") {
+            return StaticGolfCourseNameProvider(name: nil)
         }
 
         if ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"] != nil {
@@ -252,6 +264,10 @@ struct YardageDashboardView: View {
             syncLocationWarmup()
         }
         .onChange(of: viewModel.shotTrackingMode) { _, _ in
+            syncLocationWarmup()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
+            viewModel.loadClubs()
             syncLocationWarmup()
         }
         .onChange(of: targetYardageText) { _, newValue in

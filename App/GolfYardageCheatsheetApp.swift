@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct GolfYardageCheatsheetApp: App {
+    @UIApplicationDelegateAdaptor(CaddieCatAppDelegate.self) private var appDelegate
+
     private let repository: GolfBagRepository
 
     init() {
