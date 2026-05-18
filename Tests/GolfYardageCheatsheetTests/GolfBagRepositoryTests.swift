@@ -148,6 +148,52 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertNil(unlinkedRecord.roundID)
     }
 
+    func testActiveRoundAndAbortRoundDiscardRoundShots() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let club = Club(
+            profileID: profile.id,
+            clubType: .driver,
+            swingDistances: SwingDistanceSet(full: 255)
+        )
+
+        try repository.saveClub(club)
+        XCTAssertNil(try repository.activeRound(for: profile.id))
+
+        let round = try repository.startRound(profileID: profile.id, name: "Round May 18")
+        XCTAssertEqual(try repository.activeRound(for: profile.id), round)
+
+        let roundShot = ShotRecord(
+            profileID: profile.id,
+            clubID: club.id,
+            roundID: round.id,
+            category: .normal,
+            power: .full,
+            distance: 250,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+        let profileShot = ShotRecord(
+            profileID: profile.id,
+            clubID: club.id,
+            category: .normal,
+            power: .half,
+            distance: 150,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+
+        try repository.saveShotRecord(roundShot)
+        try repository.saveShotRecord(profileShot)
+        try repository.abortRound(id: round.id)
+
+        XCTAssertNil(try repository.activeRound(for: profile.id))
+        XCTAssertTrue(try repository.rounds(for: profile.id).isEmpty)
+        XCTAssertFalse(try repository.shotRecords(for: profile.id).contains(roundShot))
+        XCTAssertEqual(try repository.shotRecords(for: profile.id), [profileShot])
+    }
+
     func testDeleteAllShotRecordsRemovesOnlySelectedProfileShots() throws {
         let store = InMemoryGolfBagStore()
         let repository = GolfBagRepository(store: store)

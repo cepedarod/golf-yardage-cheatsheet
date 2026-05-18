@@ -26,6 +26,9 @@ struct RootView: View {
         .task {
             viewModel.load()
         }
+        .onAppear {
+            viewModel.load()
+        }
     }
 }
 
@@ -47,6 +50,18 @@ private struct MainTabView: View {
                 Label("Distances", systemImage: "scope")
             }
             .accessibilityIdentifier("distances-tab")
+
+            NavigationStack {
+                CurrentRoundView(
+                    profile: profile,
+                    repository: repository,
+                    switchProfile: switchProfile
+                )
+            }
+            .tabItem {
+                Label("Round", systemImage: "flag.fill")
+            }
+            .accessibilityIdentifier("round-tab")
 
             NavigationStack {
                 AnalysisView(
@@ -205,6 +220,374 @@ private struct ProfileShotRow: Identifiable, Equatable {
     let record: ShotRecord
     let club: Club?
     let clubName: String
+}
+
+@MainActor
+private final class CurrentRoundViewModel: ObservableObject {
+    @Published private(set) var activeRound: GolfRound?
+    @Published private(set) var shotRows: [ProfileShotRow] = []
+    @Published var roundNameDraft: String
+    @Published var errorMessage: String?
+
+    private let profileID: UUID
+    private let repository: GolfBagRepository
+    private let formatter = ClubDisplayNameFormatter()
+
+    init(profile: GolferProfile, repository: GolfBagRepository) {
+        profileID = profile.id
+        self.repository = repository
+        roundNameDraft = Self.defaultRoundName(for: Date())
+    }
+
+    func load() {
+        do {
+            let data = try repository.loadData()
+
+            guard data.profiles.contains(where: { $0.id == profileID }) else {
+                throw GolfBagRepositoryError.profileNotFound
+            }
+
+            let clubsByID = Dictionary(uniqueKeysWithValues: data.clubs.map { ($0.id, $0) })
+            let round = data.rounds
+                .filter { $0.profileID == profileID && $0.isCompleted == false }
+                .sorted(by: newestRoundFirst)
+                .first
+
+            activeRound = round
+
+            if let round {
+                roundNameDraft = round.name
+                shotRows = data.shotRecords
+                    .filter { $0.profileID == profileID && $0.roundID == round.id }
+                    .sorted(by: oldestShotFirst)
+                    .map { record in
+                        ProfileShotRow(
+                            record: record,
+                            club: clubsByID[record.clubID],
+                            clubName: clubsByID[record.clubID].map(formatter.displayName(for:)) ?? "Deleted Club"
+                        )
+                    }
+            } else {
+                if roundNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    roundNameDraft = Self.defaultRoundName(for: Date())
+                }
+                shotRows = []
+            }
+
+            errorMessage = nil
+        } catch {
+            activeRound = nil
+            shotRows = []
+            errorMessage = "Unable to load round."
+        }
+    }
+
+    func startRound() {
+        do {
+            let name = normalizedRoundName()
+            _ = try repository.startRound(profileID: profileID, name: name)
+            load()
+        } catch {
+            errorMessage = "Unable to start round."
+        }
+    }
+
+    func saveRoundName() {
+        guard let activeRound else {
+            return
+        }
+
+        do {
+            _ = try repository.updateRoundName(id: activeRound.id, name: normalizedRoundName())
+            load()
+        } catch GolfBagRepositoryError.roundNameRequired {
+            errorMessage = "Round name is required."
+        } catch {
+            errorMessage = "Unable to update round name."
+        }
+    }
+
+    func endRound() {
+        guard let activeRound else {
+            return
+        }
+
+        do {
+            _ = try repository.endRound(id: activeRound.id)
+            roundNameDraft = Self.defaultRoundName(for: Date())
+            load()
+        } catch {
+            errorMessage = "Unable to end round."
+        }
+    }
+
+    func abortRound() {
+        guard let activeRound else {
+            return
+        }
+
+        do {
+            try repository.abortRound(id: activeRound.id)
+            roundNameDraft = Self.defaultRoundName(for: Date())
+            load()
+        } catch {
+            errorMessage = "Unable to abort round."
+        }
+    }
+
+    func saveShotRecord(_ record: ShotRecord) throws {
+        try repository.saveShotRecord(record)
+        load()
+    }
+
+    func deleteShotRecord(_ row: ProfileShotRow) {
+        do {
+            try repository.deleteShotRecord(id: row.record.id)
+            load()
+        } catch {
+            errorMessage = "Unable to delete shot."
+        }
+    }
+
+    var hasRoundNameChanges: Bool {
+        guard let activeRound else {
+            return false
+        }
+
+        let trimmedName = roundNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedName.isEmpty == false && trimmedName != activeRound.name
+    }
+
+    private func normalizedRoundName() -> String {
+        let trimmedName = roundNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedName.isEmpty ? Self.defaultRoundName(for: Date()) : trimmedName
+    }
+
+    private static func defaultRoundName(for date: Date) -> String {
+        "Round \(date.formatted(.dateTime.month(.abbreviated).day()))"
+    }
+
+    private func newestRoundFirst(_ lhs: GolfRound, _ rhs: GolfRound) -> Bool {
+        if lhs.startedAt != rhs.startedAt {
+            return lhs.startedAt > rhs.startedAt
+        }
+
+        return lhs.id.uuidString < rhs.id.uuidString
+    }
+
+    private func oldestShotFirst(_ lhs: ShotRecord, _ rhs: ShotRecord) -> Bool {
+        if lhs.createdAt != rhs.createdAt {
+            return lhs.createdAt < rhs.createdAt
+        }
+
+        return lhs.id.uuidString < rhs.id.uuidString
+    }
+}
+
+private struct CurrentRoundView: View {
+    let profile: GolferProfile
+    let switchProfile: () -> Void
+
+    @StateObject private var viewModel: CurrentRoundViewModel
+    @State private var isConfirmingEndRound = false
+    @State private var isConfirmingAbortRound = false
+
+    init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
+        self.profile = profile
+        self.switchProfile = switchProfile
+        _viewModel = StateObject(wrappedValue: CurrentRoundViewModel(profile: profile, repository: repository))
+    }
+
+    var body: some View {
+        List {
+            if let activeRound = viewModel.activeRound {
+                activeRoundSection(activeRound)
+                activeRoundShotsSection
+                activeRoundActionsSection
+            } else {
+                startRoundSection
+            }
+
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .accessibilityIdentifier("current-round-list")
+        .navigationTitle("Current Round")
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: switchProfile) {
+                    Image(systemName: "person.2")
+                }
+                .accessibilityLabel("Switch Profile")
+            }
+        }
+        .alert("End Round?", isPresented: $isConfirmingEndRound) {
+            Button("End Round") {
+                viewModel.endRound()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This saves the round to your profile history.")
+        }
+        .alert("Abort Round?", isPresented: $isConfirmingAbortRound) {
+            Button("Abort Round", role: .destructive) {
+                viewModel.abortRound()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This discards the active round and shots tied to it.")
+        }
+        .onAppear {
+            viewModel.load()
+        }
+    }
+
+    private var startRoundSection: some View {
+        Section {
+            TextField("Round Name", text: $viewModel.roundNameDraft)
+                .textInputAutocapitalization(.words)
+                .accessibilityIdentifier("round-name-field")
+
+            Button {
+                viewModel.startRound()
+            } label: {
+                Label("Start Round", systemImage: "play.circle.fill")
+            }
+            .accessibilityIdentifier("start-round-button")
+        } header: {
+            Text("Round")
+        } footer: {
+            Text("Start a round to group tracked shots together.")
+        }
+    }
+
+    private func activeRoundSection(_ round: GolfRound) -> some View {
+        Section("Round") {
+            HStack {
+                Text("Name")
+                Spacer()
+                TextField("Round Name", text: $viewModel.roundNameDraft)
+                    .multilineTextAlignment(.trailing)
+                    .textInputAutocapitalization(.words)
+                    .accessibilityIdentifier("active-round-name-field")
+            }
+
+            if viewModel.hasRoundNameChanges {
+                Button("Save Name") {
+                    viewModel.saveRoundName()
+                }
+                .accessibilityIdentifier("save-round-name-button")
+            }
+
+            HStack {
+                Text("Started")
+                Spacer()
+                Text(round.startedAt.formatted(date: .abbreviated, time: .shortened))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+            }
+        }
+    }
+
+    private var activeRoundShotsSection: some View {
+        Section("Shots") {
+            NavigationLink {
+                CurrentRoundShotListView(viewModel: viewModel)
+            } label: {
+                ProfileMetricRow(
+                    title: "Total Shots",
+                    value: "\(viewModel.shotRows.count)",
+                    systemImage: "list.bullet.rectangle",
+                    valueAccessibilityIdentifier: "current-round-shot-count"
+                )
+            }
+            .accessibilityIdentifier("current-round-total-shots-row")
+        }
+    }
+
+    private var activeRoundActionsSection: some View {
+        Section {
+            Button {
+                isConfirmingEndRound = true
+            } label: {
+                Label("End Round", systemImage: "checkmark.circle.fill")
+            }
+            .accessibilityIdentifier("end-round-button")
+
+            Button(role: .destructive) {
+                isConfirmingAbortRound = true
+            } label: {
+                Label("Abort Round", systemImage: "xmark.circle.fill")
+            }
+            .accessibilityIdentifier("abort-round-button")
+        }
+    }
+}
+
+private struct CurrentRoundShotListView: View {
+    @ObservedObject var viewModel: CurrentRoundViewModel
+
+    @State private var editingRow: ProfileShotRow?
+
+    var body: some View {
+        List {
+            if viewModel.shotRows.isEmpty {
+                ContentUnavailableView(
+                    "No Round Shots",
+                    systemImage: "list.bullet.rectangle",
+                    description: Text("Shots recorded during this round will appear here.")
+                )
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(viewModel.shotRows) { row in
+                    Button {
+                        if row.club != nil {
+                            editingRow = row
+                        }
+                    } label: {
+                        ProfileShotRecordRowView(row: row)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("current-round-shot-row-\(row.record.id.uuidString)")
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        if row.club != nil {
+                            Button {
+                                editingRow = row
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(.blue)
+                        }
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            viewModel.deleteShotRecord(row)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("current-round-shot-list")
+        .navigationTitle("Round Shots")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingRow) { row in
+            if let club = row.club {
+                NavigationStack {
+                    ShotRecordEditView(club: club, record: row.record, onSave: viewModel.saveShotRecord)
+                }
+            }
+        }
+        .onAppear {
+            viewModel.load()
+        }
+    }
 }
 
 private struct ProfileView: View {

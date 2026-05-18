@@ -337,6 +337,11 @@ public final class GolfBagRepository {
             }
     }
 
+    public func activeRound(for profileID: UUID) throws -> GolfRound? {
+        try rounds(for: profileID)
+            .first { $0.isCompleted == false }
+    }
+
     public func deleteRound(id roundID: UUID) throws {
         var data = try store.load()
 
@@ -348,6 +353,19 @@ public final class GolfBagRepository {
         for recordIndex in data.shotRecords.indices where data.shotRecords[recordIndex].roundID == roundID {
             data.shotRecords[recordIndex].roundID = nil
         }
+
+        try store.save(data)
+    }
+
+    public func abortRound(id roundID: UUID) throws {
+        var data = try store.load()
+
+        guard let index = data.rounds.firstIndex(where: { $0.id == roundID }) else {
+            throw GolfBagRepositoryError.roundNotFound
+        }
+
+        data.rounds.remove(at: index)
+        data.shotRecords.removeAll { $0.roundID == roundID }
 
         try store.save(data)
     }

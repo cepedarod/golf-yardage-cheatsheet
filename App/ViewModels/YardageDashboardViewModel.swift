@@ -5,6 +5,7 @@ final class YardageDashboardViewModel: ObservableObject {
     @Published private(set) var activeClubs: [Club] = []
     @Published private(set) var inactiveClubs: [Club] = []
     @Published private(set) var shotRecords: [ShotRecord] = []
+    @Published private(set) var activeRoundID: UUID?
     @Published private(set) var matches: [YardageMatch] = []
     @Published private(set) var targetYardageText = "" {
         didSet {
@@ -57,15 +58,18 @@ final class YardageDashboardViewModel: ObservableObject {
         do {
             let clubs = clubSorter.sortedForDistanceTab(try repository.clubs(for: profile.id, includeInactive: true))
             let shotRecords = try repository.shotRecords(for: profile.id)
+            let activeRound = try repository.activeRound(for: profile.id)
             activeClubs = clubs.filter(\.isActive)
             inactiveClubs = clubs.filter { $0.isActive == false }
             self.shotRecords = shotRecords
+            activeRoundID = activeRound?.id
             updateMatches()
             errorMessage = nil
         } catch {
             activeClubs = []
             inactiveClubs = []
             shotRecords = []
+            activeRoundID = nil
             matches = []
             errorMessage = "Unable to load clubs."
         }

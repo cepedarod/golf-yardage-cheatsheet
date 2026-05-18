@@ -186,6 +186,7 @@ struct YardageDashboardView: View {
                 RecordShotView(
                     profile: profile,
                     clubs: viewModel.recordableActiveClubs,
+                    roundID: viewModel.activeRoundID,
                     onSave: viewModel.saveShotRecord
                 )
             }
@@ -198,6 +199,9 @@ struct YardageDashboardView: View {
         .task {
             viewModel.loadClubs()
             offerInitialBagSetupIfNeeded()
+        }
+        .onAppear {
+            viewModel.loadClubs()
         }
         .onChange(of: targetYardageText) { _, newValue in
             let digitsOnly = String(newValue.filter(\.isNumber).prefix(3))
@@ -381,6 +385,7 @@ struct YardageDashboardView: View {
 private struct RecordShotView: View {
     let profile: GolferProfile
     let clubs: [Club]
+    let roundID: UUID?
     let onSave: (ShotRecord) throws -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -395,9 +400,10 @@ private struct RecordShotView: View {
     @State private var direction: ShotDirection = .straight
     @State private var errorMessage: String?
 
-    init(profile: GolferProfile, clubs: [Club], onSave: @escaping (ShotRecord) throws -> Void) {
+    init(profile: GolferProfile, clubs: [Club], roundID: UUID? = nil, onSave: @escaping (ShotRecord) throws -> Void) {
         self.profile = profile
         self.clubs = clubs
+        self.roundID = roundID
         self.onSave = onSave
         _selectedClubID = State(initialValue: clubs.first?.id ?? UUID())
     }
@@ -570,6 +576,7 @@ private struct RecordShotView: View {
         let record = ShotRecord(
             profileID: profile.id,
             clubID: selectedClub.id,
+            roundID: roundID,
             category: selectedCategory,
             power: selectedPower,
             distance: distance(from: distanceText),

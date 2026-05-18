@@ -408,6 +408,61 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["250 yds"].exists)
     }
 
+    func testRoundTabTracksShotAndCompletesRound() {
+        let app = launchFreshApp()
+        createProfile(named: "Rod", in: app)
+
+        saveClub(fullDistance: "255", shouldAddAnother: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Round"].tap()
+
+        XCTAssertTrue(app.navigationBars["Current Round"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["start-round-button"].waitForExistence(timeout: 2))
+        app.buttons["start-round-button"].tap()
+
+        XCTAssertTrue(app.staticTexts["Total Shots"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["current-round-shot-count"].label, "0")
+
+        app.tabBars.buttons["Distances"].tap()
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.buttons["record-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        let shotDistanceField = app.textFields["record-shot-distance-field"]
+        XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
+        shotDistanceField.tap()
+        shotDistanceField.typeText("250")
+        dismissKeyboardIfNeeded(in: app)
+        app.buttons["save-shot-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Round"].tap()
+
+        XCTAssertTrue(app.navigationBars["Current Round"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["current-round-shot-count"].label, "1")
+
+        let totalShotsRow = app.descendants(matching: .any)["current-round-total-shots-row"]
+        XCTAssertTrue(totalShotsRow.waitForExistence(timeout: 2))
+        totalShotsRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Round Shots"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Full Normal"].exists)
+        XCTAssertTrue(app.staticTexts["250 yds"].exists)
+
+        app.navigationBars["Round Shots"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Current Round"].waitForExistence(timeout: 5))
+        app.buttons["end-round-button"].tap()
+        XCTAssertTrue(app.alerts.buttons["End Round"].waitForExistence(timeout: 2))
+        app.alerts.buttons["End Round"].tap()
+
+        XCTAssertTrue(app.buttons["start-round-button"].waitForExistence(timeout: 2))
+        app.tabBars.buttons["Profile"].tap()
+        XCTAssertTrue(app.navigationBars["Profile"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["profile-rounds-count"].label, "1")
+    }
+
     func testDashboardEditUpdatesExistingClubDistance() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
