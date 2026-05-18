@@ -523,6 +523,7 @@ private struct CurrentRoundView: View {
             } label: {
                 Label("Abort Round", systemImage: "xmark.circle.fill")
             }
+            .tint(.red)
             .accessibilityIdentifier("abort-round-button")
         }
     }
