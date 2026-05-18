@@ -1511,6 +1511,7 @@ private struct ShotRecordEditView: View {
     @State private var distanceText: String
     @State private var strikeQuality: StrikeQuality
     @State private var direction: ShotDirection
+    @State private var grassType: GrassType
     @State private var createdAt: Date
     @State private var errorMessage: String?
 
@@ -1523,6 +1524,7 @@ private struct ShotRecordEditView: View {
         _distanceText = State(initialValue: record.distance.map(String.init) ?? "")
         _strikeQuality = State(initialValue: record.strikeQuality)
         _direction = State(initialValue: record.direction)
+        _grassType = State(initialValue: record.grassType)
         _createdAt = State(initialValue: record.createdAt)
     }
 
@@ -1537,6 +1539,16 @@ private struct ShotRecordEditView: View {
             Section("Date") {
                 DatePicker("Date", selection: $createdAt, displayedComponents: [.date, .hourAndMinute])
                     .accessibilityIdentifier("edit-shot-date-picker")
+            }
+
+            Section("Grass") {
+                Picker("Grass", selection: $grassType) {
+                    ForEach(GrassType.allCases, id: \.self) { grassType in
+                        Text(grassType.displayName).tag(grassType)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("edit-grass-type-picker")
             }
 
             Section("Distance") {
@@ -1693,7 +1705,7 @@ private struct ShotRecordEditView: View {
             gpsMeasurement: record.gpsMeasurement,
             strikeQuality: strikeQuality,
             direction: direction,
-            grassType: record.grassType,
+            grassType: grassType,
             createdAt: createdAt
         )
 

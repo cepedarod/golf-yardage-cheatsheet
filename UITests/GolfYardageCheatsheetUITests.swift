@@ -173,7 +173,10 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["record-shot-form"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["record-shot-club-tile-Driver"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["grass-type-Fairway"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["grass-type-Rough"].exists)
+        app.buttons["grass-type-Rough"].tap()
 
         let shotDistanceField = app.textFields["record-shot-distance-field"]
         XCTAssertTrue(shotDistanceField.waitForExistence(timeout: 2))
@@ -292,6 +295,10 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.buttons["record-shot-button"].tap()
 
         XCTAssertTrue(app.navigationBars["Record Shot"].waitForExistence(timeout: 5))
+        let lowTrajectoryButton = app.buttons["shot-category-low-trajectory"]
+        XCTAssertTrue(lowTrajectoryButton.waitForExistence(timeout: 2))
+        lowTrajectoryButton.tap()
+
         let stingerButton = app.buttons["shot-power-low-trajectory-stinger"]
         XCTAssertTrue(stingerButton.waitForExistence(timeout: 2))
         stingerButton.tap()

@@ -834,6 +834,7 @@ private struct RecordShotView: View {
     @State private var distanceText = ""
     @State private var strikeQuality: StrikeQuality = .pure
     @State private var direction: ShotDirection = .straight
+    @State private var grassType: GrassType = .fairway
     @State private var errorMessage: String?
 
     init(
@@ -858,24 +859,34 @@ private struct RecordShotView: View {
                 ContentUnavailableView("No Clubs", systemImage: "figure.golf", description: Text("Add an active non-putter club."))
             } else {
                 Section("Club") {
-                    Picker("Club", selection: $selectedClubID) {
-                        ForEach(clubs) { club in
-                            Text(formatter.displayName(for: club))
-                                .tag(club.id)
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(clubGroups, id: \.title) { group in
+                            HStack(alignment: .center, spacing: 8) {
+                                Text(group.title)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 48, alignment: .leading)
+
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        ForEach(group.clubs) { club in
+                                            clubTile(for: club)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                    .accessibilityIdentifier("record-shot-club-picker")
-                }
-
-                Section("Shot") {
-                    ForEach(availableCategories, id: \.self) { category in
-                        powerRow(for: category)
-                    }
+                    .padding(.vertical, 2)
                 }
 
                 Section("Distance") {
-                    HStack {
-                        Text("Distance (Yards)")
+                    HStack(spacing: 8) {
+                        Text("Yards")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 58, alignment: .leading)
+
                         Spacer()
                         if distanceText.isEmpty == false {
                             Button {
@@ -888,6 +899,7 @@ private struct RecordShotView: View {
                             .accessibilityLabel("Clear Distance")
                             .accessibilityIdentifier("clear-record-shot-distance-button")
                         }
+
                         NumericTextField(
                             title: "Optional",
                             text: $distanceText,
@@ -895,44 +907,111 @@ private struct RecordShotView: View {
                             dismissesKeyboardAtMaxDigits: true
                         )
                             .accessibilityIdentifier("record-shot-distance-field")
-                            .frame(maxWidth: 112)
+                            .frame(maxWidth: 92)
+
+                        Text("yds")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
                     }
+                    .padding(.vertical, 2)
 
                     if let gpsMeasurement {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
+                            Text("GPS")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 58, alignment: .leading)
+
                             Image(systemName: "location.circle.fill")
-                            Text("GPS +/- \(Int(gpsMeasurement.estimatedUncertaintyYards.rounded())) yds")
-                            Spacer()
+                                .font(.caption)
+
+                            Text("+/- \(Int(gpsMeasurement.estimatedUncertaintyYards.rounded())) yds")
+                                .font(.caption2.weight(.semibold))
+                                .lineLimit(1)
+
+                            Spacer(minLength: 4)
+
                             Text(gpsMeasurement.confidence.displayName)
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
+                                .font(.caption2.weight(.semibold))
+                                .lineLimit(1)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
                                 .background(gpsMeasurement.confidence.tint.opacity(0.16), in: Capsule())
                         }
-                        .font(.footnote.weight(.medium))
                         .foregroundStyle(gpsMeasurement.confidence.tint)
+                        .padding(.vertical, 2)
                         .accessibilityIdentifier("gps-confidence-row")
                     }
                 }
 
-                Section("Strike") {
-                    Picker("Strike", selection: $strikeQuality) {
-                        ForEach(StrikeQuality.allCases, id: \.self) { strikeQuality in
-                            Text(strikeQuality.displayName).tag(strikeQuality)
+                Section("Shot") {
+                    choiceRow(title: "Type") {
+                        LazyVGrid(columns: categoryColumns, spacing: 6) {
+                            ForEach(availableCategories, id: \.self) { category in
+                                ShotChoiceButton(
+                                    title: category.displayName,
+                                    isSelected: selectedCategory == category,
+                                    accessibilityIdentifier: "shot-category-\(category.accessibilityName)"
+                                ) {
+                                    selectedCategory = category
+                                    selectedPower = powers(for: category).first ?? .full
+                                }
+                            }
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .accessibilityIdentifier("strike-quality-picker")
+
+                    choiceRow(title: selectedCategory == .lowTrajectory ? "Shot" : "Swing") {
+                        LazyVGrid(columns: powerColumns, spacing: 6) {
+                            ForEach(powers(for: selectedCategory), id: \.self) { power in
+                                powerButton(category: selectedCategory, power: power)
+                            }
+                        }
+                    }
                 }
 
-                Section("Direction") {
-                    Picker("Direction", selection: $direction) {
-                        ForEach(ShotDirection.allCases, id: \.self) { direction in
-                            Label(direction.displayName, systemImage: direction.systemImage)
-                                .tag(direction)
+                Section("Details") {
+                    choiceRow(title: "Grass") {
+                        LazyVGrid(columns: threeChoiceColumns, spacing: 6) {
+                            ForEach(GrassType.allCases, id: \.self) { grassType in
+                                ShotChoiceButton(
+                                    title: grassType.displayName,
+                                    isSelected: self.grassType == grassType,
+                                    accessibilityIdentifier: "grass-type-\(grassType.accessibilityName)"
+                                ) {
+                                    self.grassType = grassType
+                                }
+                            }
                         }
                     }
-                    .pickerStyle(.segmented)
+
+                    choiceRow(title: "Strike") {
+                        LazyVGrid(columns: threeChoiceColumns, spacing: 6) {
+                            ForEach(StrikeQuality.allCases, id: \.self) { strikeQuality in
+                                ShotChoiceButton(
+                                    title: strikeQuality.displayName,
+                                    isSelected: self.strikeQuality == strikeQuality,
+                                    accessibilityIdentifier: "strike-quality-\(strikeQuality.accessibilityName)"
+                                ) {
+                                    self.strikeQuality = strikeQuality
+                                }
+                            }
+                        }
+                    }
+                    .accessibilityIdentifier("strike-quality-picker")
+
+                    choiceRow(title: "Direction") {
+                        LazyVGrid(columns: directionChoiceColumns, spacing: 6) {
+                            ForEach(ShotDirection.allCases, id: \.self) { direction in
+                                ShotChoiceButton(
+                                    title: direction.displayName,
+                                    isSelected: self.direction == direction,
+                                    accessibilityIdentifier: "shot-direction-\(direction.accessibilityName)"
+                                ) {
+                                    self.direction = direction
+                                }
+                            }
+                        }
+                    }
                     .accessibilityIdentifier("shot-direction-picker")
                 }
             }
@@ -970,6 +1049,29 @@ private struct RecordShotView: View {
         clubs.first { $0.id == selectedClubID } ?? clubs.first
     }
 
+    private var threeChoiceColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 6), count: 3)
+    }
+
+    private var categoryColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 6), count: max(availableCategories.count, 1))
+    }
+
+    private var powerColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 6), count: 4)
+    }
+
+    private var directionChoiceColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(minimum: 38), spacing: 4), count: 5)
+    }
+
+    private var clubGroups: [(title: String, clubs: [Club])] {
+        RecordClubGroup.allCases.compactMap { group in
+            let groupClubs = clubs.filter { clubGroup(for: $0) == group }
+            return groupClubs.isEmpty ? nil : (group.title, groupClubs)
+        }
+    }
+
     private var availableCategories: [ShotCategory] {
         guard let selectedClub else {
             return []
@@ -978,19 +1080,32 @@ private struct RecordShotView: View {
         return selectedClub.clubType.isWedge ? [.normal, .lowTrajectory, .flop] : [.normal, .lowTrajectory]
     }
 
-    private func powerRow(for category: ShotCategory) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(category.displayName)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
+    private func clubTile(for club: Club) -> some View {
+        let displayName = formatter.displayName(for: club)
+        let compactName = compactClubName(for: club)
+        let isSelected = selectedClubID == club.id
 
-            HStack(spacing: 8) {
-                ForEach(powers(for: category), id: \.self) { power in
-                    powerButton(category: category, power: power)
-                }
-            }
+        return Button {
+            selectedClubID = club.id
+            normalizeSelectedShot()
+        } label: {
+            Text(compactName)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .frame(minWidth: 36, minHeight: 30)
+                .padding(.horizontal, 6)
         }
-        .padding(.vertical, 4)
+        .buttonStyle(.plain)
+        .foregroundStyle(isSelected ? .white : .primary)
+        .background(isSelected ? Color.green : Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isSelected ? Color.green : Color(.separator).opacity(0.55), lineWidth: 1)
+        }
+        .accessibilityLabel(displayName)
+        .accessibilityIdentifier("record-shot-club-tile-\(displayName)")
     }
 
     private func powerButton(category: ShotCategory, power: ShotPower) -> some View {
@@ -1001,10 +1116,10 @@ private struct RecordShotView: View {
             selectedPower = power
         } label: {
             Text(power.displayName)
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .frame(maxWidth: .infinity, minHeight: 32)
+                .frame(maxWidth: .infinity, minHeight: 28)
         }
         .buttonStyle(.plain)
         .foregroundStyle(isSelected ? .white : .green)
@@ -1015,6 +1130,22 @@ private struct RecordShotView: View {
                 .stroke(isSelected ? Color.green : Color.green.opacity(0.45), lineWidth: 1)
         }
         .accessibilityIdentifier("shot-power-\(category.accessibilityName)-\(power.accessibilityName)")
+    }
+
+    private func choiceRow<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 58, alignment: .leading)
+
+            content()
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.vertical, 2)
     }
 
     private func powers(for category: ShotCategory) -> [ShotPower] {
@@ -1055,6 +1186,7 @@ private struct RecordShotView: View {
             gpsMeasurement: savedGPSMeasurement(),
             strikeQuality: strikeQuality,
             direction: direction,
+            grassType: grassType,
             createdAt: Date()
         )
 
@@ -1085,6 +1217,70 @@ private struct RecordShotView: View {
         distanceSource() == .manual ? nil : gpsMeasurement
     }
 
+    private func clubGroup(for club: Club) -> RecordClubGroup {
+        switch club.clubType {
+        case .driver, .threeWood, .fiveWood, .sevenWood, .twoHybrid, .threeHybrid, .fourHybrid, .fiveHybrid:
+            return .woods
+        case .twoIron, .threeIron, .fourIron, .fiveIron, .sixIron, .sevenIron, .eightIron, .nineIron:
+            return .irons
+        case .pitchingWedge, .gapWedge, .sandWedge, .lobWedge:
+            return .wedges
+        case .putter:
+            return .woods
+        }
+    }
+
+    private func compactClubName(for club: Club) -> String {
+        if club.clubType.isWedge, let wedgeLoft = club.wedgeLoft {
+            return "\(wedgeLoft)\u{00B0}"
+        }
+
+        switch club.clubType {
+        case .driver:
+            return "Driver"
+        case .threeWood:
+            return "3W"
+        case .fiveWood:
+            return "5W"
+        case .sevenWood:
+            return "7W"
+        case .twoHybrid:
+            return "2H"
+        case .threeHybrid:
+            return "3H"
+        case .fourHybrid:
+            return "4H"
+        case .fiveHybrid:
+            return "5H"
+        case .twoIron:
+            return "2"
+        case .threeIron:
+            return "3"
+        case .fourIron:
+            return "4"
+        case .fiveIron:
+            return "5"
+        case .sixIron:
+            return "6"
+        case .sevenIron:
+            return "7"
+        case .eightIron:
+            return "8"
+        case .nineIron:
+            return "9"
+        case .pitchingWedge:
+            return "PW"
+        case .gapWedge:
+            return "GW"
+        case .sandWedge:
+            return "SW"
+        case .lobWedge:
+            return "LW"
+        case .putter:
+            return "Putter"
+        }
+    }
+
     private func validationMessage(for errors: [ShotRecordValidationError]) -> String {
         if errors.contains(.nonPositiveDistance) {
             return "Distance must be greater than 0."
@@ -1099,6 +1295,50 @@ private struct RecordShotView: View {
         }
 
         return "Check the shot details and try again."
+    }
+}
+
+private enum RecordClubGroup: CaseIterable {
+    case woods
+    case irons
+    case wedges
+
+    var title: String {
+        switch self {
+        case .woods:
+            return "Woods"
+        case .irons:
+            return "Irons"
+        case .wedges:
+            return "Wedges"
+        }
+    }
+}
+
+private struct ShotChoiceButton: View {
+    let title: String
+    let isSelected: Bool
+    let accessibilityIdentifier: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .frame(maxWidth: .infinity, minHeight: 30)
+                .padding(.horizontal, 4)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isSelected ? .white : .green)
+        .background(isSelected ? Color.green : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isSelected ? Color.green : Color.green.opacity(0.45), lineWidth: 1)
+        }
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
@@ -1153,7 +1393,30 @@ private extension ShotPower {
     }
 }
 
+private extension GrassType {
+    var accessibilityName: String {
+        switch self {
+        case .fairway:
+            "Fairway"
+        case .rough:
+            "Rough"
+        case .deepRough:
+            "Deep Rough"
+        }
+    }
+}
+
+private extension StrikeQuality {
+    var accessibilityName: String {
+        rawValue
+    }
+}
+
 private extension ShotDirection {
+    var accessibilityName: String {
+        rawValue
+    }
+
     var systemImage: String {
         switch self {
         case .hook:
