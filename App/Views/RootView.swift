@@ -807,11 +807,15 @@ private struct ShotRecordEditView: View {
             id: record.id,
             profileID: record.profileID,
             clubID: record.clubID,
+            roundID: record.roundID,
             category: selectedCategory,
             power: selectedPower,
             distance: distance(from: distanceText),
+            distanceSource: record.distanceSource,
+            gpsMeasurement: record.gpsMeasurement,
             strikeQuality: strikeQuality,
             direction: direction,
+            grassType: record.grassType,
             createdAt: createdAt
         )
 

@@ -1,11 +1,12 @@
 import Foundation
 
 public struct GolfBagData: Codable, Equatable, Sendable {
-    public static let currentSchemaVersion = 2
+    public static let currentSchemaVersion = 3
 
     public var profiles: [GolferProfile]
     public var clubs: [Club]
     public var shotRecords: [ShotRecord]
+    public var rounds: [GolfRound]
     public var selectedProfileID: UUID?
     public var schemaVersion: Int
 
@@ -13,6 +14,7 @@ public struct GolfBagData: Codable, Equatable, Sendable {
         case profiles
         case clubs
         case shotRecords
+        case rounds
         case selectedProfileID
         case schemaVersion
     }
@@ -21,12 +23,14 @@ public struct GolfBagData: Codable, Equatable, Sendable {
         profiles: [GolferProfile] = [],
         clubs: [Club] = [],
         shotRecords: [ShotRecord] = [],
+        rounds: [GolfRound] = [],
         selectedProfileID: UUID? = nil,
         schemaVersion: Int = GolfBagData.currentSchemaVersion
     ) {
         self.profiles = profiles
         self.clubs = clubs
         self.shotRecords = shotRecords
+        self.rounds = rounds
         self.selectedProfileID = selectedProfileID
         self.schemaVersion = schemaVersion
     }
@@ -39,10 +43,11 @@ public struct GolfBagData: Codable, Equatable, Sendable {
         let decodedClubs = try container.decode([Club].self, forKey: .clubs)
 
         profiles = try container.decode([GolferProfile].self, forKey: .profiles)
-        clubs = decodedSchemaVersion < Self.currentSchemaVersion
+        clubs = decodedSchemaVersion < 2
             ? ClubV2Migrator.migrate(decodedClubs)
             : decodedClubs
         shotRecords = try container.decodeIfPresent([ShotRecord].self, forKey: .shotRecords) ?? []
+        rounds = try container.decodeIfPresent([GolfRound].self, forKey: .rounds) ?? []
         selectedProfileID = try container.decodeIfPresent(UUID.self, forKey: .selectedProfileID)
         schemaVersion = Self.currentSchemaVersion
     }
@@ -52,6 +57,7 @@ public struct GolfBagData: Codable, Equatable, Sendable {
         try container.encode(profiles, forKey: .profiles)
         try container.encode(clubs, forKey: .clubs)
         try container.encode(shotRecords, forKey: .shotRecords)
+        try container.encode(rounds, forKey: .rounds)
         try container.encodeIfPresent(selectedProfileID, forKey: .selectedProfileID)
         try container.encode(Self.currentSchemaVersion, forKey: .schemaVersion)
     }

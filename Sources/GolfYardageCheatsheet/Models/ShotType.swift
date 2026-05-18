@@ -119,37 +119,178 @@ public enum ShotDirection: String, CaseIterable, Codable, Equatable, Sendable {
     }
 }
 
+public enum GrassType: String, CaseIterable, Codable, Equatable, Sendable {
+    case fairway
+    case rough
+    case deepRough
+
+    public var displayName: String {
+        switch self {
+        case .fairway:
+            "Fairway"
+        case .rough:
+            "Rough"
+        case .deepRough:
+            "Deep Rough"
+        }
+    }
+}
+
+public enum ShotDistanceSource: String, CaseIterable, Codable, Equatable, Sendable {
+    case manual
+    case gps
+    case editedGPS
+
+    public var displayName: String {
+        switch self {
+        case .manual:
+            "Manual"
+        case .gps:
+            "GPS"
+        case .editedGPS:
+            "Edited GPS"
+        }
+    }
+}
+
+public enum GPSConfidence: String, CaseIterable, Codable, Equatable, Sendable {
+    case green
+    case yellow
+    case orange
+    case red
+
+    public var displayName: String {
+        switch self {
+        case .green:
+            "High"
+        case .yellow:
+            "Good"
+        case .orange:
+            "Caution"
+        case .red:
+            "Low"
+        }
+    }
+
+    public static func confidence(forEstimatedUncertaintyYards uncertainty: Double) -> GPSConfidence {
+        if uncertainty <= 3 {
+            return .green
+        }
+
+        if uncertainty <= 7 {
+            return .yellow
+        }
+
+        if uncertainty < 10 {
+            return .orange
+        }
+
+        return .red
+    }
+}
+
+public struct ShotGPSMeasurement: Codable, Equatable, Sendable {
+    public var measuredDistanceYards: Int
+    public var estimatedUncertaintyYards: Double
+    public var confidence: GPSConfidence
+    public var startHorizontalAccuracyMeters: Double
+    public var endHorizontalAccuracyMeters: Double
+    public var capturedAt: Date
+
+    public init(
+        measuredDistanceYards: Int,
+        estimatedUncertaintyYards: Double,
+        confidence: GPSConfidence? = nil,
+        startHorizontalAccuracyMeters: Double,
+        endHorizontalAccuracyMeters: Double,
+        capturedAt: Date = Date()
+    ) {
+        self.measuredDistanceYards = measuredDistanceYards
+        self.estimatedUncertaintyYards = estimatedUncertaintyYards
+        self.confidence = confidence ?? GPSConfidence.confidence(forEstimatedUncertaintyYards: estimatedUncertaintyYards)
+        self.startHorizontalAccuracyMeters = startHorizontalAccuracyMeters
+        self.endHorizontalAccuracyMeters = endHorizontalAccuracyMeters
+        self.capturedAt = capturedAt
+    }
+}
+
 public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var profileID: UUID
     public var clubID: UUID
+    public var roundID: UUID?
     public var category: ShotCategory
     public var power: ShotPower
     public var distance: Int?
+    public var distanceSource: ShotDistanceSource
+    public var gpsMeasurement: ShotGPSMeasurement?
     public var strikeQuality: StrikeQuality
     public var direction: ShotDirection
+    public var grassType: GrassType
     public var createdAt: Date
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case profileID
+        case clubID
+        case roundID
+        case category
+        case power
+        case distance
+        case distanceSource
+        case gpsMeasurement
+        case strikeQuality
+        case direction
+        case grassType
+        case createdAt
+    }
 
     public init(
         id: UUID = UUID(),
         profileID: UUID,
         clubID: UUID,
+        roundID: UUID? = nil,
         category: ShotCategory,
         power: ShotPower,
         distance: Int? = nil,
+        distanceSource: ShotDistanceSource = .manual,
+        gpsMeasurement: ShotGPSMeasurement? = nil,
         strikeQuality: StrikeQuality,
         direction: ShotDirection,
+        grassType: GrassType = .fairway,
         createdAt: Date = Date()
     ) {
         self.id = id
         self.profileID = profileID
         self.clubID = clubID
+        self.roundID = roundID
         self.category = category
         self.power = power
         self.distance = distance
+        self.distanceSource = distanceSource
+        self.gpsMeasurement = gpsMeasurement
         self.strikeQuality = strikeQuality
         self.direction = direction
+        self.grassType = grassType
         self.createdAt = createdAt
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(UUID.self, forKey: .id)
+        profileID = try container.decode(UUID.self, forKey: .profileID)
+        clubID = try container.decode(UUID.self, forKey: .clubID)
+        roundID = try container.decodeIfPresent(UUID.self, forKey: .roundID)
+        category = try container.decode(ShotCategory.self, forKey: .category)
+        power = try container.decode(ShotPower.self, forKey: .power)
+        distance = try container.decodeIfPresent(Int.self, forKey: .distance)
+        distanceSource = try container.decodeIfPresent(ShotDistanceSource.self, forKey: .distanceSource) ?? .manual
+        gpsMeasurement = try container.decodeIfPresent(ShotGPSMeasurement.self, forKey: .gpsMeasurement)
+        strikeQuality = try container.decode(StrikeQuality.self, forKey: .strikeQuality)
+        direction = try container.decode(ShotDirection.self, forKey: .direction)
+        grassType = try container.decodeIfPresent(GrassType.self, forKey: .grassType) ?? .fairway
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
 }
 

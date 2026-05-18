@@ -72,6 +72,127 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertFalse(try repository.loadData().shotRecords.contains(firstRecord))
     }
 
+    func testUpdateProfileShotTrackingModePersistsPreference() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let updatedAt = Date(timeIntervalSince1970: 250)
+
+        try repository.updateProfileShotTrackingMode(profileID: profile.id, mode: .manual, now: updatedAt)
+
+        let updatedProfile = try XCTUnwrap(try repository.profiles().first)
+        XCTAssertEqual(updatedProfile.shotTrackingMode, .manual)
+        XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
+    }
+
+    func testRoundLifecycleTrimsNameAllowsRenameAndCompletion() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let startedAt = Date(timeIntervalSince1970: 100)
+        let endedAt = Date(timeIntervalSince1970: 500)
+
+        let startedRound = try repository.startRound(
+            profileID: profile.id,
+            name: "  Torrey Pines  ",
+            courseName: "Torrey Pines",
+            startedAt: startedAt
+        )
+
+        XCTAssertEqual(startedRound.name, "Torrey Pines")
+        XCTAssertEqual(startedRound.courseName, "Torrey Pines")
+        XCTAssertFalse(startedRound.nameWasEdited)
+        XCTAssertEqual(try repository.rounds(for: profile.id), [startedRound])
+        XCTAssertTrue(try repository.rounds(for: profile.id, includeActive: false).isEmpty)
+
+        let renamedRound = try repository.updateRoundName(id: startedRound.id, name: "  Saturday Match  ")
+        XCTAssertEqual(renamedRound.name, "Saturday Match")
+        XCTAssertTrue(renamedRound.nameWasEdited)
+
+        let completedRound = try repository.endRound(id: startedRound.id, endedAt: endedAt)
+        XCTAssertEqual(completedRound.endedAt, endedAt)
+        XCTAssertEqual(try repository.rounds(for: profile.id, includeActive: false), [completedRound])
+    }
+
+    func testRoundShotLookupAndDeleteRoundUnlinksShots() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let club = Club(
+            profileID: profile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155)
+        )
+        let round = try repository.startRound(profileID: profile.id, name: "Round May 18")
+        let record = ShotRecord(
+            profileID: profile.id,
+            clubID: club.id,
+            roundID: round.id,
+            category: .normal,
+            power: .full,
+            distance: 152,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+
+        try repository.saveClub(club)
+        try repository.saveShotRecord(record)
+
+        XCTAssertEqual(try repository.shotRecords(for: profile.id, roundID: round.id), [record])
+
+        try repository.deleteRound(id: round.id)
+
+        XCTAssertTrue(try repository.rounds(for: profile.id).isEmpty)
+        let unlinkedRecord = try XCTUnwrap(try repository.shotRecords(for: profile.id).first)
+        XCTAssertEqual(unlinkedRecord.id, record.id)
+        XCTAssertNil(unlinkedRecord.roundID)
+    }
+
+    func testDeleteAllShotRecordsRemovesOnlySelectedProfileShots() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let firstProfile = try repository.createProfile(name: "Rod")
+        let secondProfile = try repository.createProfile(name: "Friend")
+        let firstClub = Club(
+            profileID: firstProfile.id,
+            clubType: .sevenIron,
+            swingDistances: SwingDistanceSet(full: 155)
+        )
+        let secondClub = Club(
+            profileID: secondProfile.id,
+            clubType: .driver,
+            swingDistances: SwingDistanceSet(full: 250)
+        )
+        let firstRecord = ShotRecord(
+            profileID: firstProfile.id,
+            clubID: firstClub.id,
+            category: .normal,
+            power: .full,
+            distance: 152,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+        let secondRecord = ShotRecord(
+            profileID: secondProfile.id,
+            clubID: secondClub.id,
+            category: .normal,
+            power: .full,
+            distance: 248,
+            strikeQuality: .pure,
+            direction: .straight
+        )
+
+        try repository.saveClub(firstClub)
+        try repository.saveClub(secondClub)
+        try repository.saveShotRecord(firstRecord)
+        try repository.saveShotRecord(secondRecord)
+
+        try repository.deleteAllShotRecords(for: firstProfile.id)
+
+        XCTAssertTrue(try repository.shotRecords(for: firstProfile.id).isEmpty)
+        XCTAssertEqual(try repository.shotRecords(for: secondProfile.id), [secondRecord])
+    }
+
     func testSaveClubRequiresExistingProfile() {
         let repository = GolfBagRepository(store: InMemoryGolfBagStore())
         let club = Club(

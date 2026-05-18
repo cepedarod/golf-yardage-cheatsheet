@@ -103,6 +103,80 @@ final class GolfBagDataMigrationTests: XCTestCase {
         XCTAssertEqual(club.lowTrajectoryDistances?.softPunch, 130)
         XCTAssertEqual(club.shotType, .punch)
     }
+
+    func testV2DataDecodesWithV3ShotAndProfileDefaults() throws {
+        let profileID = UUID(uuidString: "00000000-0000-0000-0000-000000000301")!
+        let clubID = UUID(uuidString: "00000000-0000-0000-0000-000000000302")!
+        let recordID = UUID(uuidString: "00000000-0000-0000-0000-000000000303")!
+        let profile = LegacyProfile(
+            id: profileID,
+            name: "Rod",
+            createdAt: Date(timeIntervalSince1970: 10),
+            updatedAt: Date(timeIntervalSince1970: 20)
+        )
+        let club = Club(
+            id: clubID,
+            profileID: profileID,
+            clubType: .sevenIron,
+            normalDistances: SwingDistanceSet(full: 155),
+            createdAt: Date(timeIntervalSince1970: 30),
+            updatedAt: Date(timeIntervalSince1970: 40)
+        )
+        let record = LegacyShotRecord(
+            id: recordID,
+            profileID: profileID,
+            clubID: clubID,
+            category: .normal,
+            power: .full,
+            distance: 151,
+            strikeQuality: .pure,
+            direction: .straight,
+            createdAt: Date(timeIntervalSince1970: 50)
+        )
+        let legacyData = LegacyV2GolfBagData(
+            profiles: [profile],
+            clubs: [club],
+            shotRecords: [record],
+            selectedProfileID: profileID
+        )
+
+        let decoded = try JSONDecoder().decode(GolfBagData.self, from: JSONEncoder().encode(legacyData))
+
+        XCTAssertEqual(decoded.schemaVersion, GolfBagData.currentSchemaVersion)
+        XCTAssertTrue(decoded.rounds.isEmpty)
+        XCTAssertEqual(decoded.profiles.first?.shotTrackingMode, .gps)
+        XCTAssertEqual(decoded.shotRecords.first?.grassType, .fairway)
+        XCTAssertEqual(decoded.shotRecords.first?.distanceSource, .manual)
+        XCTAssertNil(decoded.shotRecords.first?.gpsMeasurement)
+        XCTAssertNil(decoded.shotRecords.first?.roundID)
+    }
+}
+
+private struct LegacyV2GolfBagData: Encodable {
+    let profiles: [LegacyProfile]
+    let clubs: [Club]
+    let shotRecords: [LegacyShotRecord]
+    let selectedProfileID: UUID?
+    let schemaVersion = 2
+}
+
+private struct LegacyProfile: Encodable {
+    let id: UUID
+    let name: String
+    let createdAt: Date
+    let updatedAt: Date
+}
+
+private struct LegacyShotRecord: Encodable {
+    let id: UUID
+    let profileID: UUID
+    let clubID: UUID
+    let category: ShotCategory
+    let power: ShotPower
+    let distance: Int?
+    let strikeQuality: StrikeQuality
+    let direction: ShotDirection
+    let createdAt: Date
 }
 
 private struct LegacyGolfBagData: Encodable {
