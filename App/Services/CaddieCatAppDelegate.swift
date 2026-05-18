@@ -11,14 +11,14 @@ final class CaddieCatAppDelegate: NSObject, UIApplicationDelegate, UNUserNotific
         return true
     }
 
-    func userNotificationCenter(
+    nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
     }
 
-    func userNotificationCenter(
+    nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
@@ -33,6 +33,11 @@ final class CaddieCatAppDelegate: NSObject, UIApplicationDelegate, UNUserNotific
             await keepPlaying(roundID)
         case UNNotificationDefaultActionIdentifier:
             await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .roundMayBeFinished,
+                    object: nil,
+                    userInfo: [RoundReminderScheduler.roundIDUserInfoKey: roundID.uuidString]
+                )
                 NotificationCenter.default.post(name: .roundReminderOpenRound, object: nil)
             }
         default:
@@ -40,7 +45,7 @@ final class CaddieCatAppDelegate: NSObject, UIApplicationDelegate, UNUserNotific
         }
     }
 
-    private func finishRound(_ roundID: UUID) async {
+    nonisolated private func finishRound(_ roundID: UUID) async {
         guard let repository = makeRepository() else {
             return
         }
@@ -57,7 +62,7 @@ final class CaddieCatAppDelegate: NSObject, UIApplicationDelegate, UNUserNotific
         }
     }
 
-    private func keepPlaying(_ roundID: UUID) async {
+    nonisolated private func keepPlaying(_ roundID: UUID) async {
         guard let repository = makeRepository(),
               let round = try? repository.loadData().rounds.first(where: { $0.id == roundID && $0.isCompleted == false }) else {
             return
@@ -69,7 +74,7 @@ final class CaddieCatAppDelegate: NSObject, UIApplicationDelegate, UNUserNotific
         }
     }
 
-    private func makeRepository() -> GolfBagRepository? {
+    nonisolated private func makeRepository() -> GolfBagRepository? {
         guard let storeURL = try? FileGolfBagStore.defaultStoreURL() else {
             return nil
         }

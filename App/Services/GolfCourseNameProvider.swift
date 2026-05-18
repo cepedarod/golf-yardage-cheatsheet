@@ -1,7 +1,7 @@
 import CoreLocation
 import MapKit
 
-protocol GolfCourseNameProviding {
+protocol GolfCourseNameProviding: Sendable {
     func nearestCourseName(to coordinate: CLLocationCoordinate2D) async -> String?
 }
 

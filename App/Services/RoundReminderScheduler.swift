@@ -3,10 +3,11 @@ import UserNotifications
 
 extension Notification.Name {
     static let roundDataDidChange = Notification.Name("roundDataDidChange")
+    static let roundMayBeFinished = Notification.Name("roundMayBeFinished")
     static let roundReminderOpenRound = Notification.Name("roundReminderOpenRound")
 }
 
-final class RoundReminderScheduler {
+final class RoundReminderScheduler: @unchecked Sendable {
     static let shared = RoundReminderScheduler()
 
     static let categoryIdentifier = "round-stale-reminder"
@@ -66,6 +67,14 @@ final class RoundReminderScheduler {
         await scheduleReminder(for: round, delay: max(1, keepPlayingReminderDelaySeconds))
     }
 
+    func scheduleBoundaryExitReminder(for round: GolfRound) async {
+        await scheduleReminder(
+            for: round,
+            delay: 1,
+            body: "You appear to have left the round area. Finish \(round.name)?"
+        )
+    }
+
     func cancelReminder(for roundID: UUID) {
         center.removePendingNotificationRequests(withIdentifiers: [Self.notificationIdentifier(for: roundID)])
         center.removeDeliveredNotifications(withIdentifiers: [Self.notificationIdentifier(for: roundID)])
@@ -87,7 +96,11 @@ final class RoundReminderScheduler {
         "round-stale-\(roundID.uuidString)"
     }
 
-    private func scheduleReminder(for round: GolfRound, delay: TimeInterval) async {
+    private func scheduleReminder(
+        for round: GolfRound,
+        delay: TimeInterval,
+        body: String? = nil
+    ) async {
         guard isSchedulingEnabled else {
             return
         }
@@ -101,7 +114,7 @@ final class RoundReminderScheduler {
 
             let content = UNMutableNotificationContent()
             content.title = "Still Playing?"
-            content.body = "Do you want to finish \(round.name)?"
+            content.body = body ?? "Do you want to finish \(round.name)?"
             content.sound = .default
             content.categoryIdentifier = Self.categoryIdentifier
             content.userInfo = [Self.roundIDUserInfoKey: round.id.uuidString]

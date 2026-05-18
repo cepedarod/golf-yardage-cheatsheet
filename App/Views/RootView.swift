@@ -44,7 +44,19 @@ private struct MainTabView: View {
     let repository: GolfBagRepository
     let switchProfile: () -> Void
 
+    @StateObject private var boundaryMonitor: RoundBoundaryMonitorViewModel
     @State private var selectedTab: Tab = .distances
+
+    init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
+        self.profile = profile
+        self.repository = repository
+        self.switchProfile = switchProfile
+        _boundaryMonitor = StateObject(wrappedValue: RoundBoundaryMonitorViewModel(
+            profile: profile,
+            repository: repository,
+            locationProvider: Self.locationProvider()
+        ))
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -100,9 +112,177 @@ private struct MainTabView: View {
             .tag(Tab.profile)
             .accessibilityIdentifier("profile-tab")
         }
+        .onAppear {
+            boundaryMonitor.refresh()
+        }
+        .onDisappear {
+            boundaryMonitor.stop()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
+            boundaryMonitor.refresh()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .roundReminderOpenRound)) { _ in
             selectedTab = .round
         }
+    }
+
+    @MainActor
+    private static func locationProvider() -> any ShotLocationProviding {
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset-data") {
+            let distanceYards = ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"]
+                .flatMap(Double.init) ?? 1
+            let accuracyMeters = ProcessInfo.processInfo.environment["GPS_TEST_ACCURACY_METERS"]
+                .flatMap(Double.init) ?? 1
+            return SimulatedShotLocationProvider(distanceYards: distanceYards, horizontalAccuracyMeters: accuracyMeters)
+        }
+
+        if let distanceText = ProcessInfo.processInfo.environment["GPS_TEST_DISTANCE_YARDS"],
+           let distanceYards = Double(distanceText) {
+            let accuracyMeters = ProcessInfo.processInfo.environment["GPS_TEST_ACCURACY_METERS"]
+                .flatMap(Double.init) ?? 1
+            return SimulatedShotLocationProvider(distanceYards: distanceYards, horizontalAccuracyMeters: accuracyMeters)
+        }
+
+        return CoreLocationShotLocationProvider()
+    }
+}
+
+@MainActor
+private final class RoundBoundaryMonitorViewModel: ObservableObject {
+    private let profileID: UUID
+    private let repository: GolfBagRepository
+    private let locationProvider: any ShotLocationProviding
+    private let roundReminderScheduler: RoundReminderScheduler
+    private let calculator = ShotGPSMeasurementCalculator()
+
+    private var monitoredRoundID: UUID?
+    private var boundaryAnchor: ShotLocationAnchor?
+    private var monitorTask: Task<Void, Never>?
+    private var didNotifyBoundaryExit = false
+
+    init(
+        profile: GolferProfile,
+        repository: GolfBagRepository,
+        locationProvider: any ShotLocationProviding,
+        roundReminderScheduler: RoundReminderScheduler = .shared
+    ) {
+        profileID = profile.id
+        self.repository = repository
+        self.locationProvider = locationProvider
+        self.roundReminderScheduler = roundReminderScheduler
+    }
+
+    deinit {
+        monitorTask?.cancel()
+    }
+
+    func refresh() {
+        guard isMonitoringEnabled else {
+            stop()
+            return
+        }
+
+        guard let round = try? repository.activeRound(for: profileID) else {
+            stop()
+            return
+        }
+
+        if monitoredRoundID == round.id, monitorTask != nil {
+            return
+        }
+
+        startMonitoring(round)
+    }
+
+    func stop() {
+        monitorTask?.cancel()
+        monitorTask = nil
+        monitoredRoundID = nil
+        boundaryAnchor = nil
+        didNotifyBoundaryExit = false
+        locationProvider.stopWarmingLocation()
+    }
+
+    private func startMonitoring(_ round: GolfRound) {
+        stop()
+        monitoredRoundID = round.id
+        locationProvider.startWarmingLocation()
+
+        monitorTask = Task { [weak self] in
+            await self?.monitor(round)
+        }
+    }
+
+    private func monitor(_ round: GolfRound) async {
+        await updateBoundaryAnchor()
+
+        while Task.isCancelled == false {
+            guard (try? repository.activeRound(for: profileID)?.id) == round.id else {
+                stop()
+                return
+            }
+
+            await checkBoundary(for: round)
+
+            do {
+                try await Task.sleep(nanoseconds: boundaryCheckIntervalNanoseconds)
+            } catch {
+                return
+            }
+        }
+    }
+
+    private func updateBoundaryAnchor() async {
+        do {
+            boundaryAnchor = try await locationProvider.currentAnchor()
+        } catch {
+            boundaryAnchor = nil
+        }
+    }
+
+    private func checkBoundary(for round: GolfRound) async {
+        guard didNotifyBoundaryExit == false else {
+            return
+        }
+
+        do {
+            let currentAnchor = try await locationProvider.currentAnchor()
+
+            guard let boundaryAnchor else {
+                self.boundaryAnchor = currentAnchor
+                return
+            }
+
+            let distanceMeters = calculator.distanceMeters(from: boundaryAnchor, to: currentAnchor)
+            guard distanceMeters > boundaryRadiusMeters else {
+                return
+            }
+
+            didNotifyBoundaryExit = true
+            await roundReminderScheduler.scheduleBoundaryExitReminder(for: round)
+            NotificationCenter.default.post(
+                name: .roundMayBeFinished,
+                object: nil,
+                userInfo: [RoundReminderScheduler.roundIDUserInfoKey: round.id.uuidString]
+            )
+        } catch {
+            return
+        }
+    }
+
+    private var boundaryRadiusMeters: Double {
+        ProcessInfo.processInfo.environment["ROUND_BOUNDARY_RADIUS_METERS"]
+            .flatMap(Double.init) ?? 5_000
+    }
+
+    private var boundaryCheckIntervalNanoseconds: UInt64 {
+        let intervalSeconds = ProcessInfo.processInfo.environment["ROUND_BOUNDARY_CHECK_INTERVAL_SECONDS"]
+            .flatMap(Double.init) ?? 60
+        return UInt64(max(5, intervalSeconds) * 1_000_000_000)
+    }
+
+    private var isMonitoringEnabled: Bool {
+        ProcessInfo.processInfo.environment["ROUND_BOUNDARY_MONITORING_DISABLED"] != "1"
     }
 }
 
@@ -350,6 +530,7 @@ private final class CurrentRoundViewModel: ObservableObject {
             roundReminderScheduler.cancelReminder(for: activeRound.id)
             roundNameDraft = Self.defaultRoundName(for: Date())
             load()
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
         } catch {
             errorMessage = "Unable to end round."
         }
@@ -365,6 +546,7 @@ private final class CurrentRoundViewModel: ObservableObject {
             roundReminderScheduler.cancelReminder(for: activeRound.id)
             roundNameDraft = Self.defaultRoundName(for: Date())
             load()
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
         } catch {
             errorMessage = "Unable to abort round."
         }
@@ -412,6 +594,14 @@ private final class CurrentRoundViewModel: ObservableObject {
         }
     }
 
+    func markRoundPossiblyFinished(roundID: UUID) {
+        guard activeRound?.id == roundID else {
+            return
+        }
+
+        isRoundStale = true
+    }
+
     private func startRoundWithSuggestedCourse() async {
         do {
             let name = normalizedRoundName()
@@ -424,6 +614,7 @@ private final class CurrentRoundViewModel: ObservableObject {
                 await roundReminderScheduler.scheduleStaleRoundReminder(for: round)
             }
             load()
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
         } catch {
             errorMessage = "Unable to start round."
         }
@@ -579,6 +770,13 @@ private struct CurrentRoundView: View {
             viewModel.load()
             syncLocationWarmup()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .roundMayBeFinished)) { notification in
+            guard let roundID = RoundReminderScheduler.roundID(from: notification.userInfo ?? [:]) else {
+                return
+            }
+
+            viewModel.markRoundPossiblyFinished(roundID: roundID)
+        }
     }
 
     private var startRoundSection: some View {
@@ -654,7 +852,7 @@ private struct CurrentRoundView: View {
 
     private var staleRoundSection: some View {
         Section("Reminder") {
-            Text("This round has been active for a while.")
+            Text("Caddie Cat thinks this round may be finished.")
                 .foregroundStyle(.secondary)
 
             Button {

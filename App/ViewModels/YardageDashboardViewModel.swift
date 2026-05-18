@@ -166,6 +166,7 @@ final class YardageDashboardViewModel: ObservableObject {
                 await roundReminderScheduler.scheduleStaleRoundReminder(for: round)
             }
             loadClubs()
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
             return true
         } catch {
             errorMessage = "Unable to start round."
