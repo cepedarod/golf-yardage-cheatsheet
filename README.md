@@ -37,7 +37,7 @@ Build a simple, offline-first iOS app that lets golfers store club distances by 
 - Physical iPhone V2 beta install: passing on `Lemmy Machine`.
 - Physical iPhone V2 beta launch: passing on `Lemmy Machine`.
 - Physical iPhone V1 smoke pass: passed, with follow-up refinements implemented from testing feedback.
-- Physical iPhone V2 beta pass: pending.
+- Physical iPhone V2 beta pass: superseded by the V3 physical GPS pass.
 - Physical iPhone V3 beta signed build: passing with automatic signing.
 - Physical iPhone V3 beta install: passing on `Lemmy Machine`.
 - Physical iPhone V3 beta launch: passing on `Lemmy Machine`.
