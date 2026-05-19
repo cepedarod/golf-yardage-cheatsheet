@@ -12,7 +12,7 @@
 - V3 beta `xcrun devicectl device process launch --device 0ACBB310-B196-5C2B-87A1-E1D47EC481CC com.cepedarod.GolfYardageCheatsheet`: launched successfully.
 - V1 physical smoke pass: passed.
 - V2 physical beta pass: pending.
-- V3 physical GPS smoke pass: pending.
+- V3 physical GPS smoke pass: passed.
 
 ## One-Time Xcode Setup
 
