@@ -1079,17 +1079,30 @@ private struct RecordShotView: View {
 
                 Section("Distance") {
                     HStack(spacing: 8) {
-                        Text("Yards")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 58, alignment: .leading)
+                        HStack(alignment: .firstTextBaseline, spacing: 3) {
+                            NumericTextField(
+                                title: "Optional",
+                                text: $distanceText,
+                                maxDigits: 3,
+                                dismissesKeyboardAtMaxDigits: true,
+                                textAlignment: .leading
+                            )
+                                .accessibilityIdentifier("record-shot-distance-field")
+                                .font(.title.weight(.semibold))
+                                .frame(width: 54, alignment: .leading)
 
-                        Spacer()
+                            Text("yds")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.leading, 14)
+
                         if distanceText.isEmpty == false {
                             Button {
                                 distanceText = ""
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
+                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             .buttonStyle(.plain)
@@ -1097,64 +1110,26 @@ private struct RecordShotView: View {
                             .accessibilityIdentifier("clear-record-shot-distance-button")
                         }
 
-                        NumericTextField(
-                            title: "Optional",
-                            text: $distanceText,
-                            maxDigits: 3,
-                            dismissesKeyboardAtMaxDigits: true
-                        )
-                            .accessibilityIdentifier("record-shot-distance-field")
-                            .frame(maxWidth: 92)
+                        Spacer(minLength: 6)
 
-                        Text("yds")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 0)
-
-                    if let gpsMeasurement {
-                        HStack(spacing: 6) {
-                            Text(isGPSManuallyVerified ? "Audit" : "GPS")
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 58, alignment: .leading)
+                        if let gpsMeasurement {
+                            gpsStatus(for: gpsMeasurement)
                                 .accessibilityIdentifier("gps-confidence-row")
-
-                            Image(systemName: isGPSManuallyVerified ? "checkmark.seal.fill" : "location.circle.fill")
-                                .font(.caption)
-
-                            Text(isGPSManuallyVerified ? "Manually Verified" : "+/- \(Int(gpsMeasurement.estimatedUncertaintyYards.rounded())) yds")
-                                .font(.caption2.weight(.semibold))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-
-                            Spacer(minLength: 4)
 
                             Button {
                                 isShowingGPSAudit = true
                             } label: {
                                 Image(systemName: "map")
                                     .font(.caption.weight(.semibold))
-                                    .frame(width: 32, height: 28)
+                                    .frame(width: 30, height: 26)
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.mini)
                             .accessibilityLabel("Audit GPS Distance")
                             .accessibilityIdentifier("gps-audit-button")
-
-                            if isGPSManuallyVerified == false {
-                                Text(gpsMeasurement.confidence.displayName)
-                                    .font(.caption2.weight(.semibold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(gpsMeasurement.confidence.tint.opacity(0.16), in: Capsule())
-                            }
                         }
-                        .foregroundStyle(isGPSManuallyVerified ? .green : gpsMeasurement.confidence.tint)
-                        .padding(.vertical, 0)
                     }
+                    .padding(.vertical, 0)
                 }
 
                 Section("Shot") {
@@ -1238,7 +1213,7 @@ private struct RecordShotView: View {
             }
         }
         .accessibilityIdentifier("record-shot-form")
-        .listSectionSpacing(10)
+        .listSectionSpacing(6)
         .navigationTitle("Record Shot")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1274,6 +1249,32 @@ private struct RecordShotView: View {
 
     private var gpsMeasurement: ShotGPSMeasurement? {
         gpsCapture?.measurement
+    }
+
+    private func gpsStatus(for measurement: ShotGPSMeasurement) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: isGPSManuallyVerified ? "checkmark.seal.fill" : "location.circle.fill")
+                .font(.caption)
+
+            if isGPSManuallyVerified {
+                Text("Manually Verified")
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    Text("+/- \(Int(measurement.estimatedUncertaintyYards.rounded())) yds")
+                    Text(measurement.confidence.displayName)
+                }
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(measurement.confidence.tint.opacity(0.16), in: Capsule())
+            }
+        }
+        .foregroundStyle(isGPSManuallyVerified ? .green : measurement.confidence.tint)
     }
 
     private var threeChoiceColumns: [GridItem] {

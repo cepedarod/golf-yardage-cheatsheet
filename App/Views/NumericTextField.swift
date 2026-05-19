@@ -5,6 +5,7 @@ struct NumericTextField: View {
     @Binding var text: String
     var maxDigits: Int?
     var dismissesKeyboardAtMaxDigits = false
+    var textAlignment: TextAlignment = .trailing
 
     @FocusState private var isFocused: Bool
     @State private var showsDoneButton = false
@@ -13,7 +14,7 @@ struct NumericTextField: View {
         TextField(title, text: $text)
             .focused($isFocused)
             .keyboardType(.numberPad)
-            .multilineTextAlignment(.trailing)
+            .multilineTextAlignment(textAlignment)
             .simultaneousGesture(TapGesture().onEnded {
                 showsDoneButton = true
             })

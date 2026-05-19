@@ -164,11 +164,11 @@ public enum GPSConfidence: String, CaseIterable, Codable, Equatable, Sendable {
         case .green:
             "High"
         case .yellow:
-            "Good"
+            "OK"
         case .orange:
-            "Caution"
+            "Bad"
         case .red:
-            "Low"
+            "Trash"
         }
     }
 
