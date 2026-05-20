@@ -271,6 +271,13 @@ public final class GolfBagRepository {
             throw GolfBagRepositoryError.profileNotFound
         }
 
+        if let activeRound = data.rounds
+            .filter({ $0.profileID == profileID && $0.isCompleted == false })
+            .sorted(by: newestRoundFirst)
+            .first {
+            return activeRound
+        }
+
         let round = GolfRound(
             profileID: profileID,
             name: trimmedName,
@@ -340,6 +347,14 @@ public final class GolfBagRepository {
     public func activeRound(for profileID: UUID) throws -> GolfRound? {
         try rounds(for: profileID)
             .first { $0.isCompleted == false }
+    }
+
+    private func newestRoundFirst(_ lhs: GolfRound, _ rhs: GolfRound) -> Bool {
+        if lhs.startedAt != rhs.startedAt {
+            return lhs.startedAt > rhs.startedAt
+        }
+
+        return lhs.id.uuidString < rhs.id.uuidString
     }
 
     public func deleteRound(id roundID: UUID) throws {

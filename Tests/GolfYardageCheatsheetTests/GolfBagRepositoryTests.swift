@@ -194,6 +194,39 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(try repository.shotRecords(for: profile.id), [profileShot])
     }
 
+    func testStartRoundReusesExistingActiveRoundForProfile() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let firstStartedAt = Date(timeIntervalSince1970: 100)
+        let secondStartedAt = Date(timeIntervalSince1970: 200)
+
+        let firstRound = try repository.startRound(
+            profileID: profile.id,
+            name: "Morning Round",
+            startedAt: firstStartedAt
+        )
+        let reusedRound = try repository.startRound(
+            profileID: profile.id,
+            name: "Duplicate Round",
+            startedAt: secondStartedAt
+        )
+
+        XCTAssertEqual(reusedRound, firstRound)
+        XCTAssertEqual(try repository.activeRound(for: profile.id), firstRound)
+        XCTAssertEqual(try repository.rounds(for: profile.id), [firstRound])
+
+        let completedRound = try repository.endRound(id: firstRound.id)
+        let newRound = try repository.startRound(
+            profileID: profile.id,
+            name: "Afternoon Round",
+            startedAt: secondStartedAt
+        )
+
+        XCTAssertNotEqual(newRound.id, completedRound.id)
+        XCTAssertEqual(try repository.activeRound(for: profile.id), newRound)
+    }
+
     func testDeleteAllShotRecordsRemovesOnlySelectedProfileShots() throws {
         let store = InMemoryGolfBagStore()
         let repository = GolfBagRepository(store: store)
