@@ -245,6 +245,7 @@ struct YardageDashboardView: View {
                     clubs: viewModel.recordableActiveClubs,
                     roundID: context.roundID,
                     gpsCapture: context.gpsCapture,
+                    liveActivityDraft: context.liveActivityDraft,
                     onSave: viewModel.saveShotRecord
                 )
             }
@@ -274,6 +275,12 @@ struct YardageDashboardView: View {
         .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
             viewModel.loadClubs()
             syncLocationWarmup()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .liveActivityRequestedStartShot)) { _ in
+            handleLiveActivityStartShotRequest()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .liveActivityRequestedFinishShot)) { _ in
+            handleLiveActivityFinishShotRequest()
         }
         .onChange(of: shotTracker.isCapturing) { _, isCapturing in
             animateShotTrackingProgress(isCapturing: isCapturing)
@@ -316,6 +323,7 @@ struct YardageDashboardView: View {
                 message: Text(alert.message),
                 primaryButton: .default(Text("Manual Entry")) {
                     shotTracker.abort()
+                    updateLiveActivityPhase(.idle)
                     recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsCapture: nil)
                 },
                 secondaryButton: .default(Text("Retry Location")) {
@@ -445,7 +453,7 @@ struct YardageDashboardView: View {
 
                 if shotTracker.canAbort {
                     Button {
-                        shotTracker.abort()
+                        abortGPSShot()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title3)
@@ -513,10 +521,14 @@ struct YardageDashboardView: View {
     }
 
     private func beginGPSShot() {
+        updateLiveActivityPhase(.measuringStart)
+
         Task {
             do {
-                try await shotTracker.captureStart()
+                let startAnchor = try await shotTracker.captureStart()
+                await updateLiveActivityPhaseAsync(.awaitingFinish, startAnchor: startAnchor)
             } catch {
+                await updateLiveActivityPhaseAsync(.idle)
                 gpsFallbackAlert = GPSFallbackAlert(message: message(for: error))
             }
         }
@@ -553,13 +565,84 @@ struct YardageDashboardView: View {
 
     private func finishGPSShot() {
         Task {
+            await updateLiveActivityPhaseAsync(.measuringFinish)
+
             do {
                 let capture = try await shotTracker.captureFinish()
-                recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsCapture: capture)
+                let liveActivityDraft = RoundLiveActivityManager.shared.pendingShotDraft(roundID: viewModel.activeRoundID)
+                recordShotContext = RecordShotContext(
+                    roundID: viewModel.activeRoundID,
+                    gpsCapture: capture,
+                    liveActivityDraft: liveActivityDraft
+                )
+                await updateLiveActivityPhaseAsync(.idle)
             } catch {
+                await updateLiveActivityPhaseAsync(.awaitingFinish)
                 gpsFallbackAlert = GPSFallbackAlert(message: message(for: error))
             }
         }
+    }
+
+    private func abortGPSShot() {
+        shotTracker.abort()
+        updateLiveActivityPhase(.idle)
+    }
+
+    private func handleLiveActivityStartShotRequest() {
+        viewModel.loadClubs()
+
+        guard effectiveShotTrackingMode == .gps,
+              viewModel.activeRoundID != nil,
+              shotTracker.phase == .idle else {
+            return
+        }
+
+        beginGPSShot()
+    }
+
+    private func handleLiveActivityFinishShotRequest() {
+        viewModel.loadClubs()
+
+        guard effectiveShotTrackingMode == .gps,
+              viewModel.activeRoundID != nil,
+              shotTracker.phase == .idle,
+              let startAnchor = RoundLiveActivityManager.shared.pendingStartAnchor(roundID: viewModel.activeRoundID) else {
+            return
+        }
+
+        shotTracker.restoreReadyToFinish(startAnchor)
+        updateLiveActivityPhase(.awaitingFinish, startAnchor: startAnchor)
+    }
+
+    private func updateLiveActivityPhase(
+        _ phase: LiveActivityTrackingPhase,
+        startAnchor: ShotLocationAnchor? = nil
+    ) {
+        Task {
+            await updateLiveActivityPhaseAsync(phase, startAnchor: startAnchor)
+        }
+    }
+
+    private func updateLiveActivityPhaseAsync(
+        _ phase: LiveActivityTrackingPhase,
+        startAnchor: ShotLocationAnchor? = nil
+    ) async {
+        await RoundLiveActivityManager.shared.updateTrackingPhase(
+            phase,
+            roundID: viewModel.activeRoundID,
+            profile: profile,
+            shotCount: activeRoundShotCount,
+            clubs: viewModel.recordableActiveClubs,
+            startAnchor: startAnchor
+        )
+    }
+
+    private var activeRoundShotCount: Int {
+        guard let activeRoundID = viewModel.activeRoundID else {
+            return 0
+        }
+
+        return viewModel.shotRecords.filter { $0.roundID == activeRoundID }.count
     }
 
     private func retryGPSCapture() {
@@ -653,6 +736,17 @@ private struct RecordShotContext: Identifiable {
     let id = UUID()
     let roundID: UUID?
     let gpsCapture: ShotGPSCapture?
+    let liveActivityDraft: LiveActivityShotDraft?
+
+    init(
+        roundID: UUID?,
+        gpsCapture: ShotGPSCapture?,
+        liveActivityDraft: LiveActivityShotDraft? = nil
+    ) {
+        self.roundID = roundID
+        self.gpsCapture = gpsCapture
+        self.liveActivityDraft = liveActivityDraft
+    }
 }
 
 private struct ShotGPSCapture: Equatable {
@@ -766,12 +860,14 @@ private final class ShotTrackingFlowViewModel: ObservableObject {
         }
     }
 
-    func captureStart() async throws {
+    @discardableResult
+    func captureStart() async throws -> ShotLocationAnchor {
         phase = .capturingStart
 
         do {
             let anchor = try await locationProvider.captureAnchor(durationNanoseconds: captureDurationNanoseconds)
             phase = .readyToFinish(anchor)
+            return anchor
         } catch {
             phase = .idle
             throw error
@@ -802,6 +898,10 @@ private final class ShotTrackingFlowViewModel: ObservableObject {
 
     func abort() {
         phase = .idle
+    }
+
+    func restoreReadyToFinish(_ startAnchor: ShotLocationAnchor) {
+        phase = .readyToFinish(startAnchor)
     }
 
     func currentAnchor() async throws -> ShotLocationAnchor {
@@ -1038,14 +1138,23 @@ private struct RecordShotView: View {
         clubs: [Club],
         roundID: UUID? = nil,
         gpsCapture: ShotGPSCapture? = nil,
+        liveActivityDraft: LiveActivityShotDraft? = nil,
         onSave: @escaping (ShotRecord) throws -> Void
     ) {
         self.profile = profile
         self.clubs = clubs
         self.roundID = roundID
         self.onSave = onSave
-        _selectedClubID = State(initialValue: clubs.first?.id ?? UUID())
+        let draftClubID = liveActivityDraft?.clubID.flatMap(UUID.init(uuidString:))
+        _selectedClubID = State(initialValue: draftClubID.flatMap { id in
+            clubs.first { $0.id == id }?.id
+        } ?? clubs.first?.id ?? UUID())
+        _selectedCategory = State(initialValue: Self.shotCategory(from: liveActivityDraft?.category) ?? .normal)
+        _selectedPower = State(initialValue: Self.shotPower(from: liveActivityDraft?.power) ?? .full)
         _distanceText = State(initialValue: gpsCapture.map { String($0.measurement.measuredDistanceYards) } ?? "")
+        _strikeQuality = State(initialValue: Self.strikeQuality(from: liveActivityDraft?.strike) ?? .pure)
+        _direction = State(initialValue: Self.shotDirection(from: liveActivityDraft?.direction) ?? .straight)
+        _grassType = State(initialValue: Self.grassType(from: liveActivityDraft?.grass) ?? .fairway)
         _gpsCapture = State(initialValue: gpsCapture)
         _isGPSManuallyVerified = State(initialValue: false)
     }
@@ -1230,6 +1339,9 @@ private struct RecordShotView: View {
             }
         }
         .onChange(of: selectedClubID) { _, _ in
+            normalizeSelectedShot()
+        }
+        .onAppear {
             normalizeSelectedShot()
         }
         .sheet(isPresented: $isShowingGPSAudit) {
@@ -1527,6 +1639,85 @@ private struct RecordShotView: View {
         }
 
         return "Check the shot details and try again."
+    }
+
+    private static func shotCategory(from category: LiveActivityShotCategory?) -> ShotCategory? {
+        switch category {
+        case .normal:
+            .normal
+        case .lowTrajectory:
+            .lowTrajectory
+        case .flop:
+            .flop
+        case nil:
+            nil
+        }
+    }
+
+    private static func shotPower(from power: LiveActivityShotPower?) -> ShotPower? {
+        switch power {
+        case .full:
+            .full
+        case .threeQuarter:
+            .threeQuarter
+        case .half:
+            .half
+        case .quarter:
+            .quarter
+        case .stinger:
+            .stinger
+        case .punch:
+            .punch
+        case .softPunch:
+            .softPunch
+        case .chip:
+            .chip
+        case nil:
+            nil
+        }
+    }
+
+    private static func grassType(from grassType: LiveActivityGrassType?) -> GrassType? {
+        switch grassType {
+        case .fairway:
+            .fairway
+        case .rough:
+            .rough
+        case .deepRough:
+            .deepRough
+        case nil:
+            nil
+        }
+    }
+
+    private static func strikeQuality(from strikeQuality: LiveActivityStrikeQuality?) -> StrikeQuality? {
+        switch strikeQuality {
+        case .thin:
+            .thin
+        case .pure:
+            .pure
+        case .chunk:
+            .chunk
+        case nil:
+            nil
+        }
+    }
+
+    private static func shotDirection(from direction: LiveActivityShotDirection?) -> ShotDirection? {
+        switch direction {
+        case .hook:
+            .hook
+        case .draw:
+            .draw
+        case .straight:
+            .straight
+        case .fade:
+            .fade
+        case .slice:
+            .slice
+        case nil:
+            nil
+        }
     }
 }
 

@@ -151,6 +151,9 @@ final class YardageDashboardViewModel: ObservableObject {
     func saveShotRecord(_ record: ShotRecord) throws {
         try repository.saveShotRecord(record)
         loadClubs()
+        if record.roundID != nil {
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
+        }
     }
 
     @discardableResult
@@ -178,6 +181,9 @@ final class YardageDashboardViewModel: ObservableObject {
         do {
             try repository.deleteShotRecord(id: record.id)
             loadClubs()
+            if record.roundID != nil {
+                NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
+            }
         } catch {
             errorMessage = "Unable to delete shot."
         }

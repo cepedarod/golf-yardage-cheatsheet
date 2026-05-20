@@ -114,16 +114,19 @@ private struct MainTabView: View {
         }
         .onAppear {
             boundaryMonitor.refresh()
+            syncLiveActivity()
         }
         .onDisappear {
             boundaryMonitor.stop()
         }
         .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
             boundaryMonitor.refresh()
+            syncLiveActivity()
         }
         .onReceive(NotificationCenter.default.publisher(for: .roundReminderOpenRound)) { _ in
             selectedTab = .round
         }
+        .onOpenURL(perform: handleDeepLink)
     }
 
     @MainActor
@@ -144,6 +147,71 @@ private struct MainTabView: View {
         }
 
         return CoreLocationShotLocationProvider()
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "caddiecat" else {
+            return
+        }
+
+        switch url.host {
+        case "round":
+            selectedTab = .round
+        case "track-shot-start":
+            selectedTab = .distances
+            Task { @MainActor in
+                await Task.yield()
+                NotificationCenter.default.post(name: .liveActivityRequestedStartShot, object: nil)
+            }
+        case "track-shot-finish":
+            selectedTab = .distances
+            Task { @MainActor in
+                await Task.yield()
+                NotificationCenter.default.post(name: .liveActivityRequestedFinishShot, object: nil)
+            }
+        default:
+            break
+        }
+    }
+
+    private func syncLiveActivity() {
+        Task {
+            do {
+                let data = try repository.loadData()
+
+                guard let currentProfile = data.profiles.first(where: { $0.id == profile.id }) else {
+                    return
+                }
+
+                let activeRound = data.rounds
+                    .filter { $0.profileID == profile.id && $0.isCompleted == false }
+                    .sorted(by: newestRoundFirst)
+                    .first
+                let shotCount = activeRound.map { round in
+                    data.shotRecords.filter { $0.roundID == round.id }.count
+                } ?? 0
+                let clubs = ClubSorter()
+                    .sortedForDistanceTab(data.clubs(for: profile.id))
+                    .filter { $0.isActive && $0.clubType != .putter }
+
+                await RoundLiveActivityManager.shared.sync(
+                    activeRound: activeRound,
+                    profile: currentProfile,
+                    shotCount: shotCount,
+                    clubs: clubs
+                )
+            } catch {
+                return
+            }
+        }
+    }
+
+    private func newestRoundFirst(_ lhs: GolfRound, _ rhs: GolfRound) -> Bool {
+        if lhs.startedAt != rhs.startedAt {
+            return lhs.startedAt > rhs.startedAt
+        }
+
+        return lhs.id.uuidString < rhs.id.uuidString
     }
 }
 
