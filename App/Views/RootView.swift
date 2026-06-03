@@ -1235,6 +1235,7 @@ private struct ProfileView: View {
     let switchProfile: () -> Void
 
     @StateObject private var viewModel: ProfileDashboardViewModel
+    @State private var isShowingPrivacyPolicy = false
 
     init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
         self.profile = profile
@@ -1329,6 +1330,15 @@ private struct ProfileView: View {
                 }
             }
 
+            Section("App") {
+                Button {
+                    isShowingPrivacyPolicy = true
+                } label: {
+                    Label("Privacy Policy", systemImage: "hand.raised")
+                }
+                .accessibilityIdentifier("privacy-policy-button")
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 Section {
                     Text(errorMessage)
@@ -1351,6 +1361,67 @@ private struct ProfileView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
             viewModel.load()
+        }
+        .sheet(isPresented: $isShowingPrivacyPolicy) {
+            NavigationStack {
+                PrivacyPolicyView()
+            }
+        }
+    }
+}
+
+private struct PrivacyPolicyView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                policySection(
+                    title: "Local Data",
+                    text: "Caddie Cat stores your profiles, clubs, yardages, rounds, shot records, GPS shot measurements, altitude values, and Live Activity draft selections locally on your device so the app can calculate yardages, show recommendations, and summarize your golf data."
+                )
+
+                policySection(
+                    title: "Location",
+                    text: "If you enable location access, Caddie Cat uses your device location while the app is in use to measure shot distances, estimate altitude, support active-round reminders, and show GPS confidence. Recorded location-derived shot data remains on your device."
+                )
+
+                policySection(
+                    title: "Notifications",
+                    text: "Caddie Cat may ask for notification permission to send local reminders for active rounds. These notifications are generated on your device."
+                )
+
+                policySection(
+                    title: "Tracking",
+                    text: "Caddie Cat does not require an account, does not use your data for advertising, does not track you across apps or websites, and does not sell personal information."
+                )
+
+                policySection(
+                    title: "Deleting Data",
+                    text: "If you delete the app, locally stored Caddie Cat data is deleted from the device by iOS. If future versions add sync, export, or sharing features, this policy should be updated before release."
+                )
+            }
+            .padding()
+        }
+        .navigationTitle("Privacy Policy")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    private func policySection(title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.headline)
+
+            Text(text)
+                .font(.body)
+                .foregroundStyle(.secondary)
         }
     }
 }

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		15620CE59DCCE338A12A86BF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA91D8731B12729B7B498A /* RootView.swift */; };
+		17C7B6615F31DD838F33CE23 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 082ADC2690174E92CD4409CE /* PrivacyInfo.xcprivacy */; };
 		19FE6CBB1D50D9E094176372 /* ProfileSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */; };
 		1C86432BD39FE965589C2FAC /* ClubSummaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C182F74E38637D8F02C6AE /* ClubSummaryRow.swift */; };
 		1F79C134CFEDB03BB53CE21F /* GolfYardageCheatsheetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */; };
@@ -26,6 +27,7 @@
 		7770E2A81E2C81CF2CD6017B /* CaddieCatLiveActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AB36D594793DCD01FCA3A3CE /* CaddieCatLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		784211DA2E7B23551D7351DF /* ClubValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */; };
 		8286928D52DA2FFFEF436F81 /* NumericTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E4DE40234983AAFB5CAC5D8 /* NumericTextField.swift */; };
+		83210BBB92B9A1911ED7CE80 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4C4EE9EE267A3FC13545C495 /* PrivacyInfo.xcprivacy */; };
 		852242B99C32C25C2229FED3 /* ProfileSelectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CECCE10EF40CA28AA97D2C65 /* ProfileSelectionViewModel.swift */; };
 		8C2931BDDF319CDC67E08843 /* YardageDashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6FDEA492EC9B80B05B0DF10 /* YardageDashboardViewModel.swift */; };
 		8C35438BFED06F3AE28A71D0 /* GolfCourseNameProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6AD5655AF13BA1B37308F73 /* GolfCourseNameProvider.swift */; };
@@ -97,6 +99,7 @@
 
 /* Begin PBXFileReference section */
 		0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubValidator.swift; sourceTree = "<group>"; };
+		082ADC2690174E92CD4409CE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		0E4DE40234983AAFB5CAC5D8 /* NumericTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumericTextField.swift; sourceTree = "<group>"; };
 		14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GolfYardageCheatsheet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfYardageCheatsheetApp.swift; sourceTree = "<group>"; };
@@ -107,6 +110,7 @@
 		32DE2A05A02A87FC16E14B16 /* GolferProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolferProfile.swift; sourceTree = "<group>"; };
 		3CCE46D5139A02CDBD6A70E8 /* LiveActivityDraftIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityDraftIntents.swift; sourceTree = "<group>"; };
 		44B45C3623DC39DAB64EE2B0 /* SwingDistanceSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingDistanceSet.swift; sourceTree = "<group>"; };
+		4C4EE9EE267A3FC13545C495 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubDisplayNameFormatter.swift; sourceTree = "<group>"; };
 		5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GolfYardageCheatsheetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		616D955C6CA571DF28801DE9 /* GolfYardageCheatsheetUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfYardageCheatsheetUITests.swift; sourceTree = "<group>"; };
@@ -166,6 +170,7 @@
 			children = (
 				C93F6EFEEF34F5ACC39ABBA2 /* Assets.xcassets */,
 				1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */,
+				082ADC2690174E92CD4409CE /* PrivacyInfo.xcprivacy */,
 				43B4EBC7F0B4D87D77EFDF05 /* Services */,
 				8F6638309BB2E6A566206CC6 /* Support */,
 				F4080C25492866E7FD85E363 /* ViewModels */,
@@ -179,6 +184,7 @@
 			children = (
 				E379926282F54C3D34FC80F8 /* CaddieCatLiveActivityBundle.swift */,
 				700AE191869F93ADD1480156 /* Info.plist */,
+				4C4EE9EE267A3FC13545C495 /* PrivacyInfo.xcprivacy */,
 			);
 			path = LiveActivityExtension;
 			sourceTree = "<group>";
@@ -365,6 +371,7 @@
 			buildConfigurationList = 96371208CC625484096E60CC /* Build configuration list for PBXNativeTarget "CaddieCatLiveActivityExtension" */;
 			buildPhases = (
 				9484071DA3224340C25E2158 /* Sources */,
+				FDD3F7513C54D417A3368BAA /* Resources */,
 				D871A8CF17C719FD490810AA /* Frameworks */,
 			);
 			buildRules = (
@@ -455,6 +462,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				ADB5ECCC2DC66A54011E71C6 /* Assets.xcassets in Resources */,
+				17C7B6615F31DD838F33CE23 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FDD3F7513C54D417A3368BAA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				83210BBB92B9A1911ED7CE80 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -723,7 +739,7 @@
 				DEVELOPMENT_TEAM = 6G3D6K987W;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Caddie Cat";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Caddie Cat uses your location to measure golf shot distances during a round.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Caddie Cat uses your location while you play to measure shot distances, estimate altitude, and support active-round reminders.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -854,7 +870,7 @@
 				DEVELOPMENT_TEAM = 6G3D6K987W;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Caddie Cat";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Caddie Cat uses your location to measure golf shot distances during a round.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Caddie Cat uses your location while you play to measure shot distances, estimate altitude, and support active-round reminders.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
