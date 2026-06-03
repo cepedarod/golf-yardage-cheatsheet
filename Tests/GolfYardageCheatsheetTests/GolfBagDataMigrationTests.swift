@@ -104,10 +104,11 @@ final class GolfBagDataMigrationTests: XCTestCase {
         XCTAssertEqual(club.shotType, .punch)
     }
 
-    func testV2DataDecodesWithV3ShotAndProfileDefaults() throws {
+    func testV2DataDecodesWithV4ShotProfileAndRoundDefaults() throws {
         let profileID = UUID(uuidString: "00000000-0000-0000-0000-000000000301")!
         let clubID = UUID(uuidString: "00000000-0000-0000-0000-000000000302")!
         let recordID = UUID(uuidString: "00000000-0000-0000-0000-000000000303")!
+        let roundID = UUID(uuidString: "00000000-0000-0000-0000-000000000304")!
         let profile = LegacyProfile(
             id: profileID,
             name: "Rod",
@@ -133,22 +134,75 @@ final class GolfBagDataMigrationTests: XCTestCase {
             direction: .straight,
             createdAt: Date(timeIntervalSince1970: 50)
         )
+        let round = LegacyRound(
+            id: roundID,
+            profileID: profileID,
+            name: "Legacy Round",
+            startedAt: Date(timeIntervalSince1970: 60),
+            endedAt: Date(timeIntervalSince1970: 120),
+            courseName: "Legacy Course",
+            nameWasEdited: false
+        )
         let legacyData = LegacyV2GolfBagData(
             profiles: [profile],
             clubs: [club],
             shotRecords: [record],
+            rounds: [round],
             selectedProfileID: profileID
         )
 
         let decoded = try JSONDecoder().decode(GolfBagData.self, from: JSONEncoder().encode(legacyData))
 
         XCTAssertEqual(decoded.schemaVersion, GolfBagData.currentSchemaVersion)
-        XCTAssertTrue(decoded.rounds.isEmpty)
         XCTAssertEqual(decoded.profiles.first?.shotTrackingMode, .gps)
+        XCTAssertEqual(decoded.profiles.first?.homeBaseCity, AltitudeDefaults.chicagoCity)
+        XCTAssertEqual(decoded.profiles.first?.homeBaseAltitudeFeet, AltitudeDefaults.chicagoFeet)
+        XCTAssertEqual(decoded.profiles.first?.altitudeCalculationMode, .adjustForAltitude)
         XCTAssertEqual(decoded.shotRecords.first?.grassType, .fairway)
         XCTAssertEqual(decoded.shotRecords.first?.distanceSource, .manual)
         XCTAssertNil(decoded.shotRecords.first?.gpsMeasurement)
+        XCTAssertEqual(decoded.shotRecords.first?.altitudeFeet, AltitudeDefaults.chicagoFeet)
         XCTAssertNil(decoded.shotRecords.first?.roundID)
+        XCTAssertEqual(decoded.rounds.first?.altitudeFeet, nil)
+        XCTAssertEqual(decoded.rounds.first?.distanceTrackingMode, .accountForAltitude)
+    }
+}
+
+final class AltitudeDistanceCalculatorTests: XCTestCase {
+    private let calculator = AltitudeDistanceCalculator()
+
+    func testDistanceModifierOnlyAppliesAboveThreshold() {
+        XCTAssertEqual(
+            calculator.distanceModifier(homeBaseAltitudeFeet: 594, altitudeFeet: 1_594),
+            1
+        )
+        XCTAssertEqual(
+            calculator.distanceModifier(homeBaseAltitudeFeet: 594, altitudeFeet: 1_595),
+            1.01001,
+            accuracy: 0.00001
+        )
+    }
+
+    func testExpectedDistanceCanIncreaseOrDecreaseForRoundAltitude() {
+        XCTAssertEqual(
+            calculator.expectedDistance(homeBaseDistanceYards: 150, homeBaseAltitudeFeet: 0, roundAltitudeFeet: 5_000),
+            158
+        )
+        XCTAssertEqual(
+            calculator.expectedDistance(homeBaseDistanceYards: 150, homeBaseAltitudeFeet: 5_000, roundAltitudeFeet: 0),
+            143
+        )
+    }
+
+    func testRecordedShotsNormalizeBackToHomeBase() {
+        XCTAssertEqual(
+            calculator.normalizedHomeBaseDistance(recordedDistanceYards: 158, shotAltitudeFeet: 5_000, homeBaseAltitudeFeet: 0),
+            150
+        )
+        XCTAssertEqual(
+            calculator.normalizedHomeBaseDistance(recordedDistanceYards: 142, shotAltitudeFeet: 0, homeBaseAltitudeFeet: 5_000),
+            149
+        )
     }
 }
 
@@ -156,6 +210,7 @@ private struct LegacyV2GolfBagData: Encodable {
     let profiles: [LegacyProfile]
     let clubs: [Club]
     let shotRecords: [LegacyShotRecord]
+    let rounds: [LegacyRound]
     let selectedProfileID: UUID?
     let schemaVersion = 2
 }
@@ -177,6 +232,16 @@ private struct LegacyShotRecord: Encodable {
     let strikeQuality: StrikeQuality
     let direction: ShotDirection
     let createdAt: Date
+}
+
+private struct LegacyRound: Encodable {
+    let id: UUID
+    let profileID: UUID
+    let name: String
+    let startedAt: Date
+    let endedAt: Date?
+    let courseName: String?
+    let nameWasEdited: Bool
 }
 
 private struct LegacyGolfBagData: Encodable {

@@ -1,7 +1,7 @@
 import Foundation
 
 public struct GolfBagData: Codable, Equatable, Sendable {
-    public static let currentSchemaVersion = 3
+    public static let currentSchemaVersion = 4
 
     public var profiles: [GolferProfile]
     public var clubs: [Club]

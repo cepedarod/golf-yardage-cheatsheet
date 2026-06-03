@@ -85,6 +85,43 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
     }
 
+    func testUpdateProfileAltitudeSettingsPersistsPreference() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let updatedAt = Date(timeIntervalSince1970: 300)
+
+        try repository.updateProfileAltitudeSettings(
+            profileID: profile.id,
+            homeBaseCity: "  Denver  ",
+            homeBaseAltitudeFeet: 5_280,
+            altitudeCalculationMode: .ignoreAltitude,
+            now: updatedAt
+        )
+
+        let updatedProfile = try XCTUnwrap(try repository.profiles().first)
+        XCTAssertEqual(updatedProfile.homeBaseCity, "Denver")
+        XCTAssertEqual(updatedProfile.homeBaseAltitudeFeet, 5_280)
+        XCTAssertEqual(updatedProfile.altitudeCalculationMode, .ignoreAltitude)
+        XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
+    }
+
+    func testUpdateProfileAltitudeSettingsRejectsBlankCity() throws {
+        let repository = GolfBagRepository(store: InMemoryGolfBagStore())
+        let profile = try repository.createProfile(name: "Rod")
+
+        XCTAssertThrowsError(
+            try repository.updateProfileAltitudeSettings(
+                profileID: profile.id,
+                homeBaseCity: " ",
+                homeBaseAltitudeFeet: 5_280,
+                altitudeCalculationMode: .adjustForAltitude
+            )
+        ) { error in
+            XCTAssertEqual(error as? GolfBagRepositoryError, .homeBaseCityRequired)
+        }
+    }
+
     func testRoundLifecycleTrimsNameAllowsRenameAndCompletion() throws {
         let store = InMemoryGolfBagStore()
         let repository = GolfBagRepository(store: store)
@@ -96,11 +133,15 @@ final class GolfBagRepositoryTests: XCTestCase {
             profileID: profile.id,
             name: "  Torrey Pines  ",
             courseName: "Torrey Pines",
+            altitudeFeet: 120,
+            distanceTrackingMode: .ignoreAltitude,
             startedAt: startedAt
         )
 
         XCTAssertEqual(startedRound.name, "Torrey Pines")
         XCTAssertEqual(startedRound.courseName, "Torrey Pines")
+        XCTAssertEqual(startedRound.altitudeFeet, 120)
+        XCTAssertEqual(startedRound.distanceTrackingMode, .ignoreAltitude)
         XCTAssertFalse(startedRound.nameWasEdited)
         XCTAssertEqual(try repository.rounds(for: profile.id), [startedRound])
         XCTAssertTrue(try repository.rounds(for: profile.id, includeActive: false).isEmpty)
@@ -108,6 +149,9 @@ final class GolfBagRepositoryTests: XCTestCase {
         let renamedRound = try repository.updateRoundName(id: startedRound.id, name: "  Saturday Match  ")
         XCTAssertEqual(renamedRound.name, "Saturday Match")
         XCTAssertTrue(renamedRound.nameWasEdited)
+
+        let updatedRound = try repository.updateRoundDistanceTrackingMode(id: startedRound.id, mode: .accountForAltitude)
+        XCTAssertEqual(updatedRound.distanceTrackingMode, .accountForAltitude)
 
         let completedRound = try repository.endRound(id: startedRound.id, endedAt: endedAt)
         XCTAssertEqual(completedRound.endedAt, endedAt)

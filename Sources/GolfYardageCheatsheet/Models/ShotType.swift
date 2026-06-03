@@ -286,6 +286,7 @@ public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
     public var distance: Int?
     public var distanceSource: ShotDistanceSource
     public var gpsMeasurement: ShotGPSMeasurement?
+    public var altitudeFeet: Double
     public var strikeQuality: StrikeQuality
     public var direction: ShotDirection
     public var grassType: GrassType
@@ -301,6 +302,7 @@ public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
         case distance
         case distanceSource
         case gpsMeasurement
+        case altitudeFeet
         case strikeQuality
         case direction
         case grassType
@@ -317,6 +319,7 @@ public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
         distance: Int? = nil,
         distanceSource: ShotDistanceSource = .manual,
         gpsMeasurement: ShotGPSMeasurement? = nil,
+        altitudeFeet: Double = AltitudeDefaults.chicagoFeet,
         strikeQuality: StrikeQuality,
         direction: ShotDirection,
         grassType: GrassType = .fairway,
@@ -331,6 +334,7 @@ public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
         self.distance = distance
         self.distanceSource = distanceSource
         self.gpsMeasurement = gpsMeasurement
+        self.altitudeFeet = altitudeFeet
         self.strikeQuality = strikeQuality
         self.direction = direction
         self.grassType = grassType
@@ -349,6 +353,7 @@ public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
         distance = try container.decodeIfPresent(Int.self, forKey: .distance)
         distanceSource = try container.decodeIfPresent(ShotDistanceSource.self, forKey: .distanceSource) ?? .manual
         gpsMeasurement = try container.decodeIfPresent(ShotGPSMeasurement.self, forKey: .gpsMeasurement)
+        altitudeFeet = try container.decodeIfPresent(Double.self, forKey: .altitudeFeet) ?? AltitudeDefaults.chicagoFeet
         strikeQuality = try container.decode(StrikeQuality.self, forKey: .strikeQuality)
         direction = try container.decode(ShotDirection.self, forKey: .direction)
         grassType = try container.decodeIfPresent(GrassType.self, forKey: .grassType) ?? .fairway

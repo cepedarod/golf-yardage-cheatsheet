@@ -2,6 +2,7 @@ import Foundation
 
 public enum GolfBagRepositoryError: Error, Equatable, Sendable {
     case profileNameRequired
+    case homeBaseCityRequired
     case profileNotFound
     case clubNotFound
     case clubDoesNotBelongToProfile
@@ -69,6 +70,32 @@ public final class GolfBagRepository {
         }
 
         data.profiles[index].shotTrackingMode = mode
+        data.profiles[index].updatedAt = now
+        try store.save(data)
+    }
+
+    public func updateProfileAltitudeSettings(
+        profileID: UUID,
+        homeBaseCity: String,
+        homeBaseAltitudeFeet: Double,
+        altitudeCalculationMode: AltitudeCalculationMode,
+        now: Date = Date()
+    ) throws {
+        let trimmedCity = homeBaseCity.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmedCity.isEmpty == false else {
+            throw GolfBagRepositoryError.homeBaseCityRequired
+        }
+
+        var data = try store.load()
+
+        guard let index = data.profiles.firstIndex(where: { $0.id == profileID }) else {
+            throw GolfBagRepositoryError.profileNotFound
+        }
+
+        data.profiles[index].homeBaseCity = trimmedCity
+        data.profiles[index].homeBaseAltitudeFeet = homeBaseAltitudeFeet
+        data.profiles[index].altitudeCalculationMode = altitudeCalculationMode
         data.profiles[index].updatedAt = now
         try store.save(data)
     }
@@ -257,6 +284,8 @@ public final class GolfBagRepository {
         profileID: UUID,
         name: String,
         courseName: String? = nil,
+        altitudeFeet: Double? = nil,
+        distanceTrackingMode: RoundDistanceTrackingMode = .accountForAltitude,
         startedAt: Date = Date()
     ) throws -> GolfRound {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -283,7 +312,9 @@ public final class GolfBagRepository {
             name: trimmedName,
             startedAt: startedAt,
             courseName: courseName,
-            nameWasEdited: false
+            nameWasEdited: false,
+            altitudeFeet: altitudeFeet,
+            distanceTrackingMode: distanceTrackingMode
         )
 
         data.rounds.append(round)
@@ -320,6 +351,22 @@ public final class GolfBagRepository {
 
         data.rounds[index].name = trimmedName
         data.rounds[index].nameWasEdited = true
+        try store.save(data)
+        return data.rounds[index]
+    }
+
+    @discardableResult
+    public func updateRoundDistanceTrackingMode(
+        id roundID: UUID,
+        mode: RoundDistanceTrackingMode
+    ) throws -> GolfRound {
+        var data = try store.load()
+
+        guard let index = data.rounds.firstIndex(where: { $0.id == roundID }) else {
+            throw GolfBagRepositoryError.roundNotFound
+        }
+
+        data.rounds[index].distanceTrackingMode = mode
         try store.save(data)
         return data.rounds[index]
     }
