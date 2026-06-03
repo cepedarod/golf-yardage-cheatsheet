@@ -1816,6 +1816,7 @@ private struct AnalysisView: View {
                     ClubAnalysisDetailView(
                         club: club,
                         shotRecords: viewModel.shotRecords,
+                        onSaveClub: viewModel.saveClub,
                         onSaveShotRecord: viewModel.saveShotRecord,
                         onDeleteShotRecord: viewModel.deleteShotRecord
                     )
@@ -1877,15 +1878,32 @@ private struct AnalysisClubRow: View {
 }
 
 private struct ClubAnalysisDetailView: View {
-    let club: Club
+    @State private var club: Club
+
     let shotRecords: [ShotRecord]
+    let onSaveClub: (Club) throws -> Void
     let onSaveShotRecord: (ShotRecord) throws -> Void
     let onDeleteShotRecord: (ShotRecord) -> Void
 
     @State private var selectedCategory: ShotCategory = .normal
+    @State private var errorMessage: String?
 
     private let formatter = ClubDisplayNameFormatter()
     private let statsCalculator = ShotStatsCalculator()
+
+    init(
+        club: Club,
+        shotRecords: [ShotRecord],
+        onSaveClub: @escaping (Club) throws -> Void,
+        onSaveShotRecord: @escaping (ShotRecord) throws -> Void,
+        onDeleteShotRecord: @escaping (ShotRecord) -> Void
+    ) {
+        _club = State(initialValue: club)
+        self.shotRecords = shotRecords
+        self.onSaveClub = onSaveClub
+        self.onSaveShotRecord = onSaveShotRecord
+        self.onDeleteShotRecord = onDeleteShotRecord
+    }
 
     var body: some View {
         List {
@@ -1914,6 +1932,13 @@ private struct ClubAnalysisDetailView: View {
                 strikeDistributionSection
                 directionDistributionSection
             }
+
+            if let errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
         }
         .navigationTitle(formatter.displayName(for: club))
         .navigationBarTitleDisplayMode(.inline)
@@ -1933,7 +1958,22 @@ private struct ClubAnalysisDetailView: View {
     private var distanceComparisonSection: some View {
         Section("Distances") {
             ForEach(distanceRows, id: \.power) { row in
-                DistanceComparisonRowView(row: row)
+                VStack(alignment: .leading, spacing: 8) {
+                    DistanceComparisonRowView(row: row)
+
+                    if row.canAdoptAverage {
+                        Button {
+                            adoptAverage(for: row)
+                        } label: {
+                            Label("Adopt", systemImage: "arrow.down.doc")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.green)
+                        .accessibilityLabel("Adopt \(row.label) pure average")
+                        .accessibilityIdentifier("adopt-average-\(row.power.accessibilityName)")
+                    }
+                }
                 .accessibilityIdentifier("analysis-distance-\(row.power.accessibilityName)")
             }
         }
@@ -2032,6 +2072,7 @@ private struct ClubAnalysisDetailView: View {
     private var distanceRows: [DistanceComparisonRow] {
         powers(for: selectedCategory).map { power in
             DistanceComparisonRow(
+                category: selectedCategory,
                 power: power,
                 label: power.displayName,
                 manualDistance: manualDistance(for: selectedCategory, power: power),
@@ -2217,6 +2258,71 @@ private struct ClubAnalysisDetailView: View {
         }
 
         return Int(average.rounded())
+    }
+
+    private func adoptAverage(for row: DistanceComparisonRow) {
+        guard let averageDistance = row.averageDistance else {
+            return
+        }
+
+        var updatedClub = club
+        switch row.category {
+        case .normal:
+            setSwingDistance(averageDistance, for: row.power, distances: &updatedClub.normalDistances)
+        case .flop:
+            setSwingDistance(averageDistance, for: row.power, distances: &updatedClub.flopDistances)
+        case .lowTrajectory:
+            setLowTrajectoryDistance(averageDistance, for: row.power, distances: &updatedClub.lowTrajectoryDistances)
+        }
+
+        updatedClub.updatedAt = Date()
+        updatedClub.refreshCompatibilityFields(preferredShotType: updatedClub.shotType)
+
+        do {
+            try onSaveClub(updatedClub)
+            club = updatedClub
+            errorMessage = nil
+        } catch {
+            errorMessage = "Unable to adopt distance."
+        }
+    }
+
+    private func setSwingDistance(_ distance: Int, for power: ShotPower, distances: inout SwingDistanceSet?) {
+        var updatedDistances = distances ?? SwingDistanceSet()
+
+        switch power {
+        case .full:
+            updatedDistances.full = distance
+        case .threeQuarter:
+            updatedDistances.threeQuarter = distance
+        case .half:
+            updatedDistances.half = distance
+        case .quarter:
+            updatedDistances.quarter = distance
+        case .stinger, .punch, .softPunch, .chip:
+            return
+        }
+
+        distances = updatedDistances
+    }
+
+    private func setLowTrajectoryDistance(_ distance: Int, for power: ShotPower, distances: inout LowTrajectoryDistanceSet?) {
+        var updatedDistances = distances ?? LowTrajectoryDistanceSet()
+
+        switch power {
+        case .stinger:
+            updatedDistances.stinger = distance
+        case .punch:
+            updatedDistances.punch = distance
+        case .softPunch:
+            updatedDistances.softPunch = distance
+        case .chip:
+            updatedDistances.chip = distance
+        case .full, .threeQuarter, .half, .quarter:
+            return
+        }
+
+        distances = updatedDistances
     }
 
 }
@@ -2586,6 +2692,7 @@ private struct ShotRecordEditView: View {
 }
 
 private struct DistanceComparisonRow {
+    let category: ShotCategory
     let power: ShotPower
     let label: String
     let manualDistance: Int?
@@ -2597,6 +2704,14 @@ private struct DistanceComparisonRow {
         }
 
         return averageDistance - manualDistance
+    }
+
+    var canAdoptAverage: Bool {
+        guard let averageDistance, averageDistance > 0 else {
+            return false
+        }
+
+        return manualDistance != averageDistance
     }
 }
 
