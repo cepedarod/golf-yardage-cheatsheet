@@ -122,6 +122,15 @@ struct YardageDashboardView: View {
                 }
             }
 
+            if let altitudeAdjustmentNotice = viewModel.altitudeAdjustmentNotice {
+                Section {
+                    Label(altitudeAdjustmentNotice, systemImage: "mountain.2")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("altitude-adjustment-notice")
+                }
+            }
+
             if viewModel.hasTargetYardage {
                 Section("Closest") {
                     if viewModel.matches.isEmpty {

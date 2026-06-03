@@ -162,6 +162,21 @@ final class YardageDashboardViewModel: ObservableObject {
         )
     }
 
+    var altitudeAdjustmentNotice: String? {
+        guard let context = distanceAdjustmentContext,
+              AltitudeDistanceCalculator().shouldAdjust(
+                from: context.homeBaseAltitudeFeet,
+                to: context.targetAltitudeFeet
+              ) else {
+            return nil
+        }
+
+        let deltaFeet = Int((context.targetAltitudeFeet - context.homeBaseAltitudeFeet).rounded())
+        let direction = deltaFeet > 0 ? "higher" : "lower"
+
+        return "Altitude-adjusted for this round: \(abs(deltaFeet)) ft \(direction)"
+    }
+
     var recordableActiveClubs: [Club] {
         activeClubs.filter { $0.clubType != .putter }
     }
