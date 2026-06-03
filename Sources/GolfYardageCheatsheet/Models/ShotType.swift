@@ -378,12 +378,14 @@ public struct ShotStatsCalculator: Sendable {
         for records: [ShotRecord],
         clubID: UUID,
         category: ShotCategory,
-        power: ShotPower
+        power: ShotPower,
+        grassType: GrassType? = nil
     ) -> Double? {
         let distances = records.compactMap { record -> Int? in
             guard record.clubID == clubID,
                   record.category == category,
                   record.power == power,
+                  grassType.map({ record.grassType == $0 }) ?? true,
                   record.strikeQuality == .pure else {
                 return nil
             }
@@ -396,6 +398,42 @@ public struct ShotStatsCalculator: Sendable {
         }
 
         return Double(distances.reduce(0, +)) / Double(distances.count)
+    }
+
+    public func grassDistanceModifiers(
+        for records: [ShotRecord],
+        clubID: UUID,
+        category: ShotCategory,
+        power: ShotPower
+    ) -> [GrassDistanceModifier] {
+        guard let fairwayAverage = averageDistance(
+            for: records,
+            clubID: clubID,
+            category: category,
+            power: power,
+            grassType: .fairway
+        ) else {
+            return []
+        }
+
+        return [GrassType.rough, .deepRough].compactMap { grassType in
+            guard let grassAverage = averageDistance(
+                for: records,
+                clubID: clubID,
+                category: category,
+                power: power,
+                grassType: grassType
+            ) else {
+                return nil
+            }
+
+            return GrassDistanceModifier(
+                grassType: grassType,
+                power: power,
+                fairwayAverageDistance: fairwayAverage,
+                grassAverageDistance: grassAverage
+            )
+        }
     }
 
     public func averageDistances(
@@ -458,5 +496,28 @@ public struct ShotStatsCalculator: Sendable {
             let matchingCount = records.filter { $0[keyPath: keyPath] == value }.count
             result[value] = Double(matchingCount) / Double(records.count) * 100
         }
+    }
+}
+
+public struct GrassDistanceModifier: Equatable, Sendable {
+    public var grassType: GrassType
+    public var power: ShotPower
+    public var fairwayAverageDistance: Double
+    public var grassAverageDistance: Double
+
+    public init(
+        grassType: GrassType,
+        power: ShotPower,
+        fairwayAverageDistance: Double,
+        grassAverageDistance: Double
+    ) {
+        self.grassType = grassType
+        self.power = power
+        self.fairwayAverageDistance = fairwayAverageDistance
+        self.grassAverageDistance = grassAverageDistance
+    }
+
+    public var deltaYards: Double {
+        grassAverageDistance - fairwayAverageDistance
     }
 }

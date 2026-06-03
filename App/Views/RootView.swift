@@ -1672,6 +1672,7 @@ private struct ClubAnalysisDetailView: View {
                 }
 
                 distanceComparisonSection
+                grassModifierSection
                 shotSummarySection
                 strikeDistributionSection
                 directionDistributionSection
@@ -1725,6 +1726,18 @@ private struct ClubAnalysisDetailView: View {
                 }
             }
             .accessibilityIdentifier("analysis-total-shots-row")
+        }
+    }
+
+    @ViewBuilder
+    private var grassModifierSection: some View {
+        if grassModifierRows.isEmpty == false {
+            Section("Grass Modifier") {
+                ForEach(grassModifierRows, id: \.id) { row in
+                    GrassModifierRowView(row: row)
+                        .accessibilityIdentifier("analysis-grass-modifier-\(row.id)")
+                }
+            }
         }
     }
 
@@ -1787,6 +1800,26 @@ private struct ClubAnalysisDetailView: View {
                 manualDistance: manualDistance(for: selectedCategory, power: power),
                 averageDistance: roundedAverage(for: power)
             )
+        }
+    }
+
+    private var grassModifierRows: [GrassModifierRow] {
+        powers(for: selectedCategory).flatMap { power in
+            statsCalculator.grassDistanceModifiers(
+                for: shotRecords,
+                clubID: club.id,
+                category: selectedCategory,
+                power: power
+            )
+            .map { modifier in
+                GrassModifierRow(
+                    grassType: modifier.grassType,
+                    power: power,
+                    fairwayDistance: Int(modifier.fairwayAverageDistance.rounded()),
+                    grassDistance: Int(modifier.grassAverageDistance.rounded()),
+                    delta: Int(modifier.deltaYards.rounded())
+                )
+            }
         }
     }
 
@@ -2326,6 +2359,61 @@ private struct DistanceComparisonRow {
         }
 
         return averageDistance - manualDistance
+    }
+}
+
+private struct GrassModifierRow: Identifiable {
+    let grassType: GrassType
+    let power: ShotPower
+    let fairwayDistance: Int
+    let grassDistance: Int
+    let delta: Int
+
+    var id: String {
+        "\(grassType.rawValue)-\(power.rawValue)"
+    }
+}
+
+private struct GrassModifierRowView: View {
+    let row: GrassModifierRow
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(row.grassType.displayName) \(row.power.displayName)")
+                    .font(.headline)
+
+                Text("Fairway \(row.fairwayDistance) yds | \(row.grassType.displayName) \(row.grassDistance) yds")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text(deltaText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(deltaTint)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(deltaTint.opacity(0.12), in: Capsule())
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var deltaText: String {
+        if row.delta == 0 {
+            return "Even"
+        }
+
+        return row.delta > 0 ? "+\(row.delta) yds" : "\(row.delta) yds"
+    }
+
+    private var deltaTint: Color {
+        if row.delta == 0 {
+            return .secondary
+        }
+
+        return row.delta < 0 ? .orange : .green
     }
 }
 

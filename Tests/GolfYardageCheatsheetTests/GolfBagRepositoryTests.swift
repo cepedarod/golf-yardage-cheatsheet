@@ -619,6 +619,85 @@ final class GolfBagRepositoryTests: XCTestCase {
         )
     }
 
+    func testGrassDistanceModifiersCompareLikeForLikePureShots() {
+        let clubID = UUID()
+        let otherClubID = UUID()
+        let calculator = ShotStatsCalculator()
+        let records = [
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 150,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .fairway
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 130,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .rough
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 120,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .deepRough
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .half,
+                distance: 80,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .rough
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 200,
+                strikeQuality: .thin,
+                direction: .straight,
+                grassType: .rough
+            ),
+            ShotRecord(
+                profileID: UUID(),
+                clubID: otherClubID,
+                category: .normal,
+                power: .full,
+                distance: 100,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .rough
+            )
+        ]
+
+        let modifiers = calculator.grassDistanceModifiers(
+            for: records,
+            clubID: clubID,
+            category: .normal,
+            power: .full
+        )
+
+        XCTAssertEqual(modifiers.count, 2)
+        XCTAssertEqual(modifiers.first { $0.grassType == .rough }?.deltaYards, -20)
+        XCTAssertEqual(modifiers.first { $0.grassType == .deepRough }?.deltaYards, -30)
+    }
+
     func testShotStatsUseAllRecordsForTotalsAndDistributions() {
         let clubID = UUID()
         let calculator = ShotStatsCalculator()
