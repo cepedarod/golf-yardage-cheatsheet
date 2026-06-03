@@ -2067,9 +2067,9 @@ private struct ClubAnalysisDetailView: View {
                     .accessibilityIdentifier("analysis-category-picker")
                 }
 
+                shotSummarySection
                 distanceComparisonSection
                 grassModifierSection
-                shotSummarySection
                 strikeDistributionSection
                 directionDistributionSection
             }
@@ -2081,8 +2081,7 @@ private struct ClubAnalysisDetailView: View {
                 }
             }
         }
-        .navigationTitle(showsNavigationTitle ? formatter.displayName(for: club) : "")
-        .navigationBarTitleDisplayMode(.inline)
+        .clubAnalysisNavigationTitle(formatter.displayName(for: club), enabled: showsNavigationTitle)
         .onAppear {
             normalizeSelectedCategory()
         }
@@ -2142,8 +2141,10 @@ private struct ClubAnalysisDetailView: View {
 
                     summaryValue
                 }
+                .accessibilityElement(children: .contain)
             }
             .accessibilityIdentifier("analysis-total-shots-row")
+            .accessibilityValue(totalShotsValueText)
         }
     }
 
@@ -2306,6 +2307,7 @@ private struct ClubAnalysisDetailView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .contain)
     }
 
     private var strikeDistribution: [StrikeQuality: Double] {
@@ -2466,6 +2468,18 @@ private struct ClubAnalysisDetailView: View {
         distances = updatedDistances
     }
 
+}
+
+private extension View {
+    @ViewBuilder
+    func clubAnalysisNavigationTitle(_ title: String, enabled: Bool) -> some View {
+        if enabled {
+            navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+        } else {
+            self
+        }
+    }
 }
 
 private struct ShotRecordListView: View {

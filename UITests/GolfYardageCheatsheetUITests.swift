@@ -255,9 +255,9 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["255"].exists)
         XCTAssertTrue(app.staticTexts["250"].exists)
 
-        let totalShots = app.staticTexts["analysis-total-shots"]
-        XCTAssertTrue(totalShots.waitForExistence(timeout: 2))
-        XCTAssertEqual(totalShots.label, "1 shot")
+        let totalShotsRow = app.descendants(matching: .any)["analysis-total-shots-row"]
+        XCTAssertTrue(totalShotsRow.waitForExistence(timeout: 2))
+        XCTAssertEqual(totalShotsRow.value as? String, "1 shot")
 
         app.swipeUp()
 
@@ -306,12 +306,9 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         driverAnalysisRow.tap()
 
         XCTAssertTrue(app.navigationBars["Driver"].waitForExistence(timeout: 5))
-        let totalShots = app.staticTexts["analysis-total-shots"]
-        XCTAssertTrue(totalShots.waitForExistence(timeout: 2))
-        XCTAssertEqual(totalShots.label, "2 shots")
-
         let totalShotsRow = app.descendants(matching: .any)["analysis-total-shots-row"]
         XCTAssertTrue(totalShotsRow.waitForExistence(timeout: 2))
+        XCTAssertEqual(totalShotsRow.value as? String, "2 shots")
         totalShotsRow.tap()
 
         XCTAssertTrue(app.navigationBars["Recorded Shots"].waitForExistence(timeout: 5))
