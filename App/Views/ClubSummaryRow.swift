@@ -5,6 +5,7 @@ struct ClubSummaryRow: View {
     var shotFilter: ShotFilter = .normal
     var valueMode: DistanceValueMode = .manual
     var shotRecords: [ShotRecord] = []
+    var adjustmentContext: DistanceAdjustmentContext?
 
     private let formatter = ClubDisplayNameFormatter()
     private let distanceValueResolver = DistanceValueResolver()
@@ -71,7 +72,13 @@ struct ClubSummaryRow: View {
 
     private var distanceSections: [(title: String?, entries: [DistanceEntry])] {
         distanceValueResolver
-            .displaySections(for: club, filter: shotFilter, mode: valueMode, shotRecords: shotRecords)
+            .displaySections(
+                for: club,
+                filter: shotFilter,
+                mode: valueMode,
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
+            )
             .map { section in
                 (
                     title: section.title,

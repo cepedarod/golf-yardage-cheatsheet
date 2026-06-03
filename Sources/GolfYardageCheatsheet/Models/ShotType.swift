@@ -382,9 +382,10 @@ public struct ShotStatsCalculator: Sendable {
         clubID: UUID,
         category: ShotCategory,
         power: ShotPower,
-        grassType: GrassType? = nil
+        grassType: GrassType? = nil,
+        adjustmentContext: DistanceAdjustmentContext? = nil
     ) -> Double? {
-        let distances = records.compactMap { record -> Int? in
+        let distances = records.compactMap { record -> Double? in
             guard record.clubID == clubID,
                   record.category == category,
                   record.power == power,
@@ -393,14 +394,27 @@ public struct ShotStatsCalculator: Sendable {
                 return nil
             }
 
-            return record.distance
+            guard let distance = record.distance else {
+                return nil
+            }
+
+            guard let adjustmentContext else {
+                return Double(distance)
+            }
+
+            return Double(
+                adjustmentContext.adjustedRecordedDistance(
+                    distance,
+                    shotAltitudeFeet: record.altitudeFeet
+                )
+            )
         }
 
         guard distances.isEmpty == false else {
             return nil
         }
 
-        return Double(distances.reduce(0, +)) / Double(distances.count)
+        return distances.reduce(0, +) / Double(distances.count)
     }
 
     public func grassDistanceModifiers(

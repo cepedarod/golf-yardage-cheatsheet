@@ -470,6 +470,7 @@ private final class ProfileDashboardViewModel: ObservableObject {
             )
             errorMessage = nil
             load()
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
         } catch GolfBagRepositoryError.homeBaseCityRequired {
             errorMessage = "Home base city is required."
             load()
@@ -706,6 +707,7 @@ private final class CurrentRoundViewModel: ObservableObject {
             _ = try repository.updateRoundDistanceTrackingMode(id: activeRound.id, mode: mode)
             errorMessage = nil
             load()
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
         } catch {
             errorMessage = "Unable to update distance tracking."
             load()

@@ -162,7 +162,8 @@ struct YardageDashboardView: View {
                                 club: club,
                                 shotFilter: viewModel.shotFilter,
                                 valueMode: viewModel.valueMode,
-                                shotRecords: viewModel.shotRecords
+                                shotRecords: viewModel.shotRecords,
+                                adjustmentContext: viewModel.distanceAdjustmentContext
                             )
                                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                     Button {

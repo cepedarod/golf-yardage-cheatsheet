@@ -5,6 +5,7 @@ final class YardageDashboardViewModel: ObservableObject {
     @Published private(set) var activeClubs: [Club] = []
     @Published private(set) var inactiveClubs: [Club] = []
     @Published private(set) var shotRecords: [ShotRecord] = []
+    @Published private(set) var activeRound: GolfRound?
     @Published private(set) var activeRoundID: UUID?
     @Published private(set) var shotTrackingMode: ShotTrackingMode
     @Published private(set) var matches: [YardageMatch] = []
@@ -38,6 +39,7 @@ final class YardageDashboardViewModel: ObservableObject {
     private let targetClearDelayNanoseconds: UInt64
     private let roundReminderScheduler: RoundReminderScheduler
     private var clearTargetTask: Task<Void, Never>?
+    private var loadedProfile: GolferProfile
 
     init(
         profile: GolferProfile,
@@ -53,6 +55,7 @@ final class YardageDashboardViewModel: ObservableObject {
         self.targetClearDelayNanoseconds = targetClearDelayNanoseconds
         self.roundReminderScheduler = roundReminderScheduler
         self.shotTrackingMode = profile.shotTrackingMode
+        self.loadedProfile = profile
     }
 
     deinit {
@@ -78,6 +81,7 @@ final class YardageDashboardViewModel: ObservableObject {
             activeClubs = clubs.filter(\.isActive)
             inactiveClubs = clubs.filter { $0.isActive == false }
             self.shotRecords = shotRecords
+            self.activeRound = activeRound
             activeRoundID = activeRound?.id
             if let activeRound, roundReminderScheduler.isStale(activeRound) == false {
                 Task {
@@ -85,14 +89,17 @@ final class YardageDashboardViewModel: ObservableObject {
                 }
             }
             shotTrackingMode = currentProfile.shotTrackingMode
+            loadedProfile = currentProfile
             updateMatches()
             errorMessage = nil
         } catch {
             activeClubs = []
             inactiveClubs = []
             shotRecords = []
+            activeRound = nil
             activeRoundID = nil
             shotTrackingMode = profile.shotTrackingMode
+            loadedProfile = profile
             matches = []
             errorMessage = "Unable to load clubs."
         }
@@ -135,9 +142,24 @@ final class YardageDashboardViewModel: ObservableObject {
                 for: $0,
                 filter: shotFilter,
                 mode: valueMode,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: distanceAdjustmentContext
             )
         }
+    }
+
+    var distanceAdjustmentContext: DistanceAdjustmentContext? {
+        guard loadedProfile.altitudeCalculationMode == .adjustForAltitude,
+              let activeRound,
+              activeRound.distanceTrackingMode == .accountForAltitude,
+              let roundAltitudeFeet = activeRound.altitudeFeet else {
+            return nil
+        }
+
+        return DistanceAdjustmentContext(
+            homeBaseAltitudeFeet: loadedProfile.homeBaseAltitudeFeet,
+            targetAltitudeFeet: roundAltitudeFeet
+        )
     }
 
     var recordableActiveClubs: [Club] {
@@ -213,7 +235,8 @@ final class YardageDashboardViewModel: ObservableObject {
             clubs: activeClubs,
             filter: shotFilter,
             valueMode: valueMode,
-            shotRecords: shotRecords
+            shotRecords: shotRecords,
+            adjustmentContext: distanceAdjustmentContext
         )
     }
 

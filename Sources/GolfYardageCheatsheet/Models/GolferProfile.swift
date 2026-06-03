@@ -150,6 +150,38 @@ public struct AltitudeDistanceCalculator: Sendable {
     }
 }
 
+public struct DistanceAdjustmentContext: Equatable, Sendable {
+    public var homeBaseAltitudeFeet: Double
+    public var targetAltitudeFeet: Double
+
+    private var calculator: AltitudeDistanceCalculator {
+        AltitudeDistanceCalculator()
+    }
+
+    public init(homeBaseAltitudeFeet: Double, targetAltitudeFeet: Double) {
+        self.homeBaseAltitudeFeet = homeBaseAltitudeFeet
+        self.targetAltitudeFeet = targetAltitudeFeet
+    }
+
+    public func adjustedHomeBaseDistance(_ distanceYards: Int) -> Int {
+        calculator.expectedDistance(
+            homeBaseDistanceYards: distanceYards,
+            homeBaseAltitudeFeet: homeBaseAltitudeFeet,
+            roundAltitudeFeet: targetAltitudeFeet
+        )
+    }
+
+    public func adjustedRecordedDistance(_ distanceYards: Int, shotAltitudeFeet: Double) -> Int {
+        let normalizedDistance = calculator.normalizedHomeBaseDistance(
+            recordedDistanceYards: distanceYards,
+            shotAltitudeFeet: shotAltitudeFeet,
+            homeBaseAltitudeFeet: homeBaseAltitudeFeet
+        )
+
+        return adjustedHomeBaseDistance(normalizedDistance)
+    }
+}
+
 public struct GolfRound: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var profileID: UUID

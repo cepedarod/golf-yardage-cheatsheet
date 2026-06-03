@@ -104,16 +104,24 @@ public struct DistanceValueResolver: Sendable {
         for club: Club,
         filter: ShotFilter,
         mode: DistanceValueMode,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext? = nil
     ) -> Bool {
-        displaySections(for: club, filter: filter, mode: mode, shotRecords: shotRecords).isEmpty == false
+        displaySections(
+            for: club,
+            filter: filter,
+            mode: mode,
+            shotRecords: shotRecords,
+            adjustmentContext: adjustmentContext
+        ).isEmpty == false
     }
 
     public func displaySections(
         for club: Club,
         filter: ShotFilter,
         mode: DistanceValueMode,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext? = nil
     ) -> [DistanceDisplaySection] {
         if club.clubType == .putter {
             guard filter == .normal else {
@@ -125,9 +133,9 @@ public struct DistanceValueResolver: Sendable {
                     DistanceDisplaySection(
                         title: nil,
                         entries: [
-                            putterEntry(label: .long, manualDistance: club.putterDistances?.long),
-                            putterEntry(label: .medium, manualDistance: club.putterDistances?.medium),
-                            putterEntry(label: .short, manualDistance: club.putterDistances?.short)
+                            putterEntry(label: .long, manualDistance: club.putterDistances?.long, adjustmentContext: adjustmentContext),
+                            putterEntry(label: .medium, manualDistance: club.putterDistances?.medium, adjustmentContext: adjustmentContext),
+                            putterEntry(label: .short, manualDistance: club.putterDistances?.short, adjustmentContext: adjustmentContext)
                         ]
                     )
                 ],
@@ -143,7 +151,8 @@ public struct DistanceValueResolver: Sendable {
                     club: club,
                     category: .normal,
                     distances: club.normalDistances,
-                    shotRecords: shotRecords
+                    shotRecords: shotRecords,
+                    adjustmentContext: adjustmentContext
                 )
             )
             let normalSection = visibleSection(rawNormalSection, mode: mode)
@@ -155,7 +164,8 @@ public struct DistanceValueResolver: Sendable {
                             club: club,
                             category: .flop,
                             distances: club.flopDistances,
-                            shotRecords: shotRecords
+                            shotRecords: shotRecords,
+                            adjustmentContext: adjustmentContext
                         )
                     ),
                     mode: mode
@@ -183,28 +193,32 @@ public struct DistanceValueResolver: Sendable {
                                 power: .stinger,
                                 label: .stinger,
                                 manualDistance: club.lowTrajectoryDistances?.stinger,
-                                shotRecords: shotRecords
+                                shotRecords: shotRecords,
+                                adjustmentContext: adjustmentContext
                             ),
                             lowTrajectoryEntry(
                                 club: club,
                                 power: .punch,
                                 label: .punch,
                                 manualDistance: club.lowTrajectoryDistances?.punch,
-                                shotRecords: shotRecords
+                                shotRecords: shotRecords,
+                                adjustmentContext: adjustmentContext
                             ),
                             lowTrajectoryEntry(
                                 club: club,
                                 power: .softPunch,
                                 label: .softPunch,
                                 manualDistance: club.lowTrajectoryDistances?.softPunch,
-                                shotRecords: shotRecords
+                                shotRecords: shotRecords,
+                                adjustmentContext: adjustmentContext
                             ),
                             lowTrajectoryEntry(
                                 club: club,
                                 power: .chip,
                                 label: .chip,
                                 manualDistance: club.lowTrajectoryDistances?.chip,
-                                shotRecords: shotRecords
+                                shotRecords: shotRecords,
+                                adjustmentContext: adjustmentContext
                             )
                         ]
                     )
@@ -218,9 +232,16 @@ public struct DistanceValueResolver: Sendable {
         for club: Club,
         filter: ShotFilter,
         mode: DistanceValueMode,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext? = nil
     ) -> [DistanceDisplayEntry] {
-        displaySections(for: club, filter: filter, mode: mode, shotRecords: shotRecords)
+        displaySections(
+            for: club,
+            filter: filter,
+            mode: mode,
+            shotRecords: shotRecords,
+            adjustmentContext: adjustmentContext
+        )
             .flatMap(\.entries)
     }
 
@@ -240,7 +261,8 @@ public struct DistanceValueResolver: Sendable {
         club: Club,
         category: ShotCategory,
         distances: SwingDistanceSet?,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?
     ) -> [DistanceDisplayEntry] {
         [
             swingEntry(
@@ -249,7 +271,8 @@ public struct DistanceValueResolver: Sendable {
                 power: .full,
                 label: .full,
                 manualDistance: distances?.full,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             ),
             swingEntry(
                 club: club,
@@ -257,7 +280,8 @@ public struct DistanceValueResolver: Sendable {
                 power: .threeQuarter,
                 label: .threeQuarter,
                 manualDistance: distances?.threeQuarter,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             ),
             swingEntry(
                 club: club,
@@ -265,7 +289,8 @@ public struct DistanceValueResolver: Sendable {
                 power: .half,
                 label: .half,
                 manualDistance: distances?.half,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             ),
             swingEntry(
                 club: club,
@@ -273,7 +298,8 @@ public struct DistanceValueResolver: Sendable {
                 power: .quarter,
                 label: .quarter,
                 manualDistance: distances?.quarter,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             )
         ]
     }
@@ -284,18 +310,20 @@ public struct DistanceValueResolver: Sendable {
         power: ShotPower,
         label: DistanceLabel,
         manualDistance: Int?,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?
     ) -> DistanceDisplayEntry {
         DistanceDisplayEntry(
             category: category,
             power: power,
             label: label,
-            manualDistance: positiveDistance(manualDistance),
+            manualDistance: adjustedManualDistance(manualDistance, context: adjustmentContext),
             realDistance: realDistance(
                 clubID: club.id,
                 category: category,
                 power: power,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             )
         )
     }
@@ -305,28 +333,34 @@ public struct DistanceValueResolver: Sendable {
         power: ShotPower,
         label: DistanceLabel,
         manualDistance: Int?,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?
     ) -> DistanceDisplayEntry {
         DistanceDisplayEntry(
             category: .lowTrajectory,
             power: power,
             label: label,
-            manualDistance: positiveDistance(manualDistance),
+            manualDistance: adjustedManualDistance(manualDistance, context: adjustmentContext),
             realDistance: realDistance(
                 clubID: club.id,
                 category: .lowTrajectory,
                 power: power,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             )
         )
     }
 
-    private func putterEntry(label: DistanceLabel, manualDistance: Int?) -> DistanceDisplayEntry {
+    private func putterEntry(
+        label: DistanceLabel,
+        manualDistance: Int?,
+        adjustmentContext: DistanceAdjustmentContext?
+    ) -> DistanceDisplayEntry {
         DistanceDisplayEntry(
             category: nil,
             power: nil,
             label: label,
-            manualDistance: positiveDistance(manualDistance),
+            manualDistance: adjustedManualDistance(manualDistance, context: adjustmentContext),
             realDistance: nil
         )
     }
@@ -335,18 +369,28 @@ public struct DistanceValueResolver: Sendable {
         clubID: UUID,
         category: ShotCategory,
         power: ShotPower,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?
     ) -> Int? {
         guard let average = statsCalculator.averageDistance(
             for: shotRecords,
             clubID: clubID,
             category: category,
-            power: power
+            power: power,
+            adjustmentContext: adjustmentContext
         ) else {
             return nil
         }
 
         return positiveDistance(Int(average.rounded()))
+    }
+
+    private func adjustedManualDistance(_ distance: Int?, context: DistanceAdjustmentContext?) -> Int? {
+        guard let distance = positiveDistance(distance) else {
+            return nil
+        }
+
+        return context?.adjustedHomeBaseDistance(distance) ?? distance
     }
 
     private func positiveDistance(_ distance: Int?) -> Int? {
@@ -373,6 +417,7 @@ public struct YardageMatcher: Sendable {
         filter: ShotFilter = .all,
         valueMode: DistanceValueMode = .manual,
         shotRecords: [ShotRecord] = [],
+        adjustmentContext: DistanceAdjustmentContext? = nil,
         limit: Int = 2
     ) -> [YardageMatch] {
         guard targetYardage > 0, limit > 0 else {
@@ -386,7 +431,8 @@ public struct YardageMatcher: Sendable {
                     for: club,
                     filter: filter,
                     mode: valueMode,
-                    shotRecords: shotRecords
+                    shotRecords: shotRecords,
+                    adjustmentContext: adjustmentContext
                 )
                 .map { Candidate(club: club, entry: $0) }
             }
@@ -396,6 +442,7 @@ public struct YardageMatcher: Sendable {
             candidates: candidates,
             valueMode: valueMode,
             shotRecords: shotRecords,
+            adjustmentContext: adjustmentContext,
             limit: limit
         )
 
@@ -404,7 +451,8 @@ public struct YardageMatcher: Sendable {
                 candidates: candidates,
                 primaryMatches: primaryMatches,
                 valueMode: valueMode,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
               ) else {
             return primaryMatches
         }
@@ -417,6 +465,7 @@ public struct YardageMatcher: Sendable {
         candidates: [Candidate],
         valueMode: DistanceValueMode,
         shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?,
         limit: Int
     ) -> [YardageMatch] {
         let matches = candidates.compactMap {
@@ -431,7 +480,14 @@ public struct YardageMatcher: Sendable {
         let exactMatches = matches
             .filter { $0.distance == targetYardage }
             .sorted { lhs, rhs in
-                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords)
+                sort(
+                    lhs,
+                    before: rhs,
+                    targetYardage: targetYardage,
+                    valueMode: valueMode,
+                    shotRecords: shotRecords,
+                    adjustmentContext: adjustmentContext
+                )
             }
 
         if exactMatches.isEmpty == false {
@@ -443,21 +499,21 @@ public struct YardageMatcher: Sendable {
         let closestLong = matches
             .filter { $0.distance > targetYardage }
             .sorted { lhs, rhs in
-                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords)
+                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords, adjustmentContext: adjustmentContext)
             }
             .first
 
         let closestShort = matches
             .filter { $0.distance < targetYardage }
             .sorted { lhs, rhs in
-                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords)
+                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords, adjustmentContext: adjustmentContext)
             }
             .first
 
         return [closestLong, closestShort]
             .compactMap { $0 }
             .sorted { lhs, rhs in
-                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords)
+                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords, adjustmentContext: adjustmentContext)
             }
             .prefix(limit)
             .map { $0 }
@@ -468,7 +524,8 @@ public struct YardageMatcher: Sendable {
         candidates: [Candidate],
         primaryMatches: [YardageMatch],
         valueMode: DistanceValueMode,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?
     ) -> YardageMatch? {
         let supplementalMatches = candidates.compactMap {
             match(
@@ -484,7 +541,7 @@ public struct YardageMatcher: Sendable {
                 shouldIncludeSupplemental(supplemental, primaryMatches: primaryMatches)
             }
             .sorted { lhs, rhs in
-                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords)
+                sort(lhs, before: rhs, targetYardage: targetYardage, valueMode: valueMode, shotRecords: shotRecords, adjustmentContext: adjustmentContext)
             }
             .first
     }
@@ -531,7 +588,8 @@ public struct YardageMatcher: Sendable {
         before rhs: YardageMatch,
         targetYardage: Int,
         valueMode: DistanceValueMode,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?
     ) -> Bool {
         if lhs.differenceFromTarget != rhs.differenceFromTarget {
             return lhs.differenceFromTarget < rhs.differenceFromTarget
@@ -541,13 +599,15 @@ public struct YardageMatcher: Sendable {
             for: lhs,
             targetYardage: targetYardage,
             valueMode: valueMode,
-            shotRecords: shotRecords
+            shotRecords: shotRecords,
+            adjustmentContext: adjustmentContext
         )
         let rhsFullSwingDifference = fullSwingDifference(
             for: rhs,
             targetYardage: targetYardage,
             valueMode: valueMode,
-            shotRecords: shotRecords
+            shotRecords: shotRecords,
+            adjustmentContext: adjustmentContext
         )
 
         if lhsFullSwingDifference != rhsFullSwingDifference {
@@ -569,7 +629,8 @@ public struct YardageMatcher: Sendable {
         for match: YardageMatch,
         targetYardage: Int,
         valueMode: DistanceValueMode,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?
     ) -> Int {
         let fullSwingDistance: Int?
         let sourceMode = match.isSupplemental ? valueMode.supplementalMode : valueMode
@@ -582,7 +643,8 @@ public struct YardageMatcher: Sendable {
                 category: .normal,
                 power: .full,
                 mode: sourceMode,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             )
         case .flop:
             fullSwingDistance = distance(
@@ -591,7 +653,8 @@ public struct YardageMatcher: Sendable {
                 category: .flop,
                 power: .full,
                 mode: sourceMode,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             )
         case .lowTrajectory:
             fullSwingDistance = distance(
@@ -600,10 +663,18 @@ public struct YardageMatcher: Sendable {
                 category: .lowTrajectory,
                 power: .stinger,
                 mode: sourceMode,
-                shotRecords: shotRecords
+                shotRecords: shotRecords,
+                adjustmentContext: adjustmentContext
             )
         case .none:
-            fullSwingDistance = sourceMode == .manual ? match.club.putterDistances?.long : nil
+            guard sourceMode == .manual,
+                  let putterDistance = match.club.putterDistances?.long,
+                  putterDistance > 0 else {
+                fullSwingDistance = nil
+                break
+            }
+
+            fullSwingDistance = adjustmentContext?.adjustedHomeBaseDistance(putterDistance) ?? putterDistance
         }
 
         guard let fullSwingDistance, fullSwingDistance > 0 else {
@@ -619,7 +690,8 @@ public struct YardageMatcher: Sendable {
         category: ShotCategory,
         power: ShotPower,
         mode: DistanceValueMode,
-        shotRecords: [ShotRecord]
+        shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?
     ) -> Int? {
         switch mode {
         case .manual:
@@ -627,13 +699,14 @@ public struct YardageMatcher: Sendable {
                 return nil
             }
 
-            return manualDistance
+            return adjustmentContext?.adjustedHomeBaseDistance(manualDistance) ?? manualDistance
         case .real:
             guard let average = statsCalculator.averageDistance(
                 for: shotRecords,
                 clubID: clubID,
                 category: category,
-                power: power
+                power: power,
+                adjustmentContext: adjustmentContext
             ) else {
                 return nil
             }

@@ -352,6 +352,55 @@ final class YardageMatcherTests: XCTestCase {
         XCTAssertEqual(realEntries.first(where: { $0.label == .full })?.resolvedValue(for: .real)?.formattedDistance, "(100)")
     }
 
+    func testDisplayResolverAdjustsManualDistancesForRoundAltitude() {
+        let club = Club(
+            profileID: profileID,
+            clubType: .sevenIron,
+            normalDistances: SwingDistanceSet(full: 150)
+        )
+        let resolver = DistanceValueResolver()
+        let adjustmentContext = DistanceAdjustmentContext(homeBaseAltitudeFeet: 0, targetAltitudeFeet: 5_000)
+
+        let entries = resolver.displayEntries(
+            for: club,
+            filter: .normal,
+            mode: .manual,
+            shotRecords: [],
+            adjustmentContext: adjustmentContext
+        )
+
+        XCTAssertEqual(entries.first(where: { $0.label == .full })?.resolvedValue(for: .manual)?.distance, 158)
+    }
+
+    func testRealDistancesNormalizeRecordedAltitudeBeforeDisplayingAtTargetAltitude() {
+        let clubID = UUID()
+        let club = Club(id: clubID, profileID: profileID, clubType: .sevenIron)
+        let records = [
+            ShotRecord(
+                profileID: profileID,
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 158,
+                altitudeFeet: 5_000,
+                strikeQuality: .pure,
+                direction: .straight
+            )
+        ]
+        let resolver = DistanceValueResolver()
+        let homeAltitudeContext = DistanceAdjustmentContext(homeBaseAltitudeFeet: 0, targetAltitudeFeet: 0)
+
+        let entries = resolver.displayEntries(
+            for: club,
+            filter: .normal,
+            mode: .real,
+            shotRecords: records,
+            adjustmentContext: homeAltitudeContext
+        )
+
+        XCTAssertEqual(entries.first(where: { $0.label == .full })?.resolvedValue(for: DistanceValueMode.real)?.distance, 150)
+    }
+
     func testFlopOnlyWedgeDisplaysNormalPlaceholderAndFlopSection() {
         let club = Club(
             profileID: profileID,
