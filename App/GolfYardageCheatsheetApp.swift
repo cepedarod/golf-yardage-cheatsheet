@@ -1,3 +1,5 @@
+import AppIntents
+import CaddieCatLiveActivityShared
 import SwiftUI
 
 @main
@@ -22,5 +24,11 @@ struct GolfYardageCheatsheetApp: App {
         WindowGroup {
             RootView(repository: repository)
         }
+    }
+}
+
+extension GolfYardageCheatsheetApp: AppIntentsPackage {
+    nonisolated static var includedPackages: [any AppIntentsPackage.Type] {
+        [CaddieCatLiveActivitySharedIntentsPackage.self]
     }
 }

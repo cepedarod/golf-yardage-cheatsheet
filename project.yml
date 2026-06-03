@@ -16,9 +16,9 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: App
-      - path: LiveActivitySupport
       - path: Sources/GolfYardageCheatsheet
     dependencies:
+      - target: CaddieCatLiveActivityShared
       - target: CaddieCatLiveActivityExtension
         embed: true
     settings:
@@ -40,13 +40,31 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+  CaddieCatLiveActivityShared:
+    type: framework
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: LiveActivityShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cepedarod.GolfYardageCheatsheet.LiveActivityShared
+        PRODUCT_NAME: CaddieCatLiveActivityShared
+        DEVELOPMENT_TEAM: 6G3D6K987W
+        CODE_SIGN_STYLE: Automatic
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+        MACH_O_TYPE: staticlib
   CaddieCatLiveActivityExtension:
     type: app-extension
     platform: iOS
     deploymentTarget: "17.0"
     sources:
       - path: LiveActivityExtension
-      - path: LiveActivitySupport
+    dependencies:
+      - target: CaddieCatLiveActivityShared
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cepedarod.GolfYardageCheatsheet.LiveActivityExtension

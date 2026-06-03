@@ -12,16 +12,17 @@
 		1C86432BD39FE965589C2FAC /* ClubSummaryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C182F74E38637D8F02C6AE /* ClubSummaryRow.swift */; };
 		1F79C134CFEDB03BB53CE21F /* GolfYardageCheatsheetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */; };
 		254B6C988932BD6E63178B35 /* PutterDistanceSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A932ADC68C45A41CD0793C /* PutterDistanceSet.swift */; };
+		2CFEBA24E41E8B45563A44C4 /* CaddieCatLiveActivityShared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BAC3A1C3A004B2B312A707CA /* CaddieCatLiveActivityShared.framework */; };
+		37E69BEE434D50076A076678 /* LiveActivityDraftIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCE46D5139A02CDBD6A70E8 /* LiveActivityDraftIntents.swift */; };
 		446183DE4919B0564A9E67CC /* PreviewGolfBagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A2B798841A3400F34FA87B /* PreviewGolfBagStore.swift */; };
 		4B00932C967AAC250C06C0F4 /* AddClubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676BD79C075F863CF852C95A /* AddClubView.swift */; };
+		4CDE75372B4686CA2041503B /* CaddieCatLiveActivityShared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BAC3A1C3A004B2B312A707CA /* CaddieCatLiveActivityShared.framework */; };
 		4DDE8EC517C79EB70C0F63CE /* ClubDisplayNameFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */; };
-		4ECD59B0D49F7014A8D665C4 /* RoundActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53C81A37C118C36DBAE8B31 /* RoundActivityModels.swift */; };
 		4F5476D0F0E7987DBF49D62B /* CaddieCatLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E379926282F54C3D34FC80F8 /* CaddieCatLiveActivityBundle.swift */; };
 		501D1DD1962F74D4EC74F375 /* YardageMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E2CD273326BC70F5E5CAAF /* YardageMatcher.swift */; };
 		5D3716DB147557025991266D /* Club.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7004039AD549955D5330BA4 /* Club.swift */; };
 		5D758227771BFAFCC6EFA05E /* GolfYardageCheatsheetUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616D955C6CA571DF28801DE9 /* GolfYardageCheatsheetUITests.swift */; };
 		61066043B0B5A48FE1C52A52 /* GolfBagRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF4C64AEE6802EB10E89A54 /* GolfBagRepository.swift */; };
-		6CEA50D4C357C44B0807461D /* LiveActivityDraftIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7BE89CFCC90980F13488CD1 /* LiveActivityDraftIntents.swift */; };
 		7770E2A81E2C81CF2CD6017B /* CaddieCatLiveActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AB36D594793DCD01FCA3A3CE /* CaddieCatLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		784211DA2E7B23551D7351DF /* ClubValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0007E2E12907B3E4D3A82AFE /* ClubValidator.swift */; };
 		8286928D52DA2FFFEF436F81 /* NumericTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E4DE40234983AAFB5CAC5D8 /* NumericTextField.swift */; };
@@ -38,7 +39,7 @@
 		BBC36FE04A72F4A5E366ADD7 /* CreateProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868C9716DC779A37ED9B2520 /* CreateProfileView.swift */; };
 		BCB562A815538F1F61E91617 /* ShotFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECD268F84F079F082767E3C /* ShotFilter.swift */; };
 		C722276A053D7EC4BDB7C9E9 /* YardageDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76D967F6E3B93C91C4C4210A /* YardageDashboardView.swift */; };
-		DC8BBAFF2E6E3E62990D3424 /* RoundActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53C81A37C118C36DBAE8B31 /* RoundActivityModels.swift */; };
+		DF4AD433509DD6FC215928F8 /* RoundActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7ACDF4304EAEE111C40929 /* RoundActivityModels.swift */; };
 		E2CE9638BEF7BCBCE5E8D964 /* RoundReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D19D3E4AFA010D64C37103F5 /* RoundReminderScheduler.swift */; };
 		E8820059D88D20F7A416A484 /* GolferProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32DE2A05A02A87FC16E14B16 /* GolferProfile.swift */; };
 		E9187841448DD947D01FED44 /* InactiveClubsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70648D4851A640DD1BEB7C8 /* InactiveClubsView.swift */; };
@@ -64,6 +65,20 @@
 			remoteGlobalIDString = DBAAAD8626B90EF06134BDBA;
 			remoteInfo = GolfYardageCheatsheet;
 		};
+		A4CC54E039D10B83FF63CE7E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A24534C0739E10205922DFC4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5D6570737CCC36A7D7C42990;
+			remoteInfo = CaddieCatLiveActivityShared;
+		};
+		D16F750C2C295FD126B0DC4F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A24534C0739E10205922DFC4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5D6570737CCC36A7D7C42990;
+			remoteInfo = CaddieCatLiveActivityShared;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -87,8 +102,10 @@
 		1535D2A2B4529AA88AF36718 /* GolfYardageCheatsheetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfYardageCheatsheetApp.swift; sourceTree = "<group>"; };
 		1D6726A4BEB59F71B137D648 /* RoundLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundLiveActivityManager.swift; sourceTree = "<group>"; };
 		2CF4C64AEE6802EB10E89A54 /* GolfBagRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagRepository.swift; sourceTree = "<group>"; };
+		2D7ACDF4304EAEE111C40929 /* RoundActivityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundActivityModels.swift; sourceTree = "<group>"; };
 		30217AF791DE1307E1C5DB9C /* GolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBagStore.swift; sourceTree = "<group>"; };
 		32DE2A05A02A87FC16E14B16 /* GolferProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolferProfile.swift; sourceTree = "<group>"; };
+		3CCE46D5139A02CDBD6A70E8 /* LiveActivityDraftIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityDraftIntents.swift; sourceTree = "<group>"; };
 		44B45C3623DC39DAB64EE2B0 /* SwingDistanceSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingDistanceSet.swift; sourceTree = "<group>"; };
 		4ECCBF0C4A17E7B95C2B3DE1 /* ClubDisplayNameFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubDisplayNameFormatter.swift; sourceTree = "<group>"; };
 		5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GolfYardageCheatsheetUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -103,9 +120,9 @@
 		AB1680CAD3CDB50DD8A7C9C0 /* DistanceLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceLabel.swift; sourceTree = "<group>"; };
 		AB36D594793DCD01FCA3A3CE /* CaddieCatLiveActivityExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CaddieCatLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB8CB8BE57F2597F08E0B63F /* ProfileSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionView.swift; sourceTree = "<group>"; };
-		B7BE89CFCC90980F13488CD1 /* LiveActivityDraftIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityDraftIntents.swift; sourceTree = "<group>"; };
 		B96784F646FD6E14D6FDF807 /* CaddieCatAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaddieCatAppDelegate.swift; sourceTree = "<group>"; };
 		B9A2B798841A3400F34FA87B /* PreviewGolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewGolfBagStore.swift; sourceTree = "<group>"; };
+		BAC3A1C3A004B2B312A707CA /* CaddieCatLiveActivityShared.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CaddieCatLiveActivityShared.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		BCBD58DA09F87EA578CB7642 /* ClubSorter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubSorter.swift; sourceTree = "<group>"; };
 		BECD268F84F079F082767E3C /* ShotFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotFilter.swift; sourceTree = "<group>"; };
 		C1C182F74E38637D8F02C6AE /* ClubSummaryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubSummaryRow.swift; sourceTree = "<group>"; };
@@ -120,10 +137,28 @@
 		D6AD5655AF13BA1B37308F73 /* GolfCourseNameProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfCourseNameProvider.swift; sourceTree = "<group>"; };
 		DCDFE2A06B036E0CD9EF6D26 /* ShotType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotType.swift; sourceTree = "<group>"; };
 		E379926282F54C3D34FC80F8 /* CaddieCatLiveActivityBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaddieCatLiveActivityBundle.swift; sourceTree = "<group>"; };
-		E53C81A37C118C36DBAE8B31 /* RoundActivityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundActivityModels.swift; sourceTree = "<group>"; };
 		E6FDEA492EC9B80B05B0DF10 /* YardageDashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YardageDashboardViewModel.swift; sourceTree = "<group>"; };
 		EE63CDFFDF74B6C8C2A83D28 /* ClubType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubType.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		28C45326C4275204F31B2D65 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4CDE75372B4686CA2041503B /* CaddieCatLiveActivityShared.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D871A8CF17C719FD490810AA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2CFEBA24E41E8B45563A44C4 /* CaddieCatLiveActivityShared.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		020A8431348A8FB602AE20B5 /* App */ = {
@@ -144,7 +179,6 @@
 			children = (
 				E379926282F54C3D34FC80F8 /* CaddieCatLiveActivityBundle.swift */,
 				700AE191869F93ADD1480156 /* Info.plist */,
-				B7BE89CFCC90980F13488CD1 /* LiveActivityDraftIntents.swift */,
 			);
 			path = LiveActivityExtension;
 			sourceTree = "<group>";
@@ -165,6 +199,7 @@
 			isa = PBXGroup;
 			children = (
 				AB36D594793DCD01FCA3A3CE /* CaddieCatLiveActivityExtension.appex */,
+				BAC3A1C3A004B2B312A707CA /* CaddieCatLiveActivityShared.framework */,
 				14C5037BE3028841865C65B0 /* GolfYardageCheatsheet.app */,
 				5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */,
 			);
@@ -226,12 +261,21 @@
 			path = Support;
 			sourceTree = "<group>";
 		};
+		956DA4E4B01BAA26C78DB26D /* LiveActivityShared */ = {
+			isa = PBXGroup;
+			children = (
+				3CCE46D5139A02CDBD6A70E8 /* LiveActivityDraftIntents.swift */,
+				2D7ACDF4304EAEE111C40929 /* RoundActivityModels.swift */,
+			);
+			path = LiveActivityShared;
+			sourceTree = "<group>";
+		};
 		A570827A0902AF6A164D8E46 = {
 			isa = PBXGroup;
 			children = (
 				020A8431348A8FB602AE20B5 /* App */,
 				0C4390EE4D9CC1CD46B0F5EC /* LiveActivityExtension */,
-				DDAA4885D37C5A287CFF9466 /* LiveActivitySupport */,
+				956DA4E4B01BAA26C78DB26D /* LiveActivityShared */,
 				B15341338541EB72FF370E6B /* Sources */,
 				E04A26E7BD3B2A9EE760EC06 /* UITests */,
 				2F0B056EE87E20303471996F /* Products */,
@@ -244,14 +288,6 @@
 				75FB548F94BFFF1108DD0ABE /* GolfYardageCheatsheet */,
 			);
 			path = Sources;
-			sourceTree = "<group>";
-		};
-		DDAA4885D37C5A287CFF9466 /* LiveActivitySupport */ = {
-			isa = PBXGroup;
-			children = (
-				E53C81A37C118C36DBAE8B31 /* RoundActivityModels.swift */,
-			);
-			path = LiveActivitySupport;
 			sourceTree = "<group>";
 		};
 		E04A26E7BD3B2A9EE760EC06 /* UITests */ = {
@@ -307,15 +343,34 @@
 			productReference = 5EB4FE14555D0471E4570488 /* GolfYardageCheatsheetUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		5D6570737CCC36A7D7C42990 /* CaddieCatLiveActivityShared */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 48AFD6428820A68503A00ABF /* Build configuration list for PBXNativeTarget "CaddieCatLiveActivityShared" */;
+			buildPhases = (
+				9820A7EDE46EC80B4A3BAAE4 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CaddieCatLiveActivityShared;
+			packageProductDependencies = (
+			);
+			productName = CaddieCatLiveActivityShared;
+			productReference = BAC3A1C3A004B2B312A707CA /* CaddieCatLiveActivityShared.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 		66B159A1B8B9C9802AC6F407 /* CaddieCatLiveActivityExtension */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 96371208CC625484096E60CC /* Build configuration list for PBXNativeTarget "CaddieCatLiveActivityExtension" */;
 			buildPhases = (
 				9484071DA3224340C25E2158 /* Sources */,
+				D871A8CF17C719FD490810AA /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				3C67ECA987B68E34B79E1F65 /* PBXTargetDependency */,
 			);
 			name = CaddieCatLiveActivityExtension;
 			packageProductDependencies = (
@@ -330,11 +385,13 @@
 			buildPhases = (
 				89956D5C85E0C76B8439EA37 /* Sources */,
 				E1DE6F23826BCA6E2820523D /* Resources */,
+				28C45326C4275204F31B2D65 /* Frameworks */,
 				D8342D3B9A1B4248A5A5349F /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A231186F56E290DE3ECA8031 /* PBXTargetDependency */,
 				F573D9B6517759256CDA4B88 /* PBXTargetDependency */,
 			);
 			name = GolfYardageCheatsheet;
@@ -355,6 +412,10 @@
 				TargetAttributes = {
 					125FFA871225234D3F456BE5 = {
 						TestTargetID = DBAAAD8626B90EF06134BDBA;
+					};
+					5D6570737CCC36A7D7C42990 = {
+						DevelopmentTeam = 6G3D6K987W;
+						ProvisioningStyle = Automatic;
 					};
 					66B159A1B8B9C9802AC6F407 = {
 						DevelopmentTeam = 6G3D6K987W;
@@ -381,6 +442,7 @@
 			projectRoot = "";
 			targets = (
 				66B159A1B8B9C9802AC6F407 /* CaddieCatLiveActivityExtension */,
+				5D6570737CCC36A7D7C42990 /* CaddieCatLiveActivityShared */,
 				DBAAAD8626B90EF06134BDBA /* GolfYardageCheatsheet */,
 				125FFA871225234D3F456BE5 /* GolfYardageCheatsheetUITests */,
 			);
@@ -435,7 +497,6 @@
 				852242B99C32C25C2229FED3 /* ProfileSelectionViewModel.swift in Sources */,
 				254B6C988932BD6E63178B35 /* PutterDistanceSet.swift in Sources */,
 				15620CE59DCCE338A12A86BF /* RootView.swift in Sources */,
-				DC8BBAFF2E6E3E62990D3424 /* RoundActivityModels.swift in Sources */,
 				EDBDBE9280150C45C2251A8D /* RoundLiveActivityManager.swift in Sources */,
 				E2CE9638BEF7BCBCE5E8D964 /* RoundReminderScheduler.swift in Sources */,
 				BCB562A815538F1F61E91617 /* ShotFilter.swift in Sources */,
@@ -453,18 +514,35 @@
 			buildActionMask = 2147483647;
 			files = (
 				4F5476D0F0E7987DBF49D62B /* CaddieCatLiveActivityBundle.swift in Sources */,
-				6CEA50D4C357C44B0807461D /* LiveActivityDraftIntents.swift in Sources */,
-				4ECD59B0D49F7014A8D665C4 /* RoundActivityModels.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9820A7EDE46EC80B4A3BAAE4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				37E69BEE434D50076A076678 /* LiveActivityDraftIntents.swift in Sources */,
+				DF4AD433509DD6FC215928F8 /* RoundActivityModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		3C67ECA987B68E34B79E1F65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5D6570737CCC36A7D7C42990 /* CaddieCatLiveActivityShared */;
+			targetProxy = A4CC54E039D10B83FF63CE7E /* PBXContainerItemProxy */;
+		};
 		67B68CC0FAB180FBFEFD6535 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = DBAAAD8626B90EF06134BDBA /* GolfYardageCheatsheet */;
 			targetProxy = 718C2A6CB3B1D361711CCAC0 /* PBXContainerItemProxy */;
+		};
+		A231186F56E290DE3ECA8031 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5D6570737CCC36A7D7C42990 /* CaddieCatLiveActivityShared */;
+			targetProxy = D16F750C2C295FD126B0DC4F /* PBXContainerItemProxy */;
 		};
 		F573D9B6517759256CDA4B88 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -552,6 +630,64 @@
 				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
+		};
+		29AAA99BFA5CA05C21B0DAE7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 6G3D6K987W;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACH_O_TYPE = staticlib;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cepedarod.GolfYardageCheatsheet.LiveActivityShared;
+				PRODUCT_NAME = CaddieCatLiveActivityShared;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		32315D78C71897BAD6D7D10C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 6G3D6K987W;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACH_O_TYPE = staticlib;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cepedarod.GolfYardageCheatsheet.LiveActivityShared;
+				PRODUCT_NAME = CaddieCatLiveActivityShared;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
 		};
 		496D8B6DA12C6B1BBA0CE502 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -740,6 +876,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		48AFD6428820A68503A00ABF /* Build configuration list for PBXNativeTarget "CaddieCatLiveActivityShared" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				32315D78C71897BAD6D7D10C /* Debug */,
+				29AAA99BFA5CA05C21B0DAE7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		5EBF32CC19F3238B0DF6232B /* Build configuration list for PBXNativeTarget "GolfYardageCheatsheetUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

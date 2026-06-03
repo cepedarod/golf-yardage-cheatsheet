@@ -491,6 +491,7 @@ private final class CurrentRoundViewModel: ObservableObject {
     @Published private(set) var activeRound: GolfRound?
     @Published private(set) var shotRows: [ProfileShotRow] = []
     @Published private(set) var isRoundStale = false
+    @Published private(set) var isStartingRound = false
     @Published var roundNameDraft: String
     @Published var errorMessage: String?
 
@@ -568,7 +569,12 @@ private final class CurrentRoundViewModel: ObservableObject {
     }
 
     func startRound() {
-        Task {
+        guard isStartingRound == false else {
+            return
+        }
+
+        isStartingRound = true
+        Task { @MainActor in
             await startRoundWithSuggestedCourse()
         }
     }
@@ -671,6 +677,10 @@ private final class CurrentRoundViewModel: ObservableObject {
     }
 
     private func startRoundWithSuggestedCourse() async {
+        defer {
+            isStartingRound = false
+        }
+
         do {
             let name = normalizedRoundName()
             let defaultName = Self.defaultRoundName(for: Date())
@@ -866,8 +876,12 @@ private struct CurrentRoundView: View {
             Button {
                 viewModel.startRound()
             } label: {
-                Label("Start Round", systemImage: "play.circle.fill")
+                Label(
+                    viewModel.isStartingRound ? "Starting Round" : "Start Round",
+                    systemImage: viewModel.isStartingRound ? "location.circle.fill" : "play.circle.fill"
+                )
             }
+            .disabled(viewModel.isStartingRound)
             .accessibilityIdentifier("start-round-button")
         } header: {
             Text("Round")

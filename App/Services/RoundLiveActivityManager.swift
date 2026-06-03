@@ -1,4 +1,5 @@
 import ActivityKit
+import CaddieCatLiveActivityShared
 import Foundation
 
 extension Notification.Name {
@@ -8,8 +9,6 @@ extension Notification.Name {
 
 final class RoundLiveActivityManager: @unchecked Sendable {
     static let shared = RoundLiveActivityManager()
-
-    private let formatter = ClubDisplayNameFormatter()
 
     private init() {}
 
@@ -39,6 +38,7 @@ final class RoundLiveActivityManager: @unchecked Sendable {
             trackingMode: liveActivityTrackingMode(from: profile.shotTrackingMode),
             trackingPhase: trackingPhase ?? currentState?.trackingPhase ?? .idle,
             draft: currentState?.draft,
+            draftStep: currentState?.draftStep ?? .club,
             clubOptions: clubOptions(from: clubs),
             startAnchor: currentState?.startAnchor
         )
@@ -77,7 +77,9 @@ final class RoundLiveActivityManager: @unchecked Sendable {
             state.ensureDraft()
         } else if trackingPhase == .idle {
             state.draft = LiveActivityShotDraft.defaultDraft(clubOptions: state.clubOptions)
+            state.draftStep = .club
             state.startAnchor = nil
+            LiveActivityDraftBufferStore.clear(roundID: roundID.uuidString)
         }
 
         await activity.update(ActivityContent(state: state, staleDate: nil))
@@ -88,7 +90,46 @@ final class RoundLiveActivityManager: @unchecked Sendable {
             return nil
         }
 
-        return activity(forRoundID: roundID.uuidString)?.content.state.draft
+        if let activityDraft = activity(forRoundID: roundID.uuidString)?.content.state.draft {
+            return activityDraft
+        }
+
+        if let bufferedDraft = LiveActivityDraftBufferStore.draft(roundID: roundID.uuidString) {
+            return bufferedDraft
+        }
+
+        return nil
+    }
+
+    func defaultShotDraft(clubs: [Club]) -> LiveActivityShotDraft {
+        LiveActivityShotDraft.defaultDraft(clubOptions: clubOptions(from: clubs))
+    }
+
+    func updatePendingShotDraft(
+        _ draft: LiveActivityShotDraft,
+        roundID: UUID?,
+        profile: GolferProfile,
+        shotCount: Int,
+        clubs: [Club],
+        draftStep: LiveActivityDraftStep? = nil
+    ) async {
+        guard let roundID else {
+            return
+        }
+
+        let resolvedDraftStep = draftStep ?? LiveActivityDraftStep.firstIncompleteStep(completedFields: draft.completedFields)
+        LiveActivityDraftBufferStore.save(draft: draft, step: resolvedDraftStep, roundID: roundID.uuidString)
+
+        guard let activity = activity(forRoundID: roundID.uuidString) else {
+            return
+        }
+
+        var state = activity.content.state
+        state.shotCount = shotCount
+        state.trackingMode = liveActivityTrackingMode(from: profile.shotTrackingMode)
+        state.clubOptions = clubOptions(from: clubs)
+        state.setDraft(draft, step: resolvedDraftStep)
+        await activity.update(ActivityContent(state: state, staleDate: nil))
     }
 
     func pendingStartAnchor(roundID: UUID?) -> ShotLocationAnchor? {
@@ -114,6 +155,7 @@ final class RoundLiveActivityManager: @unchecked Sendable {
             ActivityContent(state: activity.content.state, staleDate: Date()),
             dismissalPolicy: .immediate
         )
+        LiveActivityDraftBufferStore.clear(roundID: roundID.uuidString)
     }
 
     private func startActivity(
@@ -139,7 +181,9 @@ final class RoundLiveActivityManager: @unchecked Sendable {
     }
 
     private func activity(forRoundID roundID: String) -> Activity<RoundActivityAttributes>? {
-        Activity<RoundActivityAttributes>.activities.first { $0.attributes.roundID == roundID }
+        Activity<RoundActivityAttributes>.activities.first {
+            $0.attributes.roundID == roundID && $0.activityState.isUsableForUpdates
+        }
     }
 
     private func endActivities(forProfileID profileID: String) async {
@@ -148,6 +192,7 @@ final class RoundLiveActivityManager: @unchecked Sendable {
                 ActivityContent(state: activity.content.state, staleDate: Date()),
                 dismissalPolicy: .immediate
             )
+            LiveActivityDraftBufferStore.clear(roundID: activity.attributes.roundID)
         }
     }
 
@@ -158,6 +203,7 @@ final class RoundLiveActivityManager: @unchecked Sendable {
                 ActivityContent(state: activity.content.state, staleDate: Date()),
                 dismissalPolicy: .immediate
             )
+            LiveActivityDraftBufferStore.clear(roundID: activity.attributes.roundID)
         }
     }
 
@@ -165,7 +211,6 @@ final class RoundLiveActivityManager: @unchecked Sendable {
         clubs.map { club in
             LiveActivityClubOption(
                 id: club.id.uuidString,
-                name: formatter.displayName(for: club),
                 compactName: compactClubName(for: club),
                 supportsFlop: club.clubType.isWedge
             )
@@ -238,6 +283,19 @@ final class RoundLiveActivityManager: @unchecked Sendable {
             .gps
         case .manual:
             .manual
+        }
+    }
+}
+
+private extension ActivityState {
+    var isUsableForUpdates: Bool {
+        switch self {
+        case .active, .pending, .stale:
+            true
+        case .dismissed, .ended:
+            false
+        @unknown default:
+            false
         }
     }
 }
