@@ -359,6 +359,9 @@ private final class RoundBoundaryMonitorViewModel: ObservableObject {
 @MainActor
 private final class ProfileDashboardViewModel: ObservableObject {
     @Published var shotTrackingMode: ShotTrackingMode
+    @Published var homeBaseCity: String
+    @Published var homeBaseAltitudeText: String
+    @Published var altitudeCalculationMode: AltitudeCalculationMode
     @Published private(set) var profileName: String
     @Published private(set) var shotRows: [ProfileShotRow] = []
     @Published private(set) var completedRounds: [GolfRound] = []
@@ -375,6 +378,9 @@ private final class ProfileDashboardViewModel: ObservableObject {
         profileID = profile.id
         profileName = profile.name
         shotTrackingMode = profile.shotTrackingMode
+        homeBaseCity = profile.homeBaseCity
+        homeBaseAltitudeText = Self.formattedAltitude(profile.homeBaseAltitudeFeet)
+        altitudeCalculationMode = profile.altitudeCalculationMode
         self.repository = repository
     }
 
@@ -390,6 +396,9 @@ private final class ProfileDashboardViewModel: ObservableObject {
             let sortedClubs = clubSorter.sortedForDistanceTab(data.clubs(for: profileID))
             profileName = profile.name
             shotTrackingMode = profile.shotTrackingMode
+            homeBaseCity = profile.homeBaseCity
+            homeBaseAltitudeText = Self.formattedAltitude(profile.homeBaseAltitudeFeet)
+            altitudeCalculationMode = profile.altitudeCalculationMode
             shotRows = data.shotRecords
                 .filter { $0.profileID == profileID }
                 .sorted(by: newestShotFirst)
@@ -447,6 +456,25 @@ private final class ProfileDashboardViewModel: ObservableObject {
             load()
         } catch {
             errorMessage = "Unable to update shot tracking mode."
+            load()
+        }
+    }
+
+    func updateAltitudeSettings() {
+        do {
+            try repository.updateProfileAltitudeSettings(
+                profileID: profileID,
+                homeBaseCity: homeBaseCity,
+                homeBaseAltitudeFeet: Double(homeBaseAltitudeText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? AltitudeDefaults.chicagoFeet,
+                altitudeCalculationMode: altitudeCalculationMode
+            )
+            errorMessage = nil
+            load()
+        } catch GolfBagRepositoryError.homeBaseCityRequired {
+            errorMessage = "Home base city is required."
+            load()
+        } catch {
+            errorMessage = "Unable to update altitude settings."
             load()
         }
     }
@@ -516,6 +544,10 @@ private final class ProfileDashboardViewModel: ObservableObject {
 
         return lhs.id.uuidString < rhs.id.uuidString
     }
+
+    private static func formattedAltitude(_ altitudeFeet: Double) -> String {
+        "\(Int(altitudeFeet.rounded()))"
+    }
 }
 
 private struct ProfileShotRow: Identifiable, Equatable {
@@ -561,6 +593,7 @@ private final class CurrentRoundViewModel: ObservableObject {
     @Published private(set) var isRoundStale = false
     @Published private(set) var isStartingRound = false
     @Published var roundNameDraft: String
+    @Published var distanceTrackingMode: RoundDistanceTrackingMode = .accountForAltitude
     @Published var errorMessage: String?
 
     private let profileID: UUID
@@ -604,6 +637,7 @@ private final class CurrentRoundViewModel: ObservableObject {
 
             if let round {
                 roundNameDraft = round.name
+                distanceTrackingMode = round.distanceTrackingMode
                 if roundReminderScheduler.isStale(round) == false {
                     Task {
                         await roundReminderScheduler.scheduleStaleRoundReminder(for: round)
@@ -625,6 +659,7 @@ private final class CurrentRoundViewModel: ObservableObject {
                 }
                 shotRows = []
                 isRoundStale = false
+                distanceTrackingMode = .accountForAltitude
             }
 
             errorMessage = nil
@@ -659,6 +694,21 @@ private final class CurrentRoundViewModel: ObservableObject {
             errorMessage = "Round name is required."
         } catch {
             errorMessage = "Unable to update round name."
+        }
+    }
+
+    func updateDistanceTrackingMode(_ mode: RoundDistanceTrackingMode) {
+        guard let activeRound else {
+            return
+        }
+
+        do {
+            _ = try repository.updateRoundDistanceTrackingMode(id: activeRound.id, mode: mode)
+            errorMessage = nil
+            load()
+        } catch {
+            errorMessage = "Unable to update distance tracking."
+            load()
         }
     }
 
@@ -753,9 +803,15 @@ private final class CurrentRoundViewModel: ObservableObject {
             let name = normalizedRoundName()
             let defaultName = Self.defaultRoundName(for: Date())
             let userEditedName = name != defaultName
-            let courseName = userEditedName ? nil : await suggestedCourseName()
+            let context = userEditedName ? (courseName: nil as String?, altitudeFeet: await currentAltitudeFeet()) : await suggestedRoundContext()
+            let courseName = context.courseName
             let roundName = courseName ?? name
-            let round = try repository.startRound(profileID: profileID, name: roundName, courseName: courseName)
+            let round = try repository.startRound(
+                profileID: profileID,
+                name: roundName,
+                courseName: courseName,
+                altitudeFeet: context.altitudeFeet
+            )
             Task {
                 await roundReminderScheduler.scheduleStaleRoundReminder(for: round)
             }
@@ -766,10 +822,18 @@ private final class CurrentRoundViewModel: ObservableObject {
         }
     }
 
-    private func suggestedCourseName() async -> String? {
+    private func suggestedRoundContext() async -> (courseName: String?, altitudeFeet: Double?) {
         do {
             let anchor = try await locationProvider.currentAnchor()
-            return await courseNameProvider.nearestCourseName(to: anchor.coordinate)
+            return (await courseNameProvider.nearestCourseName(to: anchor.coordinate), anchor.altitudeFeet)
+        } catch {
+            return (nil, nil)
+        }
+    }
+
+    private func currentAltitudeFeet() async -> Double? {
+        do {
+            return try await locationProvider.currentAnchor().altitudeFeet
         } catch {
             return nil
         }
@@ -992,6 +1056,27 @@ private struct CurrentRoundView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
             }
+
+            if let altitudeFeet = round.altitudeFeet {
+                HStack {
+                    Text("Altitude")
+                    Spacer()
+                    Text("\(Int(altitudeFeet.rounded())) ft")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
+
+            Picker("Distance Tracking", selection: $viewModel.distanceTrackingMode) {
+                ForEach(RoundDistanceTrackingMode.allCases, id: \.self) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("round-distance-tracking-picker")
+            .onChange(of: viewModel.distanceTrackingMode) { _, newMode in
+                viewModel.updateDistanceTrackingMode(newMode)
+            }
         }
     }
 
@@ -1168,6 +1253,45 @@ private struct ProfileView: View {
                 .onChange(of: viewModel.shotTrackingMode) { _, newMode in
                     viewModel.updateShotTrackingMode(newMode)
                 }
+            }
+
+            Section {
+                TextField("Home Base City", text: $viewModel.homeBaseCity)
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+                    .accessibilityIdentifier("home-base-city-field")
+
+                HStack {
+                    Text("Home Altitude")
+
+                    Spacer()
+
+                    TextField("Feet", text: $viewModel.homeBaseAltitudeText)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 110)
+                        .accessibilityIdentifier("home-base-altitude-field")
+
+                    Text("ft")
+                        .foregroundStyle(.secondary)
+                }
+
+                Picker("Shot Calculations", selection: $viewModel.altitudeCalculationMode) {
+                    ForEach(AltitudeCalculationMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("altitude-calculation-mode-picker")
+
+                Button("Save Altitude Settings") {
+                    viewModel.updateAltitudeSettings()
+                }
+                .accessibilityIdentifier("save-altitude-settings-button")
+            } header: {
+                Text("Altitude")
+            } footer: {
+                Text("Caddie Cat uses home altitude to normalize shot distances when altitude adjustments are enabled.")
             }
 
             Section("Overview") {
@@ -2425,6 +2549,7 @@ private struct ShotRecordEditView: View {
             distance: distance(from: distanceText),
             distanceSource: record.distanceSource,
             gpsMeasurement: record.gpsMeasurement,
+            altitudeFeet: record.altitudeFeet,
             strikeQuality: strikeQuality,
             direction: direction,
             grassType: grassType,

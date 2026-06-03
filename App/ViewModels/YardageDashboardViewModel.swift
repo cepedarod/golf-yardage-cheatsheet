@@ -157,13 +157,18 @@ final class YardageDashboardViewModel: ObservableObject {
     }
 
     @discardableResult
-    func startRound(courseName: String? = nil) -> Bool {
+    func startRound(courseName: String? = nil, altitudeFeet: Double? = nil) -> Bool {
         do {
             let suggestedName = courseName?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .nilIfEmpty
             let roundName = suggestedName ?? Self.defaultRoundName(for: Date())
-            let round = try repository.startRound(profileID: profile.id, name: roundName, courseName: suggestedName)
+            let round = try repository.startRound(
+                profileID: profile.id,
+                name: roundName,
+                courseName: suggestedName,
+                altitudeFeet: altitudeFeet
+            )
             activeRoundID = round.id
             Task {
                 await roundReminderScheduler.scheduleStaleRoundReminder(for: round)

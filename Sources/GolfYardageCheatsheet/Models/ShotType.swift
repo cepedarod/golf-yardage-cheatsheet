@@ -218,17 +218,20 @@ public struct ShotLocationAnchor: Equatable, Sendable {
     public var latitude: Double
     public var longitude: Double
     public var horizontalAccuracyMeters: Double
+    public var altitudeFeet: Double?
     public var capturedAt: Date
 
     public init(
         latitude: Double,
         longitude: Double,
         horizontalAccuracyMeters: Double,
+        altitudeFeet: Double? = nil,
         capturedAt: Date = Date()
     ) {
         self.latitude = latitude
         self.longitude = longitude
         self.horizontalAccuracyMeters = horizontalAccuracyMeters
+        self.altitudeFeet = altitudeFeet
         self.capturedAt = capturedAt
     }
 }

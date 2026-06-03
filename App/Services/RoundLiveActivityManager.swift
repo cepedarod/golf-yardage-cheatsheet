@@ -142,6 +142,7 @@ final class RoundLiveActivityManager: @unchecked Sendable {
             latitude: anchor.latitude,
             longitude: anchor.longitude,
             horizontalAccuracyMeters: anchor.horizontalAccuracyMeters,
+            altitudeFeet: anchor.altitudeFeet,
             capturedAt: anchor.capturedAt
         )
     }
@@ -222,6 +223,7 @@ final class RoundLiveActivityManager: @unchecked Sendable {
             latitude: anchor.latitude,
             longitude: anchor.longitude,
             horizontalAccuracyMeters: anchor.horizontalAccuracyMeters,
+            altitudeFeet: anchor.altitudeFeet,
             capturedAt: anchor.capturedAt
         )
     }

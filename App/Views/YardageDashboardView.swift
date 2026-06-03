@@ -573,9 +573,9 @@ struct YardageDashboardView: View {
 
     private func startRoundAndBeginGPSShot() {
         Task {
-            let courseName = await suggestedCourseName()
+            let context = await suggestedRoundContext()
 
-            if viewModel.startRound(courseName: courseName) {
+            if viewModel.startRound(courseName: context.courseName, altitudeFeet: context.altitudeFeet) {
                 syncLocationWarmup()
                 beginGPSShot()
             }
@@ -583,11 +583,15 @@ struct YardageDashboardView: View {
     }
 
     private func suggestedCourseName() async -> String? {
+        await suggestedRoundContext().courseName
+    }
+
+    private func suggestedRoundContext() async -> (courseName: String?, altitudeFeet: Double?) {
         do {
             let anchor = try await shotTracker.currentAnchor()
-            return await courseNameProvider.nearestCourseName(to: anchor.coordinate)
+            return (await courseNameProvider.nearestCourseName(to: anchor.coordinate), anchor.altitudeFeet)
         } catch {
-            return nil
+            return (nil, nil)
         }
     }
 
@@ -1044,6 +1048,7 @@ final class CoreLocationShotLocationProvider: NSObject, @preconcurrency CLLocati
             latitude: location.coordinate.latitude,
             longitude: location.coordinate.longitude,
             horizontalAccuracyMeters: location.horizontalAccuracy,
+            altitudeFeet: Self.altitudeFeet(from: location),
             capturedAt: location.timestamp
         )
     }
@@ -1054,6 +1059,7 @@ final class CoreLocationShotLocationProvider: NSObject, @preconcurrency CLLocati
                 latitude: location.coordinate.latitude,
                 longitude: location.coordinate.longitude,
                 horizontalAccuracyMeters: location.horizontalAccuracy,
+                altitudeFeet: Self.altitudeFeet(from: location),
                 capturedAt: location.timestamp
             )
         }
@@ -1145,6 +1151,14 @@ final class CoreLocationShotLocationProvider: NSObject, @preconcurrency CLLocati
 
                 return lhs.timestamp > rhs.timestamp
             }
+    }
+
+    private static func altitudeFeet(from location: CLLocation) -> Double? {
+        guard location.verticalAccuracy >= 0 else {
+            return nil
+        }
+
+        return location.altitude * 3.280839895
     }
 }
 
@@ -1609,6 +1623,7 @@ private struct RecordShotView: View {
             distance: distance(from: distanceText),
             distanceSource: distanceSource(),
             gpsMeasurement: savedGPSMeasurement(),
+            altitudeFeet: savedAltitudeFeet(),
             strikeQuality: strikeQuality,
             direction: direction,
             grassType: grassType,
@@ -1644,6 +1659,10 @@ private struct RecordShotView: View {
 
     private func savedGPSMeasurement() -> ShotGPSMeasurement? {
         distanceSource() == .manual ? nil : gpsMeasurement
+    }
+
+    private func savedAltitudeFeet() -> Double {
+        gpsCapture?.startAnchor.altitudeFeet ?? AltitudeDefaults.chicagoFeet
     }
 
     private func clubGroup(for club: Club) -> RecordClubGroup {
