@@ -1,4 +1,91 @@
+import CoreLocation
 import SwiftUI
+
+private struct HomeBaseAltitudeLookup: Equatable {
+    let cityName: String
+    let altitudeFeet: Double
+}
+
+private enum HomeBaseAltitudeLookupError: Error, Equatable {
+    case emptyCity
+    case cityNotFound
+    case altitudeUnavailable
+}
+
+@MainActor
+private protocol HomeBaseAltitudeResolving: AnyObject {
+    func lookupAltitude(for city: String) async throws -> HomeBaseAltitudeLookup
+}
+
+@MainActor
+private final class CoreLocationHomeBaseAltitudeResolver: HomeBaseAltitudeResolving {
+    private let geocoder = CLGeocoder()
+
+    func lookupAltitude(for city: String) async throws -> HomeBaseAltitudeLookup {
+        let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmedCity.isEmpty == false else {
+            throw HomeBaseAltitudeLookupError.emptyCity
+        }
+
+        if let defaultLookup = Self.defaultLookup(for: trimmedCity) {
+            return defaultLookup
+        }
+
+        let placemarks = try await geocoder.geocodeAddressString(trimmedCity)
+
+        guard let placemark = placemarks.first else {
+            throw HomeBaseAltitudeLookupError.cityNotFound
+        }
+
+        guard let location = placemark.location,
+              Self.hasUsableAltitude(location) else {
+            throw HomeBaseAltitudeLookupError.altitudeUnavailable
+        }
+
+        return HomeBaseAltitudeLookup(
+            cityName: Self.displayName(for: placemark, fallback: trimmedCity),
+            altitudeFeet: location.altitude * Self.feetPerMeter
+        )
+    }
+
+    private static func hasUsableAltitude(_ location: CLLocation) -> Bool {
+        location.verticalAccuracy >= 0 || abs(location.altitude) > 0.01
+    }
+
+    private static func displayName(for placemark: CLPlacemark, fallback: String) -> String {
+        let city = placemark.locality ?? placemark.name ?? fallback
+
+        if let state = placemark.administrativeArea, state.isEmpty == false {
+            return "\(city), \(state)"
+        }
+
+        if let country = placemark.country, country.isEmpty == false {
+            return "\(city), \(country)"
+        }
+
+        return city
+    }
+
+    private static func defaultLookup(for city: String) -> HomeBaseAltitudeLookup? {
+        let normalizedCity = city
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        guard normalizedCity == "chicago" ||
+            normalizedCity == "chicago, il" ||
+            normalizedCity == "chicago, illinois" else {
+            return nil
+        }
+
+        return HomeBaseAltitudeLookup(
+            cityName: AltitudeDefaults.chicagoCity,
+            altitudeFeet: AltitudeDefaults.chicagoFeet
+        )
+    }
+
+    private static let feetPerMeter = 3.280839895
+}
 
 struct RootView: View {
     @StateObject private var viewModel: ProfileSelectionViewModel
@@ -363,6 +450,8 @@ private final class ProfileDashboardViewModel: ObservableObject {
     @Published var homeBaseAltitudeText: String
     @Published var altitudeCalculationMode: AltitudeCalculationMode
     @Published private(set) var profileName: String
+    @Published private(set) var isLookingUpHomeBaseAltitude = false
+    @Published private(set) var altitudeLookupMessage: String?
     @Published private(set) var shotRows: [ProfileShotRow] = []
     @Published private(set) var completedRounds: [GolfRound] = []
     @Published private(set) var shotCountsByRoundID: [UUID: Int] = [:]
@@ -371,10 +460,15 @@ private final class ProfileDashboardViewModel: ObservableObject {
 
     private let profileID: UUID
     private let repository: GolfBagRepository
+    private let homeBaseAltitudeResolver: any HomeBaseAltitudeResolving
     private let formatter = ClubDisplayNameFormatter()
     private let clubSorter = ClubSorter()
 
-    init(profile: GolferProfile, repository: GolfBagRepository) {
+    init(
+        profile: GolferProfile,
+        repository: GolfBagRepository,
+        homeBaseAltitudeResolver: any HomeBaseAltitudeResolving = CoreLocationHomeBaseAltitudeResolver()
+    ) {
         profileID = profile.id
         profileName = profile.name
         shotTrackingMode = profile.shotTrackingMode
@@ -382,6 +476,7 @@ private final class ProfileDashboardViewModel: ObservableObject {
         homeBaseAltitudeText = Self.formattedAltitude(profile.homeBaseAltitudeFeet)
         altitudeCalculationMode = profile.altitudeCalculationMode
         self.repository = repository
+        self.homeBaseAltitudeResolver = homeBaseAltitudeResolver
     }
 
     func load() {
@@ -460,7 +555,25 @@ private final class ProfileDashboardViewModel: ObservableObject {
         }
     }
 
-    func updateAltitudeSettings() {
+    func updateAltitudeSettings() async {
+        isLookingUpHomeBaseAltitude = true
+        altitudeLookupMessage = nil
+        defer {
+            isLookingUpHomeBaseAltitude = false
+        }
+
+        do {
+            let lookup = try await homeBaseAltitudeResolver.lookupAltitude(for: homeBaseCity)
+            homeBaseCity = lookup.cityName
+            homeBaseAltitudeText = Self.formattedAltitude(lookup.altitudeFeet)
+            altitudeLookupMessage = "Saved \(lookup.cityName) at \(Self.formattedAltitude(lookup.altitudeFeet)) ft."
+        } catch HomeBaseAltitudeLookupError.emptyCity {
+            errorMessage = "Home base city is required."
+            return
+        } catch {
+            altitudeLookupMessage = "City lookup unavailable. Saved the entered altitude."
+        }
+
         do {
             try repository.updateProfileAltitudeSettings(
                 profileID: profileID,
@@ -1287,14 +1400,33 @@ private struct ProfileView: View {
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("altitude-calculation-mode-picker")
 
-                Button("Save Altitude Settings") {
-                    viewModel.updateAltitudeSettings()
+                Button {
+                    Task {
+                        await viewModel.updateAltitudeSettings()
+                    }
+                } label: {
+                    HStack {
+                        Text("Save City & Altitude")
+
+                        Spacer()
+
+                        if viewModel.isLookingUpHomeBaseAltitude {
+                            ProgressView()
+                        }
+                    }
                 }
+                .disabled(viewModel.isLookingUpHomeBaseAltitude)
                 .accessibilityIdentifier("save-altitude-settings-button")
             } header: {
                 Text("Altitude")
             } footer: {
-                Text("Caddie Cat uses home altitude to normalize shot distances when altitude adjustments are enabled.")
+                VStack(alignment: .leading, spacing: 6) {
+                    if let altitudeLookupMessage = viewModel.altitudeLookupMessage {
+                        Text(altitudeLookupMessage)
+                    }
+
+                    Text("Caddie Cat looks up city altitude when possible and uses home altitude to normalize shot distances when altitude adjustments are enabled.")
+                }
             }
 
             Section("Overview") {
