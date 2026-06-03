@@ -155,6 +155,8 @@ private struct MainTabView: View {
         }
 
         switch url.host {
+        case "distance":
+            selectedTab = .distances
         case "round":
             selectedTab = .round
         case "track-shot-start":

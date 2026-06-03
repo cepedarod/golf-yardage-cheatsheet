@@ -595,6 +595,7 @@ public enum LiveActivityShotDirection: String, Codable, CaseIterable, Hashable, 
 }
 
 public enum CaddieCatLiveActivityDeepLink {
+    case openDistance
     case openRound
     case startShot
     case openFinish
@@ -604,6 +605,8 @@ public enum CaddieCatLiveActivityDeepLink {
         components.scheme = "caddiecat"
 
         switch self {
+        case .openDistance:
+            components.host = "distance"
         case .openRound:
             components.host = "round"
         case .startShot:

@@ -23,7 +23,7 @@ struct CaddieCatLiveActivity: Widget {
             CaddieCatLockScreenActivityView(context: context)
                 .activityBackgroundTint(Color.black.opacity(0.82))
                 .activitySystemActionForegroundColor(.green)
-                .widgetURL(CaddieCatLiveActivityDeepLink.openRound.url(roundID: context.attributes.roundID))
+                .widgetURL(CaddieCatLiveActivityDeepLink.openDistance.url(roundID: context.attributes.roundID))
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -62,7 +62,7 @@ struct CaddieCatLiveActivity: Widget {
                 Image(systemName: "flag.fill")
                     .foregroundStyle(.green)
             }
-            .widgetURL(CaddieCatLiveActivityDeepLink.openRound.url(roundID: context.attributes.roundID))
+            .widgetURL(CaddieCatLiveActivityDeepLink.openDistance.url(roundID: context.attributes.roundID))
             .keylineTint(.green)
         }
     }
@@ -116,8 +116,8 @@ private struct CaddieCatLockScreenActivityView: View {
         VStack(alignment: .leading, spacing: 8) {
             liveActivityHeader
 
-            Link(destination: CaddieCatLiveActivityDeepLink.openRound.url(roundID: context.attributes.roundID)) {
-                Label("Open Round", systemImage: "arrow.up.forward.app.fill")
+            Link(destination: CaddieCatLiveActivityDeepLink.openDistance.url(roundID: context.attributes.roundID)) {
+                Label("Open Distance", systemImage: "arrow.up.forward.app.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)

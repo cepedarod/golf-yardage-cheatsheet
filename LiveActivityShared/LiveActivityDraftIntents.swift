@@ -25,7 +25,7 @@ public struct CycleShotDraftIntent: AppIntent, LiveActivityIntent {
     }
 
     public func perform() async throws -> some IntentResult {
-        guard let activity = Activity<RoundActivityAttributes>.activities.first(where: { $0.attributes.roundID == roundID }) else {
+        guard let activity = activity(forRoundID: roundID) else {
             return .result()
         }
         guard let field = LiveActivityDraftField(rawValue: field) else {
@@ -64,7 +64,7 @@ public struct SelectShotDraftOptionIntent: AppIntent, LiveActivityIntent {
     }
 
     public func perform() async throws -> some IntentResult {
-        guard let activity = Activity<RoundActivityAttributes>.activities.first(where: { $0.attributes.roundID == roundID }) else {
+        guard let activity = activity(forRoundID: roundID) else {
             return .result()
         }
         guard let step = LiveActivityDraftStep(rawValue: step) else {
@@ -72,16 +72,11 @@ public struct SelectShotDraftOptionIntent: AppIntent, LiveActivityIntent {
         }
 
         var state = activity.content.state
-        guard state.select(value, for: step, advances: false) else {
+        guard state.select(value, for: step, advances: true) else {
             return .result()
         }
 
         await updateActivity(activity, with: state)
-        try? await Task.sleep(nanoseconds: 250_000_000)
-
-        var advancedState = state
-        advancedState.advanceDraftStep(from: step)
-        await updateActivity(activity, with: advancedState)
         return .result()
     }
 }
@@ -103,7 +98,7 @@ public struct PreviousShotDraftStepIntent: AppIntent, LiveActivityIntent {
     }
 
     public func perform() async throws -> some IntentResult {
-        guard let activity = Activity<RoundActivityAttributes>.activities.first(where: { $0.attributes.roundID == roundID }) else {
+        guard let activity = activity(forRoundID: roundID) else {
             return .result()
         }
 
@@ -119,4 +114,23 @@ private func updateActivity(
     with state: RoundActivityAttributes.ContentState
 ) async {
     await activity.update(ActivityContent(state: state, staleDate: nil))
+}
+
+private func activity(forRoundID roundID: String) -> Activity<RoundActivityAttributes>? {
+    Activity<RoundActivityAttributes>.activities.first {
+        $0.attributes.roundID == roundID && $0.activityState.isUsableForUpdates
+    }
+}
+
+private extension ActivityState {
+    var isUsableForUpdates: Bool {
+        switch self {
+        case .active, .pending, .stale:
+            true
+        case .dismissed, .ended:
+            false
+        @unknown default:
+            false
+        }
+    }
 }
