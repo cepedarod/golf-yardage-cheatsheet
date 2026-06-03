@@ -363,11 +363,13 @@ private final class ProfileDashboardViewModel: ObservableObject {
     @Published private(set) var shotRows: [ProfileShotRow] = []
     @Published private(set) var completedRounds: [GolfRound] = []
     @Published private(set) var shotCountsByRoundID: [UUID: Int] = [:]
+    @Published private(set) var clubStrikeRows: [ProfileClubStrikeRow] = []
     @Published var errorMessage: String?
 
     private let profileID: UUID
     private let repository: GolfBagRepository
     private let formatter = ClubDisplayNameFormatter()
+    private let clubSorter = ClubSorter()
 
     init(profile: GolferProfile, repository: GolfBagRepository) {
         profileID = profile.id
@@ -385,6 +387,7 @@ private final class ProfileDashboardViewModel: ObservableObject {
             }
 
             let clubsByID = Dictionary(uniqueKeysWithValues: data.clubs.map { ($0.id, $0) })
+            let sortedClubs = clubSorter.sortedForDistanceTab(data.clubs(for: profileID))
             profileName = profile.name
             shotTrackingMode = profile.shotTrackingMode
             shotRows = data.shotRecords
@@ -407,11 +410,32 @@ private final class ProfileDashboardViewModel: ObservableObject {
                         counts[roundID, default: 0] += 1
                     }
                 }
+            clubStrikeRows = sortedClubs.compactMap { club in
+                guard club.clubType != .putter else {
+                    return nil
+                }
+
+                let clubRecords = data.shotRecords.filter { $0.profileID == profileID && $0.clubID == club.id }
+                let pureCount = clubRecords.filter { $0.strikeQuality == .pure }.count
+                let mishitCount = clubRecords.filter { $0.strikeQuality == .thin || $0.strikeQuality == .chunk }.count
+                let totalCount = pureCount + mishitCount
+
+                guard totalCount > 0 else {
+                    return nil
+                }
+
+                return ProfileClubStrikeRow(
+                    clubName: formatter.displayName(for: club),
+                    pureCount: pureCount,
+                    mishitCount: mishitCount
+                )
+            }
             errorMessage = nil
         } catch {
             shotRows = []
             completedRounds = []
             shotCountsByRoundID = [:]
+            clubStrikeRows = []
             errorMessage = "Unable to load profile details."
         }
     }
@@ -500,6 +524,34 @@ private struct ProfileShotRow: Identifiable, Equatable {
     let record: ShotRecord
     let club: Club?
     let clubName: String
+}
+
+private struct ProfileClubStrikeRow: Identifiable, Equatable {
+    var id: String { clubName }
+
+    let clubName: String
+    let pureCount: Int
+    let mishitCount: Int
+
+    var totalCount: Int {
+        pureCount + mishitCount
+    }
+
+    var purePercentage: Double {
+        guard totalCount > 0 else {
+            return 0
+        }
+
+        return Double(pureCount) / Double(totalCount) * 100
+    }
+
+    var mishitPercentage: Double {
+        guard totalCount > 0 else {
+            return 0
+        }
+
+        return Double(mishitCount) / Double(totalCount) * 100
+    }
 }
 
 @MainActor
@@ -1144,6 +1196,13 @@ private struct ProfileView: View {
                 .accessibilityIdentifier("profile-rounds-row")
             }
 
+            if viewModel.clubStrikeRows.isEmpty == false {
+                Section("Club Strike") {
+                    ProfileClubStrikeChartView(rows: viewModel.clubStrikeRows)
+                        .accessibilityIdentifier("profile-club-strike-chart")
+                }
+            }
+
             if let errorMessage = viewModel.errorMessage {
                 Section {
                     Text(errorMessage)
@@ -1194,6 +1253,58 @@ private struct ProfileMetricRow: View {
                 .accessibilityIdentifier(valueAccessibilityIdentifier)
         }
         .padding(.vertical, 6)
+    }
+}
+
+private struct ProfileClubStrikeChartView: View {
+    let rows: [ProfileClubStrikeRow]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 14) {
+                legendItem(title: "Pure", tint: .green)
+                legendItem(title: "Thin + Chunk", tint: .red)
+            }
+
+            ForEach(rows) { row in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(row.clubName)
+                            .font(.caption.weight(.semibold))
+
+                        Spacer()
+
+                        Text("\(row.pureCount)/\(row.totalCount) pure")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+
+                    DistributionStackedBar(
+                        rows: [
+                            DistributionSegmentData(id: "\(row.id)-pure", percentage: row.purePercentage, tint: .green),
+                            DistributionSegmentData(id: "\(row.id)-mishit", percentage: row.mishitPercentage, tint: .red)
+                        ],
+                        totalCount: row.totalCount
+                    )
+                    .frame(height: 12)
+                }
+                .accessibilityIdentifier("profile-club-strike-row-\(row.clubName)")
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private func legendItem(title: String, tint: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(tint)
+                .frame(width: 8, height: 8)
+
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
