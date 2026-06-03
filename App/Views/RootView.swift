@@ -463,12 +463,26 @@ private final class ProfileDashboardViewModel: ObservableObject {
         shotCountsByRoundID[round.id] ?? 0
     }
 
+    func shotRows(for round: GolfRound) -> [ProfileShotRow] {
+        shotRows
+            .filter { $0.record.roundID == round.id }
+            .sorted(by: oldestShotFirst)
+    }
+
     private func newestShotFirst(_ lhs: ShotRecord, _ rhs: ShotRecord) -> Bool {
         if lhs.createdAt != rhs.createdAt {
             return lhs.createdAt > rhs.createdAt
         }
 
         return lhs.id.uuidString < rhs.id.uuidString
+    }
+
+    private func oldestShotFirst(_ lhs: ProfileShotRow, _ rhs: ProfileShotRow) -> Bool {
+        if lhs.record.createdAt != rhs.record.createdAt {
+            return lhs.record.createdAt < rhs.record.createdAt
+        }
+
+        return lhs.record.id.uuidString < rhs.record.id.uuidString
     }
 
     private func newestRoundFirst(_ lhs: GolfRound, _ rhs: GolfRound) -> Bool {
@@ -1337,7 +1351,7 @@ private struct ProfileRoundsListView: View {
             } else {
                 ForEach(viewModel.completedRounds) { round in
                     NavigationLink {
-                        RoundDetailView(round: round, shotCount: viewModel.shotCount(for: round))
+                        RoundDetailView(round: round, viewModel: viewModel)
                     } label: {
                         RoundHistoryRow(round: round, shotCount: viewModel.shotCount(for: round))
                     }
@@ -1393,7 +1407,7 @@ private struct RoundHistoryRow: View {
 
 private struct RoundDetailView: View {
     let round: GolfRound
-    let shotCount: Int
+    @ObservedObject var viewModel: ProfileDashboardViewModel
 
     var body: some View {
         List {
@@ -1407,18 +1421,24 @@ private struct RoundDetailView: View {
             }
 
             Section {
-                HStack {
-                    Text("Total Tracked Shots")
-                    Spacer()
-                    Text("\(shotCount)")
-                        .font(.title3.weight(.semibold))
-                        .monospacedDigit()
+                NavigationLink {
+                    CompletedRoundShotListView(round: round, viewModel: viewModel)
+                } label: {
+                    ProfileMetricRow(
+                        title: "Total Tracked Shots",
+                        value: "\(viewModel.shotCount(for: round))",
+                        systemImage: "list.bullet.rectangle",
+                        valueAccessibilityIdentifier: "round-detail-shot-count"
+                    )
                 }
-                .accessibilityIdentifier("round-detail-shot-count")
+                .accessibilityIdentifier("round-detail-total-shots-row")
             }
         }
         .navigationTitle(round.name)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.load()
+        }
     }
 
     private func detailRow(title: String, value: String) -> some View {
@@ -1429,6 +1449,73 @@ private struct RoundDetailView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
         }
+    }
+}
+
+private struct CompletedRoundShotListView: View {
+    let round: GolfRound
+    @ObservedObject var viewModel: ProfileDashboardViewModel
+
+    @State private var editingRow: ProfileShotRow?
+
+    var body: some View {
+        List {
+            if roundShotRows.isEmpty {
+                ContentUnavailableView(
+                    "No Round Shots",
+                    systemImage: "list.bullet.rectangle",
+                    description: Text("Shots tracked during this round will appear here.")
+                )
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(roundShotRows) { row in
+                    Button {
+                        if row.club != nil {
+                            editingRow = row
+                        }
+                    } label: {
+                        ProfileShotRecordRowView(row: row)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("completed-round-shot-row-\(row.record.id.uuidString)")
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        if row.club != nil {
+                            Button {
+                                editingRow = row
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(.blue)
+                        }
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            viewModel.deleteShotRecord(row)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("completed-round-shot-list")
+        .navigationTitle("Round Shots")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingRow) { row in
+            if let club = row.club {
+                NavigationStack {
+                    ShotRecordEditView(club: club, record: row.record, onSave: viewModel.saveShotRecord)
+                }
+            }
+        }
+        .onAppear {
+            viewModel.load()
+        }
+    }
+
+    private var roundShotRows: [ProfileShotRow] {
+        viewModel.shotRows(for: round)
     }
 }
 
