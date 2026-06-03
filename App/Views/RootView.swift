@@ -1780,10 +1780,10 @@ private struct AnalysisView: View {
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
             } else {
-                clubSection(title: "Active Clubs", clubs: viewModel.activeClubs)
+                clubSection(title: "Active Clubs", clubs: viewModel.activeClubs, enablesPaging: true)
 
                 if viewModel.inactiveClubs.isEmpty == false {
-                    clubSection(title: "Inactive Clubs", clubs: viewModel.inactiveClubs)
+                    clubSection(title: "Inactive Clubs", clubs: viewModel.inactiveClubs, enablesPaging: false)
                 }
             }
 
@@ -1809,17 +1809,28 @@ private struct AnalysisView: View {
         }
     }
 
-    private func clubSection(title: String, clubs: [Club]) -> some View {
+    private func clubSection(title: String, clubs: [Club], enablesPaging: Bool) -> some View {
         Section(title) {
             ForEach(clubs) { club in
                 NavigationLink {
-                    ClubAnalysisDetailView(
-                        club: club,
-                        shotRecords: viewModel.shotRecords,
-                        onSaveClub: viewModel.saveClub,
-                        onSaveShotRecord: viewModel.saveShotRecord,
-                        onDeleteShotRecord: viewModel.deleteShotRecord
-                    )
+                    if enablesPaging {
+                        ClubAnalysisPagerView(
+                            clubs: clubs,
+                            selectedClubID: club.id,
+                            shotRecords: viewModel.shotRecords,
+                            onSaveClub: viewModel.saveClub,
+                            onSaveShotRecord: viewModel.saveShotRecord,
+                            onDeleteShotRecord: viewModel.deleteShotRecord
+                        )
+                    } else {
+                        ClubAnalysisDetailView(
+                            club: club,
+                            shotRecords: viewModel.shotRecords,
+                            onSaveClub: viewModel.saveClub,
+                            onSaveShotRecord: viewModel.saveShotRecord,
+                            onDeleteShotRecord: viewModel.deleteShotRecord
+                        )
+                    }
                 } label: {
                     AnalysisClubRow(club: club, shotRecords: viewModel.shotRecords)
                 }
@@ -1877,6 +1888,62 @@ private struct AnalysisClubRow: View {
     }
 }
 
+private struct ClubAnalysisPagerView: View {
+    let clubs: [Club]
+    let shotRecords: [ShotRecord]
+    let onSaveClub: (Club) throws -> Void
+    let onSaveShotRecord: (ShotRecord) throws -> Void
+    let onDeleteShotRecord: (ShotRecord) -> Void
+
+    @State private var selectedClubID: UUID
+
+    private let formatter = ClubDisplayNameFormatter()
+
+    init(
+        clubs: [Club],
+        selectedClubID: UUID,
+        shotRecords: [ShotRecord],
+        onSaveClub: @escaping (Club) throws -> Void,
+        onSaveShotRecord: @escaping (ShotRecord) throws -> Void,
+        onDeleteShotRecord: @escaping (ShotRecord) -> Void
+    ) {
+        self.clubs = clubs
+        self.shotRecords = shotRecords
+        self.onSaveClub = onSaveClub
+        self.onSaveShotRecord = onSaveShotRecord
+        self.onDeleteShotRecord = onDeleteShotRecord
+        _selectedClubID = State(initialValue: selectedClubID)
+    }
+
+    var body: some View {
+        TabView(selection: $selectedClubID) {
+            ForEach(clubs) { club in
+                ClubAnalysisDetailView(
+                    club: club,
+                    shotRecords: shotRecords,
+                    onSaveClub: onSaveClub,
+                    onSaveShotRecord: onSaveShotRecord,
+                    onDeleteShotRecord: onDeleteShotRecord,
+                    showsNavigationTitle: false
+                )
+                .tag(club.id)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .navigationTitle(currentClubName)
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("club-analysis-pager")
+    }
+
+    private var currentClubName: String {
+        guard let currentClub = clubs.first(where: { $0.id == selectedClubID }) ?? clubs.first else {
+            return "Analysis"
+        }
+
+        return formatter.displayName(for: currentClub)
+    }
+}
+
 private struct ClubAnalysisDetailView: View {
     @State private var club: Club
 
@@ -1884,6 +1951,7 @@ private struct ClubAnalysisDetailView: View {
     let onSaveClub: (Club) throws -> Void
     let onSaveShotRecord: (ShotRecord) throws -> Void
     let onDeleteShotRecord: (ShotRecord) -> Void
+    let showsNavigationTitle: Bool
 
     @State private var selectedCategory: ShotCategory = .normal
     @State private var errorMessage: String?
@@ -1896,13 +1964,15 @@ private struct ClubAnalysisDetailView: View {
         shotRecords: [ShotRecord],
         onSaveClub: @escaping (Club) throws -> Void,
         onSaveShotRecord: @escaping (ShotRecord) throws -> Void,
-        onDeleteShotRecord: @escaping (ShotRecord) -> Void
+        onDeleteShotRecord: @escaping (ShotRecord) -> Void,
+        showsNavigationTitle: Bool = true
     ) {
         _club = State(initialValue: club)
         self.shotRecords = shotRecords
         self.onSaveClub = onSaveClub
         self.onSaveShotRecord = onSaveShotRecord
         self.onDeleteShotRecord = onDeleteShotRecord
+        self.showsNavigationTitle = showsNavigationTitle
     }
 
     var body: some View {
@@ -1940,7 +2010,7 @@ private struct ClubAnalysisDetailView: View {
                 }
             }
         }
-        .navigationTitle(formatter.displayName(for: club))
+        .navigationTitle(showsNavigationTitle ? formatter.displayName(for: club) : "")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             normalizeSelectedCategory()
