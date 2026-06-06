@@ -2,11 +2,11 @@
 
 ## Official References Checked
 
-- Apple App Store Connect app information reference, checked June 3, 2026.
-- Apple App Privacy Details page, checked June 3, 2026.
-- Apple App Review Guidelines, checked June 3, 2026.
-- Apple privacy manifest and required reason API documentation, checked June 3, 2026.
-- Apple Human Interface Guidelines for Live Activities, checked June 3, 2026.
+- Apple App Store Connect app information reference, checked June 5, 2026.
+- Apple App Privacy Details page, checked June 5, 2026.
+- Apple App Review Guidelines, checked June 5, 2026.
+- Apple privacy manifest and required reason API documentation, checked June 5, 2026.
+- Apple Human Interface Guidelines for Live Activities, checked June 5, 2026.
 
 ## App Store Metadata Draft
 
@@ -16,7 +16,7 @@ Caddie Cat
 
 ### Subtitle
 
-Golf yardages for every shot
+Track your golf game like never before
 
 ### Promotional Text
 
@@ -24,17 +24,17 @@ Track real golf shots, compare swing lengths, and get fast club suggestions whil
 
 ### Description
 
-Caddie Cat helps golfers understand how far they actually hit each club across different swing lengths, shot types, grass conditions, and trajectories.
+Caddie Cat helps golfers learn their real club distances and make faster shot decisions on the course.
 
-Build a local yardage book for full, three-quarter, half, quarter, flop, punch, chip, stinger, and other practical on-course shots. During a round, enter a target distance and Caddie Cat recommends the closest options from your bag so you can choose the right club and swing with more confidence.
+Track how far you hit each club across full, 3/4, half, quarter, flop, and low-trajectory shots. Record details like grass, strike quality, and shot direction so your yardages become more useful over time.
 
-When you track shots, Caddie Cat can use GPS to estimate shot distance, record strike quality, direction, lie, and shot type, then update your real-distance averages over time. Manual yardages remain available for planning and can be adopted from your real shot data when you are ready.
+Use GPS tracking during a round, manually verify distances on a map, or enter distances yourself. Caddie Cat can suggest the closest shot for a target yardage, compare static values with app-calculated averages, and show common misses across your bag.
 
-Caddie Cat is built for fast personal use on the course. Your golf data stays on your device, with no account required.
+Built for golfers who want practical yardage knowledge beyond a basic club-distance chart.
 
 ### Keywords
 
-golf,yardage,club distance,shot tracker,golf GPS,caddie,golf stats,golf swing,golf bag
+golf,yardage,shot tracker,club distance,caddie,gps,golf swing,golf stats,golf analysis
 
 ### Category
 
@@ -42,11 +42,19 @@ Sports
 
 ### Support URL Plan
 
-Required before submission. Recommended minimum: a simple public page or GitHub Pages site with contact information, basic troubleshooting, and privacy policy link.
+Recommended URL after GitHub Pages is enabled for the repository `docs/` folder:
+
+`https://cepedarod.github.io/golf-yardage-cheatsheet/support.html`
 
 ### Marketing URL Decision
 
 Optional for first release. Leave blank unless a polished Caddie Cat landing page exists before submission.
+
+### Privacy Policy URL Plan
+
+Recommended URL after GitHub Pages is enabled for the repository `docs/` folder:
+
+`https://cepedarod.github.io/golf-yardage-cheatsheet/privacy-policy.html`
 
 ## Privacy And Data Disclosure Draft
 
@@ -59,11 +67,15 @@ Optional for first release. Leave blank unless a polished Caddie Cat landing pag
 
 ### Local Data Stored On Device
 
-Caddie Cat stores profiles, clubs, manual distances, rounds, recorded shots, GPS-derived shot measurements, altitude values, and Live Activity draft selections locally on the device. This data is used for app functionality and is not transmitted to the developer.
+Caddie Cat stores profiles, clubs, static distances, rounds, recorded shots, GPS-derived shot measurements, altitude values, and Live Activity draft selections locally on the device. This data is used for app functionality and is not transmitted to the developer.
 
 ### Location Usage
 
-Caddie Cat requests When In Use location access to measure shot start and finish points during a round, estimate shot distance, estimate altitude for distance adjustment, name rounds from nearby course context when available, and provide GPS confidence information. Location data is stored locally with recorded shots and rounds.
+Caddie Cat requests When In Use location access to measure shot start and finish points during a round, estimate shot distance, estimate altitude for distance adjustment, name rounds from nearby course context when available, and provide GPS confidence information. Location-derived shot data is stored locally with recorded shots and rounds.
+
+### Third-Party Services
+
+Caddie Cat uses Apple Maps features for audit maps. If a user updates home base city, Caddie Cat may use Open-Meteo geocoding and elevation services to estimate city location and altitude.
 
 ### Notifications
 
@@ -75,17 +87,7 @@ Caddie Cat uses Live Activities and Dynamic Island to keep the active round acce
 
 ### Privacy Policy Draft
 
-Caddie Cat does not require an account and does not send your golf data to the developer.
-
-The app stores your profiles, clubs, yardages, rounds, shot records, GPS shot measurements, altitude values, and Live Activity draft selections locally on your device so the app can calculate yardages, show recommendations, and summarize your golf data.
-
-If you enable location access, Caddie Cat uses your device location while the app is in use to measure shot distances, estimate altitude, support round reminders, and show GPS confidence. Recorded location-derived shot data remains on your device.
-
-Caddie Cat may ask for notification permission to send local reminders for active rounds. These notifications are generated on your device.
-
-Caddie Cat does not use your data for advertising, does not track you across apps or websites, and does not sell personal information.
-
-If you delete the app, locally stored Caddie Cat data is deleted from the device by iOS. If future versions add sync, export, or sharing features, this policy should be updated before release.
+See `docs/privacy-policy.md` for the public-ready privacy policy.
 
 ## Permission Copy Review
 
@@ -114,6 +116,7 @@ The app and Live Activity extension include `PrivacyInfo.xcprivacy` files declar
 ## Release Checklist
 
 - Bundle ID: `com.cepedarod.GolfYardageCheatsheet`.
+- Bundle ID should remain unchanged for first release to preserve continuity with existing on-device data.
 - Display name: `Caddie Cat`.
 - Version: `1.0`.
 - Build: `1`.
