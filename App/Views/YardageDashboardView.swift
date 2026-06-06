@@ -14,6 +14,7 @@ struct YardageDashboardView: View {
     @State private var recordShotContext: RecordShotContext?
     @State private var shotDraftContext: ShotDraftFormContext?
     @State private var inAppShotDraft: LiveActivityShotDraft?
+    @State private var pendingFinishedShotContext: RecordShotContext?
     @State private var isConfirmingStartRoundForGPS = false
     @State private var gpsFallbackAlert: GPSFallbackAlert?
     @State private var targetYardageText = ""
@@ -95,10 +96,19 @@ struct YardageDashboardView: View {
                     Text("Target")
                     Spacer()
                     targetYardageField
+                    if viewModel.hasTargetYardage {
+                        Button(action: clearTargetYardage) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear")
+                        .accessibilityIdentifier("clear-target-yardage-button")
+                    }
                 }
 
                 Picker("Shot Filter", selection: $viewModel.shotFilter) {
-                    Text("Normal")
+                    Text("Normal Swing")
                         .tag(ShotFilter.normal)
                         .accessibilityIdentifier("shot-filter-normal")
                     Text("Low Trajectory")
@@ -108,26 +118,34 @@ struct YardageDashboardView: View {
                 .pickerStyle(.segmented)
 
                 Picker("Value Mode", selection: $viewModel.valueMode) {
-                    Text("Manual")
+                    Text("Static Values")
                         .tag(DistanceValueMode.manual)
                         .accessibilityIdentifier("value-mode-manual")
-                    Text("Real")
+                    Text("App Calculated")
                         .tag(DistanceValueMode.real)
                         .accessibilityIdentifier("value-mode-real")
                 }
                 .pickerStyle(.segmented)
 
-                if viewModel.hasTargetYardage {
-                    Button("Clear", action: clearTargetYardage)
-                }
             }
 
             if let altitudeAdjustmentNotice = viewModel.altitudeAdjustmentNotice {
                 Section {
-                    Label(altitudeAdjustmentNotice, systemImage: "mountain.2")
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(.orange)
-                        .accessibilityIdentifier("altitude-adjustment-notice")
+                    HStack(alignment: .center, spacing: 12) {
+                        Image(systemName: "mountain.2")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.orange)
+                            .frame(width: 44)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Altitude Adjustment")
+                                .font(.callout.weight(.medium))
+                            Text(altitudeAdjustmentNotice)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                    .accessibilityIdentifier("altitude-adjustment-notice")
                 }
             }
 
@@ -257,9 +275,16 @@ struct YardageDashboardView: View {
                     profile: profile,
                     clubs: viewModel.recordableActiveClubs,
                     roundID: context.roundID,
+                    roundAltitudeFeet: context.roundAltitudeFeet,
                     gpsCapture: context.gpsCapture,
                     liveActivityDraft: context.liveActivityDraft,
-                    onSave: viewModel.saveShotRecord
+                    onCancel: {
+                        preservePendingGPSShot(context)
+                    },
+                    onSave: { record in
+                        try viewModel.saveShotRecord(record)
+                        completePendingGPSShot(context)
+                    }
                 )
             }
         }
@@ -304,6 +329,9 @@ struct YardageDashboardView: View {
         .onReceive(NotificationCenter.default.publisher(for: .liveActivityRequestedFinishShot)) { _ in
             handleLiveActivityFinishShotRequest()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .liveActivityRequestedShotDetailsPrefill)) { _ in
+            handleLiveActivityShotDetailsPrefillRequest()
+        }
         .onChange(of: shotTracker.isCapturing) { _, isCapturing in
             animateShotTrackingProgress(isCapturing: isCapturing)
         }
@@ -332,7 +360,7 @@ struct YardageDashboardView: View {
             }
 
             Button("Manual Entry") {
-                recordShotContext = RecordShotContext(roundID: nil, gpsCapture: nil)
+                recordShotContext = RecordShotContext(roundID: nil, roundAltitudeFeet: nil, gpsCapture: nil)
             }
 
             Button("Cancel", role: .cancel) {}
@@ -346,7 +374,11 @@ struct YardageDashboardView: View {
                 primaryButton: .default(Text("Manual Entry")) {
                     shotTracker.abort()
                     updateLiveActivityPhase(.idle)
-                    recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsCapture: nil)
+                    recordShotContext = RecordShotContext(
+                        roundID: viewModel.activeRoundID,
+                        roundAltitudeFeet: viewModel.activeRound?.altitudeFeet,
+                        gpsCapture: nil
+                    )
                 },
                 secondaryButton: .default(Text("Retry Location")) {
                     retryGPSCapture()
@@ -390,7 +422,7 @@ struct YardageDashboardView: View {
         TextField("Yards", text: $targetYardageText)
             .focused($isTargetYardageFocused)
             .keyboardType(.numberPad)
-            .multilineTextAlignment(.trailing)
+            .multilineTextAlignment(.center)
             .font(.title2.weight(.semibold))
             .accessibilityIdentifier("target-yardage-field")
             .frame(maxWidth: 120)
@@ -549,7 +581,11 @@ struct YardageDashboardView: View {
     private func handleShotTrackingTap() {
         switch effectiveShotTrackingMode {
         case .manual:
-            recordShotContext = RecordShotContext(roundID: viewModel.activeRoundID, gpsCapture: nil)
+            recordShotContext = RecordShotContext(
+                roundID: viewModel.activeRoundID,
+                roundAltitudeFeet: viewModel.activeRound?.altitudeFeet,
+                gpsCapture: nil
+            )
         case .gps:
             switch shotTracker.phase {
             case .idle:
@@ -568,6 +604,7 @@ struct YardageDashboardView: View {
 
     private func beginGPSShot() {
         inAppShotDraft = nil
+        pendingFinishedShotContext = nil
         updateLiveActivityPhase(.measuringStart)
 
         Task {
@@ -615,18 +652,28 @@ struct YardageDashboardView: View {
     }
 
     private func finishGPSShot() {
+        if let pendingFinishedShotContext {
+            recordShotContext = pendingFinishedShotContext
+            updateLiveActivityPhase(.awaitingFinish, startAnchor: pendingFinishedShotContext.gpsCapture?.startAnchor)
+            return
+        }
+
         Task {
             await updateLiveActivityPhaseAsync(.measuringFinish)
 
             do {
                 let capture = try await shotTracker.captureFinish()
                 let liveActivityDraft = RoundLiveActivityManager.shared.pendingShotDraft(roundID: viewModel.activeRoundID) ?? inAppShotDraft
-                recordShotContext = RecordShotContext(
+                let context = RecordShotContext(
                     roundID: viewModel.activeRoundID,
+                    roundAltitudeFeet: viewModel.activeRound?.altitudeFeet,
                     gpsCapture: capture,
                     liveActivityDraft: liveActivityDraft
                 )
-                await updateLiveActivityPhaseAsync(.idle)
+                pendingFinishedShotContext = context
+                shotTracker.restoreReadyToFinish(capture.startAnchor)
+                recordShotContext = context
+                await updateLiveActivityPhaseAsync(.awaitingFinish, startAnchor: capture.startAnchor)
             } catch {
                 await updateLiveActivityPhaseAsync(.awaitingFinish)
                 gpsFallbackAlert = GPSFallbackAlert(message: message(for: error))
@@ -637,6 +684,28 @@ struct YardageDashboardView: View {
     private func abortGPSShot() {
         shotTracker.abort()
         inAppShotDraft = nil
+        pendingFinishedShotContext = nil
+        updateLiveActivityPhase(.idle)
+    }
+
+    private func preservePendingGPSShot(_ context: RecordShotContext) {
+        guard let gpsCapture = context.gpsCapture else {
+            return
+        }
+
+        pendingFinishedShotContext = context
+        shotTracker.restoreReadyToFinish(gpsCapture.startAnchor)
+        updateLiveActivityPhase(.awaitingFinish, startAnchor: gpsCapture.startAnchor)
+    }
+
+    private func completePendingGPSShot(_ context: RecordShotContext) {
+        guard context.gpsCapture != nil else {
+            return
+        }
+
+        pendingFinishedShotContext = nil
+        inAppShotDraft = nil
+        shotTracker.abort()
         updateLiveActivityPhase(.idle)
     }
 
@@ -689,12 +758,28 @@ struct YardageDashboardView: View {
 
             shotTracker.restoreReadyToFinish(startAnchor)
             updateLiveActivityPhase(.awaitingFinish, startAnchor: startAnchor)
-            openShotDetailsDraftForm()
+            finishGPSShot()
         case .readyToFinish:
-            openShotDetailsDraftForm()
+            finishGPSShot()
         case .capturingStart, .capturingFinish:
             break
         }
+    }
+
+    private func handleLiveActivityShotDetailsPrefillRequest() {
+        viewModel.loadClubs()
+
+        if case .idle = shotTracker.phase,
+           let startAnchor = RoundLiveActivityManager.shared.pendingStartAnchor(roundID: viewModel.activeRoundID) {
+            shotTracker.restoreReadyToFinish(startAnchor)
+            updateLiveActivityPhase(.awaitingFinish, startAnchor: startAnchor)
+        }
+
+        guard shotTracker.canPrefillDetails else {
+            return
+        }
+
+        openShotDetailsDraftForm()
     }
 
     private func updateLiveActivityPhase(
@@ -818,15 +903,18 @@ struct YardageDashboardView: View {
 private struct RecordShotContext: Identifiable {
     let id = UUID()
     let roundID: UUID?
+    let roundAltitudeFeet: Double?
     let gpsCapture: ShotGPSCapture?
     let liveActivityDraft: LiveActivityShotDraft?
 
     init(
         roundID: UUID?,
+        roundAltitudeFeet: Double?,
         gpsCapture: ShotGPSCapture?,
         liveActivityDraft: LiveActivityShotDraft? = nil
     ) {
         self.roundID = roundID
+        self.roundAltitudeFeet = roundAltitudeFeet
         self.gpsCapture = gpsCapture
         self.liveActivityDraft = liveActivityDraft
     }
@@ -1222,6 +1310,8 @@ private struct RecordShotView: View {
     let profile: GolferProfile
     let clubs: [Club]
     let roundID: UUID?
+    let roundAltitudeFeet: Double?
+    let onCancel: () -> Void
     let onSave: (ShotRecord) throws -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -1244,13 +1334,17 @@ private struct RecordShotView: View {
         profile: GolferProfile,
         clubs: [Club],
         roundID: UUID? = nil,
+        roundAltitudeFeet: Double? = nil,
         gpsCapture: ShotGPSCapture? = nil,
         liveActivityDraft: LiveActivityShotDraft? = nil,
+        onCancel: @escaping () -> Void = {},
         onSave: @escaping (ShotRecord) throws -> Void
     ) {
         self.profile = profile
         self.clubs = clubs
         self.roundID = roundID
+        self.roundAltitudeFeet = roundAltitudeFeet
+        self.onCancel = onCancel
         self.onSave = onSave
         let draftClubID = liveActivityDraft?.clubID.flatMap(UUID.init(uuidString:))
         let draftCategory = Self.shotCategory(from: liveActivityDraft?.category)
@@ -1437,6 +1531,7 @@ private struct RecordShotView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
+                    onCancel()
                     dismiss()
                 }
             }
@@ -1672,7 +1767,7 @@ private struct RecordShotView: View {
     }
 
     private func savedAltitudeFeet() -> Double {
-        gpsCapture?.startAnchor.altitudeFeet ?? AltitudeDefaults.chicagoFeet
+        gpsCapture?.startAnchor.altitudeFeet ?? roundAltitudeFeet ?? profile.homeBaseAltitudeFeet
     }
 
     private func clubGroup(for club: Club) -> RecordClubGroup {

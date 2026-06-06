@@ -607,6 +607,7 @@ public enum CaddieCatLiveActivityDeepLink {
     case openRound
     case startShot
     case openFinish
+    case prefillShotDetails
 
     public func url(roundID: String) -> URL {
         var components = URLComponents()
@@ -621,6 +622,8 @@ public enum CaddieCatLiveActivityDeepLink {
             components.host = "track-shot-start"
         case .openFinish:
             components.host = "track-shot-finish"
+        case .prefillShotDetails:
+            components.host = "prefill-shot-details"
         }
 
         components.queryItems = [URLQueryItem(name: "roundID", value: roundID)]

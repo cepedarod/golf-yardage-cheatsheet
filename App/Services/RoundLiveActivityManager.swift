@@ -5,6 +5,7 @@ import Foundation
 extension Notification.Name {
     static let liveActivityRequestedStartShot = Notification.Name("liveActivityRequestedStartShot")
     static let liveActivityRequestedFinishShot = Notification.Name("liveActivityRequestedFinishShot")
+    static let liveActivityRequestedShotDetailsPrefill = Notification.Name("liveActivityRequestedShotDetailsPrefill")
 }
 
 final class RoundLiveActivityManager: @unchecked Sendable {

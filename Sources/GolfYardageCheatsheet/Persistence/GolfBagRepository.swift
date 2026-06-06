@@ -74,6 +74,22 @@ public final class GolfBagRepository {
         try store.save(data)
     }
 
+    public func updateProfileAnalysisDateRange(
+        profileID: UUID,
+        analysisDateRange: AnalysisDateRange,
+        now: Date = Date()
+    ) throws {
+        var data = try store.load()
+
+        guard let index = data.profiles.firstIndex(where: { $0.id == profileID }) else {
+            throw GolfBagRepositoryError.profileNotFound
+        }
+
+        data.profiles[index].analysisDateRange = analysisDateRange
+        data.profiles[index].updatedAt = now
+        try store.save(data)
+    }
+
     public func updateProfileAltitudeSettings(
         profileID: UUID,
         homeBaseCity: String,

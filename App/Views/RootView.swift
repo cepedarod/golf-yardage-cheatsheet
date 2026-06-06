@@ -1,4 +1,5 @@
 import CoreLocation
+import Foundation
 import SwiftUI
 
 private struct HomeBaseAltitudeLookup: Equatable {
@@ -10,11 +11,169 @@ private enum HomeBaseAltitudeLookupError: Error, Equatable {
     case emptyCity
     case cityNotFound
     case altitudeUnavailable
+    case requestFailed
 }
 
 @MainActor
 private protocol HomeBaseAltitudeResolving: AnyObject {
     func lookupAltitude(for city: String) async throws -> HomeBaseAltitudeLookup
+}
+
+@MainActor
+private final class OpenMeteoHomeBaseAltitudeResolver: HomeBaseAltitudeResolving {
+    private let session: URLSession
+    private let fallbackResolver: any HomeBaseAltitudeResolving
+
+    init(
+        session: URLSession = .shared,
+        fallbackResolver: any HomeBaseAltitudeResolving = CoreLocationHomeBaseAltitudeResolver()
+    ) {
+        self.session = session
+        self.fallbackResolver = fallbackResolver
+    }
+
+    func lookupAltitude(for city: String) async throws -> HomeBaseAltitudeLookup {
+        let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmedCity.isEmpty == false else {
+            throw HomeBaseAltitudeLookupError.emptyCity
+        }
+
+        do {
+            return try await lookupOpenMeteoAltitude(for: trimmedCity)
+        } catch HomeBaseAltitudeLookupError.emptyCity {
+            throw HomeBaseAltitudeLookupError.emptyCity
+        } catch {
+            return try await fallbackResolver.lookupAltitude(for: trimmedCity)
+        }
+    }
+
+    private func lookupOpenMeteoAltitude(for city: String) async throws -> HomeBaseAltitudeLookup {
+        guard let geocodingURL = Self.geocodingURL(for: city) else {
+            throw HomeBaseAltitudeLookupError.requestFailed
+        }
+
+        let geocodingData = try await data(from: geocodingURL)
+        let geocodingResponse = try JSONDecoder().decode(OpenMeteoGeocodingResponse.self, from: geocodingData)
+
+        guard let result = geocodingResponse.results?.first,
+              result.latitude.isFinite,
+              result.longitude.isFinite else {
+            throw HomeBaseAltitudeLookupError.cityNotFound
+        }
+
+        let elevationMeters = try await elevationMeters(for: result)
+
+        return HomeBaseAltitudeLookup(
+            cityName: result.displayName(fallback: city),
+            altitudeFeet: elevationMeters * Self.feetPerMeter
+        )
+    }
+
+    private func elevationMeters(for result: OpenMeteoGeocodingResult) async throws -> Double {
+        if let elevationURL = Self.elevationURL(latitude: result.latitude, longitude: result.longitude),
+           let elevationMeters = try? await elevationMeters(from: elevationURL) {
+            return elevationMeters
+        }
+
+        if let fallbackElevation = result.elevation,
+           fallbackElevation.isFinite {
+            return fallbackElevation
+        }
+
+        throw HomeBaseAltitudeLookupError.altitudeUnavailable
+    }
+
+    private func elevationMeters(from url: URL) async throws -> Double {
+        let elevationData = try await data(from: url)
+        let response = try JSONDecoder().decode(OpenMeteoElevationResponse.self, from: elevationData)
+
+        guard let elevation = response.elevation.first,
+              elevation.isFinite else {
+            throw HomeBaseAltitudeLookupError.altitudeUnavailable
+        }
+
+        return elevation
+    }
+
+    private func data(from url: URL) async throws -> Data {
+        let (data, response) = try await session.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            throw HomeBaseAltitudeLookupError.requestFailed
+        }
+
+        return data
+    }
+
+    private static func geocodingURL(for city: String) -> URL? {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "geocoding-api.open-meteo.com"
+        components.path = "/v1/search"
+        components.queryItems = [
+            URLQueryItem(name: "name", value: city),
+            URLQueryItem(name: "count", value: "5"),
+            URLQueryItem(name: "language", value: "en"),
+            URLQueryItem(name: "format", value: "json")
+        ]
+
+        return components.url
+    }
+
+    private static func elevationURL(latitude: Double, longitude: Double) -> URL? {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "api.open-meteo.com"
+        components.path = "/v1/elevation"
+        components.queryItems = [
+            URLQueryItem(name: "latitude", value: String(latitude)),
+            URLQueryItem(name: "longitude", value: String(longitude))
+        ]
+
+        return components.url
+    }
+
+    private static let feetPerMeter = 3.280839895
+}
+
+private struct OpenMeteoGeocodingResponse: Decodable {
+    let results: [OpenMeteoGeocodingResult]?
+}
+
+private struct OpenMeteoGeocodingResult: Decodable {
+    let name: String
+    let latitude: Double
+    let longitude: Double
+    let elevation: Double?
+    let country: String?
+    let admin1: String?
+
+    func displayName(fallback: String) -> String {
+        var components = [name]
+
+        if let admin1 = normalized(admin1),
+           admin1.localizedCaseInsensitiveCompare(name) != .orderedSame {
+            components.append(admin1)
+        }
+
+        if let country = normalized(country),
+           components.contains(where: { $0.localizedCaseInsensitiveCompare(country) == .orderedSame }) == false {
+            components.append(country)
+        }
+
+        return components.isEmpty ? fallback : components.joined(separator: ", ")
+    }
+
+    private func normalized(_ value: String?) -> String? {
+        let trimmedValue = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmedValue.isEmpty ? nil : trimmedValue
+    }
+}
+
+private struct OpenMeteoElevationResponse: Decodable {
+    let elevation: [Double]
 }
 
 @MainActor
@@ -258,6 +417,12 @@ private struct MainTabView: View {
                 await Task.yield()
                 NotificationCenter.default.post(name: .liveActivityRequestedFinishShot, object: nil)
             }
+        case "prefill-shot-details":
+            selectedTab = .distances
+            Task { @MainActor in
+                await Task.yield()
+                NotificationCenter.default.post(name: .liveActivityRequestedShotDetailsPrefill, object: nil)
+            }
         default:
             break
         }
@@ -446,6 +611,9 @@ private final class RoundBoundaryMonitorViewModel: ObservableObject {
 @MainActor
 private final class ProfileDashboardViewModel: ObservableObject {
     @Published var shotTrackingMode: ShotTrackingMode
+    @Published var analysisDateRangeKind: AnalysisDateRangeKind
+    @Published var customAnalysisStartDate: Date
+    @Published var customAnalysisEndDate: Date
     @Published var homeBaseCity: String
     @Published var homeBaseAltitudeText: String
     @Published var altitudeCalculationMode: AltitudeCalculationMode
@@ -467,11 +635,14 @@ private final class ProfileDashboardViewModel: ObservableObject {
     init(
         profile: GolferProfile,
         repository: GolfBagRepository,
-        homeBaseAltitudeResolver: any HomeBaseAltitudeResolving = CoreLocationHomeBaseAltitudeResolver()
+        homeBaseAltitudeResolver: any HomeBaseAltitudeResolving = OpenMeteoHomeBaseAltitudeResolver()
     ) {
         profileID = profile.id
         profileName = profile.name
         shotTrackingMode = profile.shotTrackingMode
+        analysisDateRangeKind = profile.analysisDateRange.kind
+        customAnalysisStartDate = profile.analysisDateRange.customStartDate ?? Self.defaultCustomAnalysisStartDate()
+        customAnalysisEndDate = profile.analysisDateRange.customEndDate ?? Self.defaultCustomAnalysisEndDate()
         homeBaseCity = profile.homeBaseCity
         homeBaseAltitudeText = Self.formattedAltitude(profile.homeBaseAltitudeFeet)
         altitudeCalculationMode = profile.altitudeCalculationMode
@@ -491,6 +662,7 @@ private final class ProfileDashboardViewModel: ObservableObject {
             let sortedClubs = clubSorter.sortedForDistanceTab(data.clubs(for: profileID))
             profileName = profile.name
             shotTrackingMode = profile.shotTrackingMode
+            applyAnalysisDateRange(profile.analysisDateRange)
             homeBaseCity = profile.homeBaseCity
             homeBaseAltitudeText = Self.formattedAltitude(profile.homeBaseAltitudeFeet)
             altitudeCalculationMode = profile.altitudeCalculationMode
@@ -555,6 +727,42 @@ private final class ProfileDashboardViewModel: ObservableObject {
         }
     }
 
+    func updateAnalysisDateRangeKind(_ kind: AnalysisDateRangeKind) {
+        analysisDateRangeKind = kind
+        persistAnalysisDateRange()
+    }
+
+    func updateCustomAnalysisStartDate(_ date: Date) {
+        customAnalysisStartDate = date
+        if customAnalysisEndDate < customAnalysisStartDate {
+            customAnalysisEndDate = customAnalysisStartDate
+        }
+        analysisDateRangeKind = .custom
+        persistAnalysisDateRange()
+    }
+
+    func updateCustomAnalysisEndDate(_ date: Date) {
+        customAnalysisEndDate = date
+        if customAnalysisStartDate > customAnalysisEndDate {
+            customAnalysisStartDate = customAnalysisEndDate
+        }
+        analysisDateRangeKind = .custom
+        persistAnalysisDateRange()
+    }
+
+    var analysisDateRangeSummary: String {
+        switch analysisDateRangeKind {
+        case .allTime:
+            return "All recorded shots feed app-calculated distances and analysis."
+        case .lastYear:
+            return "Only shots from the last 12 months feed app-calculated distances and analysis."
+        case .lastMonth:
+            return "Only shots from the last month feed app-calculated distances and analysis."
+        case .custom:
+            return "Only shots from \(Self.formattedDate(customAnalysisStartDate)) through \(Self.formattedDate(customAnalysisEndDate)) feed app-calculated distances and analysis."
+        }
+    }
+
     func updateAltitudeSettings() async {
         isLookingUpHomeBaseAltitude = true
         altitudeLookupMessage = nil
@@ -571,6 +779,11 @@ private final class ProfileDashboardViewModel: ObservableObject {
             errorMessage = "Home base city is required."
             return
         } catch {
+            guard manualHomeBaseAltitudeFeet != nil else {
+                errorMessage = "City lookup did not return elevation. Enter home altitude manually, then save again."
+                return
+            }
+
             altitudeLookupMessage = "City lookup unavailable. Saved the entered altitude."
         }
 
@@ -578,7 +791,7 @@ private final class ProfileDashboardViewModel: ObservableObject {
             try repository.updateProfileAltitudeSettings(
                 profileID: profileID,
                 homeBaseCity: homeBaseCity,
-                homeBaseAltitudeFeet: Double(homeBaseAltitudeText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? AltitudeDefaults.chicagoFeet,
+                homeBaseAltitudeFeet: manualHomeBaseAltitudeFeet ?? AltitudeDefaults.chicagoFeet,
                 altitudeCalculationMode: altitudeCalculationMode
             )
             errorMessage = nil
@@ -661,6 +874,60 @@ private final class ProfileDashboardViewModel: ObservableObject {
 
     private static func formattedAltitude(_ altitudeFeet: Double) -> String {
         "\(Int(altitudeFeet.rounded()))"
+    }
+
+    private static func defaultCustomAnalysisStartDate() -> Date {
+        Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    }
+
+    private static func defaultCustomAnalysisEndDate() -> Date {
+        Date()
+    }
+
+    private static func formattedDate(_ date: Date) -> String {
+        date.formatted(.dateTime.month(.abbreviated).day().year())
+    }
+
+    private func applyAnalysisDateRange(_ range: AnalysisDateRange) {
+        analysisDateRangeKind = range.kind
+        customAnalysisStartDate = range.customStartDate ?? customAnalysisStartDate
+        customAnalysisEndDate = range.customEndDate ?? customAnalysisEndDate
+    }
+
+    private func persistAnalysisDateRange() {
+        do {
+            try repository.updateProfileAnalysisDateRange(
+                profileID: profileID,
+                analysisDateRange: currentAnalysisDateRange()
+            )
+            errorMessage = nil
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
+        } catch {
+            errorMessage = "Unable to update data date range."
+            load()
+        }
+    }
+
+    private func currentAnalysisDateRange() -> AnalysisDateRange {
+        guard analysisDateRangeKind == .custom else {
+            return AnalysisDateRange(kind: analysisDateRangeKind)
+        }
+
+        return AnalysisDateRange(
+            kind: .custom,
+            customStartDate: customAnalysisStartDate,
+            customEndDate: customAnalysisEndDate
+        )
+    }
+
+    private var manualHomeBaseAltitudeFeet: Double? {
+        let trimmedAltitude = homeBaseAltitudeText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let altitudeFeet = Double(trimmedAltitude),
+              altitudeFeet.isFinite else {
+            return nil
+        }
+
+        return altitudeFeet
     }
 }
 
@@ -1077,8 +1344,8 @@ private struct CurrentRoundView: View {
                 }
             }
         }
-        .alert("End Round?", isPresented: $isConfirmingEndRound) {
-            Button("End Round") {
+        .alert("Finish Round?", isPresented: $isConfirmingEndRound) {
+            Button("Finish Round") {
                 viewModel.endRound()
             }
             Button("Cancel", role: .cancel) {}
@@ -1266,7 +1533,7 @@ private struct CurrentRoundView: View {
             Button {
                 isConfirmingEndRound = true
             } label: {
-                Text("End Round")
+                Text("Finish Round")
             }
             .accessibilityIdentifier("end-round-button")
 
@@ -1348,7 +1615,14 @@ private struct ProfileView: View {
     let switchProfile: () -> Void
 
     @StateObject private var viewModel: ProfileDashboardViewModel
+    @State private var isShowingInstructionManual = false
     @State private var isShowingPrivacyPolicy = false
+    @FocusState private var focusedAltitudeField: AltitudeField?
+
+    private enum AltitudeField: Hashable {
+        case city
+        case altitude
+    }
 
     init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
         self.profile = profile
@@ -1358,7 +1632,7 @@ private struct ProfileView: View {
 
     var body: some View {
         List {
-            Section("Shot Tracking") {
+            Section {
                 Picker("Shot Tracking Mode", selection: $viewModel.shotTrackingMode) {
                     ForEach(ShotTrackingMode.allCases, id: \.self) { mode in
                         Text(mode.displayName).tag(mode)
@@ -1369,44 +1643,117 @@ private struct ProfileView: View {
                 .onChange(of: viewModel.shotTrackingMode) { _, newMode in
                     viewModel.updateShotTrackingMode(newMode)
                 }
+            } header: {
+                Text("Shot Tracking")
             }
 
             Section {
-                TextField("Home Base City", text: $viewModel.homeBaseCity)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.done)
-                    .accessibilityIdentifier("home-base-city-field")
-
-                HStack {
-                    Text("Home Altitude")
-
-                    Spacer()
-
-                    TextField("Feet", text: $viewModel.homeBaseAltitudeText)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(maxWidth: 110)
-                        .accessibilityIdentifier("home-base-altitude-field")
-
-                    Text("ft")
-                        .foregroundStyle(.secondary)
+                Picker("Use Shot Data From:", selection: $viewModel.analysisDateRangeKind) {
+                    ForEach(AnalysisDateRangeKind.allCases, id: \.self) { kind in
+                        Text(kind.displayName).tag(kind)
+                    }
+                }
+                .accessibilityIdentifier("analysis-date-range-picker")
+                .onChange(of: viewModel.analysisDateRangeKind) { _, newKind in
+                    viewModel.updateAnalysisDateRangeKind(newKind)
                 }
 
-                Picker("Shot Calculations", selection: $viewModel.altitudeCalculationMode) {
+                if viewModel.analysisDateRangeKind == .custom {
+                    DatePicker(
+                        "From",
+                        selection: $viewModel.customAnalysisStartDate,
+                        displayedComponents: .date
+                    )
+                    .accessibilityIdentifier("analysis-custom-start-date-picker")
+                    .onChange(of: viewModel.customAnalysisStartDate) { _, newDate in
+                        viewModel.updateCustomAnalysisStartDate(newDate)
+                    }
+
+                    DatePicker(
+                        "Through",
+                        selection: $viewModel.customAnalysisEndDate,
+                        displayedComponents: .date
+                    )
+                    .accessibilityIdentifier("analysis-custom-end-date-picker")
+                    .onChange(of: viewModel.customAnalysisEndDate) { _, newDate in
+                        viewModel.updateCustomAnalysisEndDate(newDate)
+                    }
+                }
+            } header: {
+                Text("Distance Tracking")
+            } footer: {
+                Text(viewModel.analysisDateRangeSummary)
+            }
+
+            Section {
+                Picker("Altitude Adjustment", selection: $viewModel.altitudeCalculationMode) {
                     ForEach(AltitudeCalculationMode.allCases, id: \.self) { mode in
                         Text(mode.displayName).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("altitude-calculation-mode-picker")
+            }
+
+            Section {
+                LabeledContent("Home Base") {
+                    HStack(spacing: 5) {
+                        TextField("City", text: $viewModel.homeBaseCity)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.words)
+                            .submitLabel(.done)
+                            .focused($focusedAltitudeField, equals: .city)
+                            .onSubmit {
+                                focusedAltitudeField = nil
+                            }
+                            .accessibilityIdentifier("home-base-city-field")
+
+                        if focusedAltitudeField == .city,
+                           viewModel.homeBaseCity.isEmpty == false {
+                            Button {
+                                viewModel.homeBaseCity = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Clear Home Base")
+                            .accessibilityIdentifier("clear-home-base-city-button")
+                        }
+                    }
+                }
+
+                LabeledContent("Altitude") {
+                    HStack(spacing: 5) {
+                        TextField("Feet", text: $viewModel.homeBaseAltitudeText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .focused($focusedAltitudeField, equals: .altitude)
+                            .frame(maxWidth: 82)
+                            .accessibilityIdentifier("home-base-altitude-field")
+
+                        Text("ft")
+                            .foregroundStyle(.secondary)
+
+                        if focusedAltitudeField == .altitude {
+                            Button("Done") {
+                                focusedAltitudeField = nil
+                            }
+                            .font(.caption.weight(.semibold))
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .accessibilityIdentifier("inline-dismiss-home-altitude-keyboard-button")
+                        }
+                    }
+                }
 
                 Button {
                     Task {
                         await viewModel.updateAltitudeSettings()
                     }
                 } label: {
-                    HStack {
-                        Text("Save City & Altitude")
+                    HStack(spacing: 10) {
+                        Label("Update Home Base", systemImage: "location.circle")
 
                         Spacer()
 
@@ -1417,15 +1764,13 @@ private struct ProfileView: View {
                 }
                 .disabled(viewModel.isLookingUpHomeBaseAltitude)
                 .accessibilityIdentifier("save-altitude-settings-button")
-            } header: {
-                Text("Altitude")
             } footer: {
                 VStack(alignment: .leading, spacing: 6) {
                     if let altitudeLookupMessage = viewModel.altitudeLookupMessage {
                         Text(altitudeLookupMessage)
                     }
 
-                    Text("Caddie Cat looks up city altitude when possible and uses home altitude to normalize shot distances when altitude adjustments are enabled.")
+                    Text("Home base is your normal playing altitude. Caddie Cat looks up the city altitude when available, or saves the altitude typed here if lookup is unavailable.")
                 }
             }
 
@@ -1454,15 +1799,14 @@ private struct ProfileView: View {
                 }
                 .accessibilityIdentifier("profile-rounds-row")
             }
-
-            if viewModel.clubStrikeRows.isEmpty == false {
-                Section("Club Strike") {
-                    ProfileClubStrikeChartView(rows: viewModel.clubStrikeRows)
-                        .accessibilityIdentifier("profile-club-strike-chart")
-                }
-            }
-
             Section("App") {
+                Button {
+                    isShowingInstructionManual = true
+                } label: {
+                    Label("Instruction Manual", systemImage: "book.closed")
+                }
+                .accessibilityIdentifier("instruction-manual-button")
+
                 Button {
                     isShowingPrivacyPolicy = true
                 } label: {
@@ -1487,6 +1831,16 @@ private struct ProfileView: View {
                 }
                 .accessibilityLabel("Switch Profile")
             }
+
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusedAltitudeField != nil {
+                    Spacer()
+                    Button("Done") {
+                        focusedAltitudeField = nil
+                    }
+                    .accessibilityIdentifier("dismiss-profile-altitude-keyboard-button")
+                }
+            }
         }
         .task {
             viewModel.load()
@@ -1499,6 +1853,242 @@ private struct ProfileView: View {
                 PrivacyPolicyView()
             }
         }
+        .sheet(isPresented: $isShowingInstructionManual) {
+            NavigationStack {
+                InstructionManualView()
+            }
+        }
+    }
+}
+
+private struct InstructionManualView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Caddie Cat helps you pick a shot, track what happened, and learn your real distances over time.")
+                        .font(.headline)
+
+                    Text("Use this guide as a quick reference while setting up your bag or using the app on the course.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section("Quick Start") {
+                ManualInstructionRow(
+                    systemImage: "flag.fill",
+                    title: "Start a round",
+                    detail: "Open Round and start a round before tracking GPS shots."
+                )
+                ManualInstructionRow(
+                    systemImage: "scope",
+                    title: "Choose a shot",
+                    detail: "Use Distances to review yardages or enter a target distance."
+                )
+                ManualInstructionRow(
+                    systemImage: "location.north.circle.fill",
+                    title: "Track and save",
+                    detail: "Tap Track Shot (Start), walk to the ball, tap Track Shot (Finish), fill in the shot details, and save."
+                )
+            }
+
+            Section("Round") {
+                ManualScreenshotCard(
+                    imageName: "ManualCurrentRound",
+                    caption: "The Round tab groups shots and stores the round altitude."
+                )
+                ManualInstructionRow(
+                    systemImage: "square.and.pencil",
+                    title: "Name the round",
+                    detail: "Caddie Cat suggests a course name when possible. You can edit it before finishing."
+                )
+                ManualInstructionRow(
+                    systemImage: "checkmark.circle.fill",
+                    title: "Finish when done",
+                    detail: "Finish Round saves the round to your history. Abort Round discards the active round and shots tied to it."
+                )
+            }
+
+            Section("Distances") {
+                ManualScreenshotCard(
+                    imageName: "ManualDistanceList",
+                    caption: "Review static and app-calculated distances by club and shot type."
+                )
+                ManualInstructionRow(
+                    systemImage: "slider.horizontal.3",
+                    title: "Pick the distance view",
+                    detail: "Use Normal Swing or Low Trajectory, then choose Static Values or App Calculated."
+                )
+                ManualInstructionRow(
+                    systemImage: "text.magnifyingglass",
+                    title: "Search by target",
+                    detail: "Enter the yardage you need. Caddie Cat shows the closest long and short options."
+                )
+                ManualScreenshotCard(
+                    imageName: "ManualDistanceTarget",
+                    caption: "Parentheses mean the value came from the other distance mode as a helpful backup."
+                )
+            }
+
+            Section("Record a Shot") {
+                ManualScreenshotCard(
+                    imageName: "ManualRecordShotGPS",
+                    caption: "GPS shots show the calculated distance and accuracy estimate before saving."
+                )
+                ManualInstructionRow(
+                    systemImage: "figure.golf",
+                    title: "Fill in what happened",
+                    detail: "Choose the club, shot type, swing length, grass, strike quality, and direction."
+                )
+                ManualInstructionRow(
+                    systemImage: "keyboard",
+                    title: "Distance can be edited",
+                    detail: "You can clear or type the distance manually before saving."
+                )
+                ManualScreenshotCard(
+                    imageName: "ManualRecordShotVerified",
+                    caption: "After auditing a shot, the distance is marked Manually Verified."
+                )
+            }
+
+            Section("Audit GPS Distance") {
+                ManualScreenshotCard(
+                    imageName: "ManualAuditDistance",
+                    caption: "Use Audit Distance to verify or adjust the start and finish points."
+                )
+                ManualInstructionRow(
+                    systemImage: "mappin.and.ellipse",
+                    title: "Move the pins",
+                    detail: "Tap near a point or drag a pin to correct the start or finish location."
+                )
+                ManualInstructionRow(
+                    systemImage: "checkmark",
+                    title: "Apply the new distance",
+                    detail: "Apply saves the corrected distance back to the shot form."
+                )
+            }
+
+            Section("Analysis") {
+                ManualScreenshotCard(
+                    imageName: "ManualAnalysisOverall",
+                    caption: "Overall combines all clubs for grass, direction, and strike trends."
+                )
+                ManualInstructionRow(
+                    systemImage: "chart.bar.xaxis",
+                    title: "Use Overall for patterns",
+                    detail: "Review common misses, strike quality, and rough or deep rough distance changes."
+                )
+                ManualScreenshotCard(
+                    imageName: "ManualAnalysisClubList",
+                    caption: "Club Specific opens analysis for one club at a time."
+                )
+                ManualInstructionRow(
+                    systemImage: "arrow.down.to.line.compact",
+                    title: "Adopt tracked averages",
+                    detail: "Use Adopt Tracked Avg when you want real shot data to replace a static yardage."
+                )
+                ManualScreenshotCard(
+                    imageName: "ManualAnalysisClubDetail",
+                    caption: "Tap Total Shots to review, edit, or delete saved shots for that club."
+                )
+                ManualScreenshotCard(
+                    imageName: "ManualRecordedShots",
+                    caption: "Recorded Shots lists shot type, date, distance, strike quality, and direction."
+                )
+            }
+
+            Section("Profile") {
+                ManualScreenshotCard(
+                    imageName: "ManualProfile",
+                    caption: "Profile controls shot tracking, distance filtering, home base altitude, and history."
+                )
+                ManualInstructionRow(
+                    systemImage: "calendar",
+                    title: "Use Shot Data From",
+                    detail: "This controls which shots count toward App Calculated distances and Analysis. It does not delete old shots."
+                )
+                ManualInstructionRow(
+                    systemImage: "mountain.2.fill",
+                    title: "Home base altitude",
+                    detail: "Set your usual playing city and altitude so Caddie Cat can adjust distances when altitude changes."
+                )
+                ManualInstructionRow(
+                    systemImage: "list.bullet.rectangle",
+                    title: "Review history",
+                    detail: "All Shots and Number of Rounds let you review saved shots and completed rounds."
+                )
+            }
+
+            Section {
+                Text("Tip: record only useful shots. Bad contact is still worth tracking for miss patterns, but app-calculated distances rely on pure shots with a saved distance.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("Instruction Manual")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+
+private struct ManualInstructionRow: View {
+    let systemImage: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.headline)
+                .foregroundStyle(.green)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct ManualScreenshotCard: View {
+    let imageName: String
+    let caption: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(imageName)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: 360)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(.secondary.opacity(0.2), lineWidth: 1)
+                }
+                .accessibilityHidden(true)
+
+            Text(caption)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -1616,6 +2206,8 @@ private struct ProfileClubStrikeChartView: View {
                         ],
                         totalCount: row.totalCount
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .scaleEffect(x: widthRatio(for: row), y: 1, anchor: .leading)
                     .frame(height: 12)
                 }
                 .accessibilityIdentifier("profile-club-strike-row-\(row.clubName)")
@@ -1634,6 +2226,18 @@ private struct ProfileClubStrikeChartView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private var maxTotalCount: Int {
+        rows.map(\.totalCount).max() ?? 0
+    }
+
+    private func widthRatio(for row: ProfileClubStrikeRow) -> CGFloat {
+        guard maxTotalCount > 0 else {
+            return 1
+        }
+
+        return max(0.08, CGFloat(row.totalCount) / CGFloat(maxTotalCount))
     }
 }
 
@@ -1964,6 +2568,7 @@ private struct AnalysisView: View {
     let switchProfile: () -> Void
 
     @StateObject private var viewModel: YardageDashboardViewModel
+    @State private var selectedScope: AnalysisScope = .overall
     private let formatter = ClubDisplayNameFormatter()
 
     init(profile: GolferProfile, repository: GolfBagRepository, switchProfile: @escaping () -> Void) {
@@ -1974,7 +2579,19 @@ private struct AnalysisView: View {
 
     var body: some View {
         List {
-            if viewModel.activeClubs.isEmpty, viewModel.inactiveClubs.isEmpty {
+            Section {
+                Picker("Analysis Scope", selection: $selectedScope) {
+                    ForEach(AnalysisScope.allCases, id: \.self) { scope in
+                        Text(scope.displayName)
+                            .tag(scope)
+                            .accessibilityIdentifier("analysis-scope-\(scope.accessibilityName)")
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("analysis-scope-picker")
+            }
+
+            if viewModel.activeClubs.isEmpty, viewModel.inactiveClubs.isEmpty, viewModel.shotRecords.isEmpty {
                 ContentUnavailableView(
                     "No Clubs",
                     systemImage: "chart.bar.xaxis",
@@ -1982,6 +2599,12 @@ private struct AnalysisView: View {
                 )
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
+            } else if selectedScope == .overall {
+                OverallAnalysisView(
+                    clubs: viewModel.activeClubs + viewModel.inactiveClubs,
+                    shotRecords: viewModel.shotRecords,
+                    adjustmentContext: viewModel.homeBaseDistanceAdjustmentContext
+                )
             } else {
                 clubSection(title: "Active Clubs", clubs: viewModel.activeClubs, enablesPaging: true)
 
@@ -2010,6 +2633,9 @@ private struct AnalysisView: View {
         .task {
             viewModel.loadClubs()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
+            viewModel.loadClubs()
+        }
     }
 
     private func clubSection(title: String, clubs: [Club], enablesPaging: Bool) -> some View {
@@ -2021,6 +2647,7 @@ private struct AnalysisView: View {
                             clubs: clubs,
                             selectedClubID: club.id,
                             shotRecords: viewModel.shotRecords,
+                            adjustmentContext: viewModel.homeBaseDistanceAdjustmentContext,
                             onSaveClub: viewModel.saveClub,
                             onSaveShotRecord: viewModel.saveShotRecord,
                             onDeleteShotRecord: viewModel.deleteShotRecord
@@ -2029,6 +2656,7 @@ private struct AnalysisView: View {
                         ClubAnalysisDetailView(
                             club: club,
                             shotRecords: viewModel.shotRecords,
+                            adjustmentContext: viewModel.homeBaseDistanceAdjustmentContext,
                             onSaveClub: viewModel.saveClub,
                             onSaveShotRecord: viewModel.saveShotRecord,
                             onDeleteShotRecord: viewModel.deleteShotRecord
@@ -2039,6 +2667,126 @@ private struct AnalysisView: View {
                 }
                 .accessibilityIdentifier("analysis-club-row-\(formatter.displayName(for: club))")
             }
+        }
+    }
+}
+
+private enum AnalysisScope: String, CaseIterable {
+    case overall
+    case clubSpecific
+
+    var displayName: String {
+        switch self {
+        case .overall:
+            "Overall"
+        case .clubSpecific:
+            "Club Specific"
+        }
+    }
+
+    var accessibilityName: String {
+        rawValue
+    }
+}
+
+private struct OverallAnalysisView: View {
+    let clubs: [Club]
+    let shotRecords: [ShotRecord]
+    let adjustmentContext: DistanceAdjustmentContext?
+
+    private let formatter = ClubDisplayNameFormatter()
+    private let statsCalculator = ShotStatsCalculator()
+
+    var body: some View {
+        if shotRecords.isEmpty {
+            ContentUnavailableView(
+                "No Tracked Shots",
+                systemImage: "chart.bar.xaxis",
+                description: Text("Record shots to build overall analysis.")
+            )
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
+        } else {
+            Section("Grass Modifier") {
+                HStack(alignment: .top, spacing: 0) {
+                    ForEach(grassModifierRows, id: \.id) { row in
+                        GrassModifierRowView(row: row)
+                            .frame(maxWidth: .infinity)
+                            .accessibilityIdentifier("overall-grass-modifier-\(row.id)")
+                    }
+                }
+            }
+
+            Section("Direction") {
+                DirectionDistributionView(
+                    rows: ShotDirection.allCases.map { direction in
+                        DirectionDistributionRowData(
+                            id: direction.displayName,
+                            direction: direction,
+                            title: direction.displayName,
+                            count: directionCount(for: direction),
+                            percentage: directionDistribution[direction] ?? 0,
+                            tint: direction.tint
+                        )
+                    },
+                    totalCount: shotRecords.count
+                )
+                .accessibilityIdentifier("overall-direction-distribution")
+            }
+
+            if clubStrikeRows.isEmpty == false {
+                Section("Strike Quality") {
+                    ProfileClubStrikeChartView(rows: clubStrikeRows)
+                        .accessibilityIdentifier("analysis-club-strike-chart")
+                }
+            }
+        }
+    }
+
+    private var grassModifierRows: [GrassModifierRow] {
+        let modifiers = Dictionary(
+            uniqueKeysWithValues: statsCalculator
+                .overallWeightedGrassDistanceModifiers(
+                    for: shotRecords,
+                    adjustmentContext: adjustmentContext
+                )
+                .map { ($0.grassType, $0) }
+        )
+
+        return [GrassType.rough, .deepRough].map { grassType in
+            let modifier = modifiers[grassType]
+            return GrassModifierRow(
+                grassType: grassType,
+                lossYards: modifier.map { Int($0.averageLossYards.rounded()) },
+                sampleCount: modifier?.sampleCount ?? 0
+            )
+        }
+    }
+
+    private var directionDistribution: [ShotDirection: Double] {
+        statsCalculator.directionDistributionPercentages(for: shotRecords)
+    }
+
+    private func directionCount(for direction: ShotDirection) -> Int {
+        shotRecords.filter { $0.direction == direction }.count
+    }
+
+    private var clubStrikeRows: [ProfileClubStrikeRow] {
+        clubs.compactMap { club -> ProfileClubStrikeRow? in
+            let clubRecords = shotRecords.filter { $0.clubID == club.id }
+            let totalCount = clubRecords.count
+            guard totalCount > 0 else {
+                return nil
+            }
+
+            let pureCount = clubRecords.filter { $0.strikeQuality == .pure }.count
+            let mishitCount = clubRecords.filter { $0.strikeQuality == .thin || $0.strikeQuality == .chunk }.count
+
+            return ProfileClubStrikeRow(
+                clubName: formatter.displayName(for: club),
+                pureCount: pureCount,
+                mishitCount: mishitCount
+            )
         }
     }
 }
@@ -2063,9 +2811,11 @@ private struct AnalysisClubRow: View {
 
             Spacer()
 
-            Image(systemName: club.isActive ? "checkmark.circle.fill" : "archivebox")
-                .foregroundStyle(club.isActive ? .green : .secondary)
-                .accessibilityHidden(true)
+            if club.isActive == false {
+                Image(systemName: "archivebox")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.vertical, 4)
     }
@@ -2092,8 +2842,11 @@ private struct AnalysisClubRow: View {
 }
 
 private struct ClubAnalysisPagerView: View {
+    @Environment(\.dismiss) private var dismiss
+
     let clubs: [Club]
     let shotRecords: [ShotRecord]
+    let adjustmentContext: DistanceAdjustmentContext?
     let onSaveClub: (Club) throws -> Void
     let onSaveShotRecord: (ShotRecord) throws -> Void
     let onDeleteShotRecord: (ShotRecord) -> Void
@@ -2106,12 +2859,14 @@ private struct ClubAnalysisPagerView: View {
         clubs: [Club],
         selectedClubID: UUID,
         shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext?,
         onSaveClub: @escaping (Club) throws -> Void,
         onSaveShotRecord: @escaping (ShotRecord) throws -> Void,
         onDeleteShotRecord: @escaping (ShotRecord) -> Void
     ) {
         self.clubs = clubs
         self.shotRecords = shotRecords
+        self.adjustmentContext = adjustmentContext
         self.onSaveClub = onSaveClub
         self.onSaveShotRecord = onSaveShotRecord
         self.onDeleteShotRecord = onDeleteShotRecord
@@ -2119,31 +2874,98 @@ private struct ClubAnalysisPagerView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedClubID) {
-            ForEach(clubs) { club in
+        Group {
+            if let currentClub {
                 ClubAnalysisDetailView(
-                    club: club,
+                    club: currentClub,
                     shotRecords: shotRecords,
+                    adjustmentContext: adjustmentContext,
                     onSaveClub: onSaveClub,
                     onSaveShotRecord: onSaveShotRecord,
                     onDeleteShotRecord: onDeleteShotRecord,
                     showsNavigationTitle: false
                 )
-                .tag(club.id)
+                .id(currentClub.id)
+            } else {
+                ContentUnavailableView("No Clubs", systemImage: "chart.bar.xaxis")
             }
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
+        .contentShape(Rectangle())
+        .simultaneousGesture(horizontalSwipeGesture)
         .navigationTitle(currentClubName)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Label("Clubs", systemImage: "chevron.left")
+                        .labelStyle(.titleAndIcon)
+                }
+                .accessibilityIdentifier("club-analysis-back-button")
+            }
+        }
         .accessibilityIdentifier("club-analysis-pager")
     }
 
+    private var horizontalSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 36)
+            .onEnded(handleSwipe)
+    }
+
+    private var currentClub: Club? {
+        clubs.first(where: { $0.id == selectedClubID }) ?? clubs.first
+    }
+
     private var currentClubName: String {
-        guard let currentClub = clubs.first(where: { $0.id == selectedClubID }) ?? clubs.first else {
+        guard let currentClub else {
             return "Analysis"
         }
 
         return formatter.displayName(for: currentClub)
+    }
+
+    private func handleSwipe(_ value: DragGesture.Value) {
+        let horizontalDistance = value.translation.width
+        let verticalDistance = value.translation.height
+
+        guard abs(horizontalDistance) > abs(verticalDistance),
+              abs(horizontalDistance) > 50 else {
+            return
+        }
+
+        if horizontalDistance > 0 {
+            selectNextClub()
+        } else {
+            selectPreviousClub()
+        }
+    }
+
+    private func selectNextClub() {
+        guard let currentIndex,
+              currentIndex < clubs.index(before: clubs.endIndex) else {
+            return
+        }
+
+        withAnimation(.snappy(duration: 0.22)) {
+            selectedClubID = clubs[clubs.index(after: currentIndex)].id
+        }
+    }
+
+    private func selectPreviousClub() {
+        guard let currentIndex,
+              currentIndex > clubs.startIndex else {
+            return
+        }
+
+        withAnimation(.snappy(duration: 0.22)) {
+            selectedClubID = clubs[clubs.index(before: currentIndex)].id
+        }
+    }
+
+    private var currentIndex: [Club].Index? {
+        clubs.firstIndex { $0.id == selectedClubID } ?? clubs.indices.first
     }
 }
 
@@ -2151,6 +2973,7 @@ private struct ClubAnalysisDetailView: View {
     @State private var club: Club
 
     let shotRecords: [ShotRecord]
+    let adjustmentContext: DistanceAdjustmentContext?
     let onSaveClub: (Club) throws -> Void
     let onSaveShotRecord: (ShotRecord) throws -> Void
     let onDeleteShotRecord: (ShotRecord) -> Void
@@ -2165,6 +2988,7 @@ private struct ClubAnalysisDetailView: View {
     init(
         club: Club,
         shotRecords: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext? = nil,
         onSaveClub: @escaping (Club) throws -> Void,
         onSaveShotRecord: @escaping (ShotRecord) throws -> Void,
         onDeleteShotRecord: @escaping (ShotRecord) -> Void,
@@ -2172,6 +2996,7 @@ private struct ClubAnalysisDetailView: View {
     ) {
         _club = State(initialValue: club)
         self.shotRecords = shotRecords
+        self.adjustmentContext = adjustmentContext
         self.onSaveClub = onSaveClub
         self.onSaveShotRecord = onSaveShotRecord
         self.onDeleteShotRecord = onDeleteShotRecord
@@ -2237,12 +3062,11 @@ private struct ClubAnalysisDetailView: View {
                         Button {
                             adoptAverage(for: row)
                         } label: {
-                            Label("Adopt", systemImage: "arrow.down.doc")
-                                .font(.caption.weight(.semibold))
+                            AdoptTrackedAverageLabel(row: row)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.plain)
                         .tint(.green)
-                        .accessibilityLabel("Adopt \(row.label) pure average")
+                        .accessibilityLabel("Adopt \(row.label) tracked average. \(row.adoptActionDescription)")
                         .accessibilityIdentifier("adopt-average-\(row.power.accessibilityName)")
                     }
                 }
@@ -2282,10 +3106,11 @@ private struct ClubAnalysisDetailView: View {
 
     @ViewBuilder
     private var grassModifierSection: some View {
-        if grassModifierRows.isEmpty == false {
-            Section("Grass Modifier") {
+        Section("Grass Modifier") {
+            HStack(alignment: .top, spacing: 0) {
                 ForEach(grassModifierRows, id: \.id) { row in
                     GrassModifierRowView(row: row)
+                        .frame(maxWidth: .infinity)
                         .accessibilityIdentifier("analysis-grass-modifier-\(row.id)")
                 }
             }
@@ -2356,22 +3181,24 @@ private struct ClubAnalysisDetailView: View {
     }
 
     private var grassModifierRows: [GrassModifierRow] {
-        powers(for: selectedCategory).flatMap { power in
-            statsCalculator.grassDistanceModifiers(
-                for: shotRecords,
-                clubID: club.id,
-                category: selectedCategory,
-                power: power
-            )
-            .map { modifier in
-                GrassModifierRow(
-                    grassType: modifier.grassType,
-                    power: power,
-                    fairwayDistance: Int(modifier.fairwayAverageDistance.rounded()),
-                    grassDistance: Int(modifier.grassAverageDistance.rounded()),
-                    delta: Int(modifier.deltaYards.rounded())
+        let modifiers = Dictionary(
+            uniqueKeysWithValues: statsCalculator
+                .weightedGrassDistanceModifiers(
+                    for: shotRecords,
+                    clubID: club.id,
+                    category: selectedCategory,
+                    adjustmentContext: adjustmentContext
                 )
-            }
+                .map { ($0.grassType, $0) }
+        )
+
+        return [GrassType.rough, .deepRough].map { grassType in
+            let modifier = modifiers[grassType]
+            return GrassModifierRow(
+                grassType: grassType,
+                lossYards: modifier.map { Int($0.averageLossYards.rounded()) },
+                sampleCount: modifier?.sampleCount ?? 0
+            )
         }
     }
 
@@ -2527,7 +3354,8 @@ private struct ClubAnalysisDetailView: View {
             for: shotRecords,
             clubID: club.id,
             category: selectedCategory,
-            power: power
+            power: power,
+            adjustmentContext: adjustmentContext
         ) else {
             return nil
         }
@@ -3000,17 +3828,27 @@ private struct DistanceComparisonRow {
 
         return manualDistance != averageDistance
     }
+
+    var adoptActionDescription: String {
+        guard let averageDistance else {
+            return "No tracked average available"
+        }
+
+        if let manualDistance {
+            return "Updates Static Value: \(manualDistance) -> \(averageDistance) yds"
+        }
+
+        return "Sets Static Value: \(averageDistance) yds"
+    }
 }
 
 private struct GrassModifierRow: Identifiable {
     let grassType: GrassType
-    let power: ShotPower
-    let fairwayDistance: Int
-    let grassDistance: Int
-    let delta: Int
+    let lossYards: Int?
+    let sampleCount: Int
 
     var id: String {
-        "\(grassType.rawValue)-\(power.rawValue)"
+        grassType.rawValue
     }
 }
 
@@ -3018,42 +3856,53 @@ private struct GrassModifierRowView: View {
     let row: GrassModifierRow
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("\(row.grassType.displayName) \(row.power.displayName)")
-                    .font(.headline)
+        VStack(spacing: 4) {
+            Text(row.grassType.displayName)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
 
-                Text("Fairway \(row.fairwayDistance) yds | \(row.grassType.displayName) \(row.grassDistance) yds")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(lossText)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(row.lossYards == nil ? .secondary : .primary)
+                    .monospacedDigit()
+
+                if row.lossYards != nil {
+                    Text("yds")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
 
-            Spacer()
-
-            Text(deltaText)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(deltaTint)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(deltaTint.opacity(0.12), in: Capsule())
+            Text(sampleText)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
-        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
     }
 
-    private var deltaText: String {
-        if row.delta == 0 {
-            return "Even"
+    private var lossText: String {
+        guard let lossYards = row.lossYards else {
+            return "-"
         }
 
-        return row.delta > 0 ? "+\(row.delta) yds" : "\(row.delta) yds"
+        if lossYards > 0 {
+            return "-\(lossYards)"
+        }
+
+        if lossYards < 0 {
+            return "+\(abs(lossYards))"
+        }
+
+        return "0"
     }
 
-    private var deltaTint: Color {
-        if row.delta == 0 {
-            return .secondary
-        }
-
-        return row.delta < 0 ? .orange : .green
+    private var sampleText: String {
+        row.sampleCount == 1 ? "1 shot" : "\(row.sampleCount) shots"
     }
 }
 
@@ -3080,12 +3929,12 @@ private struct DistanceComparisonRowView: View {
             }
 
             HStack(spacing: 0) {
-                ComparisonValue(title: "Manual", distance: row.manualDistance)
+                ComparisonValue(title: "Static Value", distance: row.manualDistance)
 
                 Divider()
                     .padding(.vertical, 3)
 
-                ComparisonValue(title: "Pure Avg", distance: row.averageDistance)
+                ComparisonValue(title: "Tracked Avg", distance: row.averageDistance)
             }
         }
         .padding(.vertical, 4)
@@ -3113,6 +3962,44 @@ private struct DistanceComparisonRowView: View {
         }
 
         return delta > 0 ? .blue : .orange
+    }
+}
+
+private struct AdoptTrackedAverageLabel: View {
+    let row: DistanceComparisonRow
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.down.to.line.compact")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.green)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Adopt Tracked Avg")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Text(row.adoptActionDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "checkmark.circle.fill")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.green)
+                .accessibilityHidden(true)
+        }
+        .padding(10)
+        .background(.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(.green.opacity(0.35), lineWidth: 1)
+        }
     }
 }
 

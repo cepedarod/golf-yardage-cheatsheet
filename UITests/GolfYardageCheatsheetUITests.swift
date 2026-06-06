@@ -211,6 +211,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
 
         app.tabBars.buttons["Analysis"].tap()
         XCTAssertTrue(app.navigationBars["Analysis"].waitForExistence(timeout: 5))
+        showClubSpecificAnalysis(in: app)
         let driverAnalysisRow = app.descendants(matching: .any)["analysis-club-row-Driver"]
         XCTAssertTrue(driverAnalysisRow.waitForExistence(timeout: 2))
         driverAnalysisRow.tap()
@@ -245,6 +246,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.tabBars.buttons["Analysis"].tap()
 
         XCTAssertTrue(app.navigationBars["Analysis"].waitForExistence(timeout: 5))
+        showClubSpecificAnalysis(in: app)
         let driverAnalysisRow = app.descendants(matching: .any)["analysis-club-row-Driver"]
         XCTAssertTrue(driverAnalysisRow.waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["1 recorded shot"].exists)
@@ -301,6 +303,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.tabBars.buttons["Analysis"].tap()
 
         XCTAssertTrue(app.navigationBars["Analysis"].waitForExistence(timeout: 5))
+        showClubSpecificAnalysis(in: app)
         let driverAnalysisRow = app.descendants(matching: .any)["analysis-club-row-Driver"]
         XCTAssertTrue(driverAnalysisRow.waitForExistence(timeout: 2))
         driverAnalysisRow.tap()
@@ -442,8 +445,8 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.navigationBars["Round Shots"].buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Current Round"].waitForExistence(timeout: 5))
         app.buttons["end-round-button"].tap()
-        XCTAssertTrue(app.alerts.buttons["End Round"].waitForExistence(timeout: 2))
-        app.alerts.buttons["End Round"].tap()
+        XCTAssertTrue(app.alerts.buttons["Finish Round"].waitForExistence(timeout: 2))
+        app.alerts.buttons["Finish Round"].tap()
 
         XCTAssertTrue(app.buttons["start-round-button"].waitForExistence(timeout: 2))
         app.tabBars.buttons["Profile"].tap()
@@ -746,6 +749,12 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(inactiveClubsButton.waitForExistence(timeout: 2))
         inactiveClubsButton.tap()
         XCTAssertTrue(app.navigationBars["Inactive Clubs"].waitForExistence(timeout: 5))
+    }
+
+    private func showClubSpecificAnalysis(in app: XCUIApplication) {
+        let clubSpecificButton = app.buttons["Club Specific"]
+        XCTAssertTrue(clubSpecificButton.waitForExistence(timeout: 2))
+        clubSpecificButton.tap()
     }
 
     private func waitForDisappearance(of element: XCUIElement, timeout: TimeInterval = 2) {

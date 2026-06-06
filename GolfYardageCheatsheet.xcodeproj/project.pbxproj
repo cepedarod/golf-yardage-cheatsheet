@@ -38,6 +38,7 @@
 		A71E5B50F781D3B5D934EF6F /* CaddieCatAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B96784F646FD6E14D6FDF807 /* CaddieCatAppDelegate.swift */; };
 		ADB5ECCC2DC66A54011E71C6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C93F6EFEEF34F5ACC39ABBA2 /* Assets.xcassets */; };
 		AFF64A9F035EEDD9F7ABDB73 /* GolfBagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30217AF791DE1307E1C5DB9C /* GolfBagStore.swift */; };
+		B6A4D83F3E624D87A9B16C21 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D4C8F0197A4B431BA8E3C2F6 /* Assets.xcassets */; };
 		BBC36FE04A72F4A5E366ADD7 /* CreateProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868C9716DC779A37ED9B2520 /* CreateProfileView.swift */; };
 		BCB562A815538F1F61E91617 /* ShotFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECD268F84F079F082767E3C /* ShotFilter.swift */; };
 		C722276A053D7EC4BDB7C9E9 /* YardageDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76D967F6E3B93C91C4C4210A /* YardageDashboardView.swift */; };
@@ -136,6 +137,7 @@
 		C93F6EFEEF34F5ACC39ABBA2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CECCE10EF40CA28AA97D2C65 /* ProfileSelectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelectionViewModel.swift; sourceTree = "<group>"; };
 		CF4AE8CCE821E80AA9CF0D55 /* FileGolfBagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileGolfBagStore.swift; sourceTree = "<group>"; };
+		D4C8F0197A4B431BA8E3C2F6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D0DA91D8731B12729B7B498A /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		D19D3E4AFA010D64C37103F5 /* RoundReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundReminderScheduler.swift; sourceTree = "<group>"; };
 		D6AD5655AF13BA1B37308F73 /* GolfCourseNameProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfCourseNameProvider.swift; sourceTree = "<group>"; };
@@ -182,6 +184,7 @@
 		0C4390EE4D9CC1CD46B0F5EC /* LiveActivityExtension */ = {
 			isa = PBXGroup;
 			children = (
+				D4C8F0197A4B431BA8E3C2F6 /* Assets.xcassets */,
 				E379926282F54C3D34FC80F8 /* CaddieCatLiveActivityBundle.swift */,
 				700AE191869F93ADD1480156 /* Info.plist */,
 				4C4EE9EE267A3FC13545C495 /* PrivacyInfo.xcprivacy */,
@@ -470,6 +473,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B6A4D83F3E624D87A9B16C21 /* Assets.xcassets in Resources */,
 				83210BBB92B9A1911ED7CE80 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -659,6 +663,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -688,6 +693,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

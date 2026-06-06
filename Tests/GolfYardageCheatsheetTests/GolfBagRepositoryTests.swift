@@ -85,6 +85,31 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
     }
 
+    func testUpdateProfileAnalysisDateRangePersistsPreference() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let startDate = Date(timeIntervalSince1970: 1_000)
+        let endDate = Date(timeIntervalSince1970: 2_000)
+        let updatedAt = Date(timeIntervalSince1970: 3_000)
+
+        try repository.updateProfileAnalysisDateRange(
+            profileID: profile.id,
+            analysisDateRange: AnalysisDateRange(
+                kind: .custom,
+                customStartDate: startDate,
+                customEndDate: endDate
+            ),
+            now: updatedAt
+        )
+
+        let updatedProfile = try XCTUnwrap(try repository.profiles().first)
+        XCTAssertEqual(updatedProfile.analysisDateRange.kind, .custom)
+        XCTAssertEqual(updatedProfile.analysisDateRange.customStartDate, startDate)
+        XCTAssertEqual(updatedProfile.analysisDateRange.customEndDate, endDate)
+        XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
+    }
+
     func testUpdateProfileAltitudeSettingsPersistsPreference() throws {
         let store = InMemoryGolfBagStore()
         let repository = GolfBagRepository(store: store)
@@ -698,6 +723,61 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(modifiers.first { $0.grassType == .deepRough }?.deltaYards, -30)
     }
 
+    func testWeightedGrassDistanceModifiersCombineLikeForLikeSwingLosses() {
+        let clubID = UUID()
+        let calculator = ShotStatsCalculator()
+        let records: [ShotRecord] = [
+            shot(clubID: clubID, power: .full, distance: 20, grassType: .fairway),
+            shot(clubID: clubID, power: .full, distance: 30, grassType: .fairway),
+            shot(clubID: clubID, power: .full, distance: 18, grassType: .rough),
+            shot(clubID: clubID, power: .full, distance: 18, grassType: .rough),
+            shot(clubID: clubID, power: .threeQuarter, distance: 10, grassType: .fairway),
+            shot(clubID: clubID, power: .threeQuarter, distance: 10, grassType: .fairway),
+            shot(clubID: clubID, power: .threeQuarter, distance: 10, grassType: .fairway),
+            shot(clubID: clubID, power: .threeQuarter, distance: 10, grassType: .fairway),
+            shot(clubID: clubID, power: .threeQuarter, distance: 7, grassType: .rough),
+            shot(clubID: clubID, power: .threeQuarter, distance: 5, grassType: .deepRough)
+        ]
+
+        let modifiers = calculator.weightedGrassDistanceModifiers(
+            for: records,
+            clubID: clubID,
+            category: .normal
+        )
+
+        let roughModifier = modifiers.first { $0.grassType == .rough }
+        let deepRoughModifier = modifiers.first { $0.grassType == .deepRough }
+
+        XCTAssertEqual(roughModifier?.sampleCount, 3)
+        XCTAssertEqual(roughModifier?.averageLossYards ?? -1, 5.6666666667, accuracy: 0.0001)
+        XCTAssertEqual(deepRoughModifier?.sampleCount, 1)
+        XCTAssertEqual(deepRoughModifier?.averageLossYards ?? -1, 5, accuracy: 0.0001)
+    }
+
+    func testOverallWeightedGrassDistanceModifiersCombineLikeForLikeClubAndSwingLosses() {
+        let firstClubID = UUID()
+        let secondClubID = UUID()
+        let calculator = ShotStatsCalculator()
+        let records: [ShotRecord] = [
+            shot(clubID: firstClubID, power: .full, distance: 20, grassType: .fairway),
+            shot(clubID: firstClubID, power: .full, distance: 30, grassType: .fairway),
+            shot(clubID: firstClubID, power: .full, distance: 18, grassType: .rough),
+            shot(clubID: firstClubID, power: .full, distance: 18, grassType: .rough),
+            shot(clubID: firstClubID, power: .threeQuarter, distance: 10, grassType: .fairway),
+            shot(clubID: firstClubID, power: .threeQuarter, distance: 7, grassType: .rough),
+            shot(clubID: secondClubID, power: .full, distance: 100, grassType: .fairway),
+            shot(clubID: secondClubID, power: .full, distance: 90, grassType: .rough),
+            shot(clubID: secondClubID, power: .half, distance: 50, grassType: .rough)
+        ]
+
+        let modifiers = calculator.overallWeightedGrassDistanceModifiers(for: records)
+        let roughModifier = modifiers.first { $0.grassType == .rough }
+
+        XCTAssertEqual(roughModifier?.sampleCount, 4)
+        XCTAssertEqual(roughModifier?.averageLossYards ?? -1, 6.75, accuracy: 0.0001)
+        XCTAssertNil(modifiers.first { $0.grassType == .deepRough })
+    }
+
     func testShotStatsUseAllRecordsForTotalsAndDistributions() {
         let clubID = UUID()
         let calculator = ShotStatsCalculator()
@@ -765,6 +845,25 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertThrowsError(try repository.deleteShotRecord(id: UUID())) { error in
             XCTAssertEqual(error as? GolfBagRepositoryError, .shotRecordNotFound)
         }
+    }
+
+    private func shot(
+        clubID: UUID,
+        category: ShotCategory = .normal,
+        power: ShotPower,
+        distance: Int,
+        grassType: GrassType
+    ) -> ShotRecord {
+        ShotRecord(
+            profileID: UUID(),
+            clubID: clubID,
+            category: category,
+            power: power,
+            distance: distance,
+            strikeQuality: .pure,
+            direction: .straight,
+            grassType: grassType
+        )
     }
 }
 

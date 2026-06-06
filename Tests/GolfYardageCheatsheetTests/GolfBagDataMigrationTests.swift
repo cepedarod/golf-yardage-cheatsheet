@@ -155,6 +155,7 @@ final class GolfBagDataMigrationTests: XCTestCase {
 
         XCTAssertEqual(decoded.schemaVersion, GolfBagData.currentSchemaVersion)
         XCTAssertEqual(decoded.profiles.first?.shotTrackingMode, .gps)
+        XCTAssertEqual(decoded.profiles.first?.analysisDateRange, .allTime)
         XCTAssertEqual(decoded.profiles.first?.homeBaseCity, AltitudeDefaults.chicagoCity)
         XCTAssertEqual(decoded.profiles.first?.homeBaseAltitudeFeet, AltitudeDefaults.chicagoFeet)
         XCTAssertEqual(decoded.profiles.first?.altitudeCalculationMode, .adjustForAltitude)

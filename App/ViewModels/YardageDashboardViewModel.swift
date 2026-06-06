@@ -71,16 +71,17 @@ final class YardageDashboardViewModel: ObservableObject {
             }
 
             let clubs = clubSorter.sortedForDistanceTab(data.clubs(for: profile.id))
-            let shotRecords = data.shotRecords
+            let profileShotRecords = data.shotRecords
                 .filter { $0.profileID == profile.id }
                 .sorted(by: oldestShotFirst)
+            let analysisShotRecords = currentProfile.analysisDateRange.filtered(profileShotRecords)
             let activeRound = data.rounds
                 .filter { $0.profileID == profile.id && $0.isCompleted == false }
                 .sorted(by: newestRoundFirst)
                 .first
             activeClubs = clubs.filter(\.isActive)
             inactiveClubs = clubs.filter { $0.isActive == false }
-            self.shotRecords = shotRecords
+            shotRecords = analysisShotRecords
             self.activeRound = activeRound
             activeRoundID = activeRound?.id
             if let activeRound, roundReminderScheduler.isStale(activeRound) == false {
@@ -149,32 +150,57 @@ final class YardageDashboardViewModel: ObservableObject {
     }
 
     var distanceAdjustmentContext: DistanceAdjustmentContext? {
-        guard loadedProfile.altitudeCalculationMode == .adjustForAltitude,
-              let activeRound,
-              activeRound.distanceTrackingMode == .accountForAltitude,
-              let roundAltitudeFeet = activeRound.altitudeFeet else {
+        guard loadedProfile.altitudeCalculationMode == .adjustForAltitude else {
+            return nil
+        }
+
+        let targetAltitudeFeet: Double
+        if let activeRound,
+           activeRound.distanceTrackingMode == .accountForAltitude,
+           let roundAltitudeFeet = activeRound.altitudeFeet {
+            targetAltitudeFeet = roundAltitudeFeet
+        } else {
+            targetAltitudeFeet = loadedProfile.homeBaseAltitudeFeet
+        }
+
+        return DistanceAdjustmentContext(
+            homeBaseAltitudeFeet: loadedProfile.homeBaseAltitudeFeet,
+            targetAltitudeFeet: targetAltitudeFeet
+        )
+    }
+
+    var homeBaseDistanceAdjustmentContext: DistanceAdjustmentContext? {
+        guard loadedProfile.altitudeCalculationMode == .adjustForAltitude else {
             return nil
         }
 
         return DistanceAdjustmentContext(
             homeBaseAltitudeFeet: loadedProfile.homeBaseAltitudeFeet,
-            targetAltitudeFeet: roundAltitudeFeet
+            targetAltitudeFeet: loadedProfile.homeBaseAltitudeFeet
         )
     }
 
     var altitudeAdjustmentNotice: String? {
-        guard let context = distanceAdjustmentContext,
+        guard loadedProfile.altitudeCalculationMode == .adjustForAltitude,
+              let activeRound,
+              activeRound.distanceTrackingMode == .accountForAltitude,
+              let roundAltitudeFeet = activeRound.altitudeFeet,
               AltitudeDistanceCalculator().shouldAdjust(
-                from: context.homeBaseAltitudeFeet,
-                to: context.targetAltitudeFeet
+                from: loadedProfile.homeBaseAltitudeFeet,
+                to: roundAltitudeFeet
               ) else {
             return nil
         }
 
-        let deltaFeet = Int((context.targetAltitudeFeet - context.homeBaseAltitudeFeet).rounded())
-        let direction = deltaFeet > 0 ? "higher" : "lower"
+        let modifier = AltitudeDistanceCalculator().distanceModifier(
+            homeBaseAltitudeFeet: loadedProfile.homeBaseAltitudeFeet,
+            altitudeFeet: roundAltitudeFeet
+        )
+        let percentage = abs((modifier - 1) * 100)
+        let formattedPercentage = Self.rangePercentageFormatter.string(from: NSNumber(value: percentage)) ?? "\(Int(percentage.rounded()))"
+        let direction = modifier >= 1 ? "More Range" : "Less Range"
 
-        return "Altitude-adjusted for this round: \(abs(deltaFeet)) ft \(direction)"
+        return "\(formattedPercentage)% \(direction)"
     }
 
     var recordableActiveClubs: [Club] {
@@ -276,6 +302,13 @@ final class YardageDashboardViewModel: ObservableObject {
 
     private static func defaultRoundName(for date: Date) -> String {
         "Round \(date.formatted(.dateTime.month(.abbreviated).day()))"
+    }
+
+    private static var rangePercentageFormatter: NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.maximumFractionDigits = 1
+        formatter.minimumFractionDigits = 0
+        return formatter
     }
 
     private func newestRoundFirst(_ lhs: GolfRound, _ rhs: GolfRound) -> Bool {

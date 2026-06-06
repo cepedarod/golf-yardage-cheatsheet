@@ -52,19 +52,30 @@ struct CaddieCatLiveActivity: Widget {
                     CaddieCatExpandedIslandAction(context: context)
                 }
             } compactLeading: {
-                Image(systemName: context.state.trackingPhase == .awaitingFinish ? "flag.checkered.circle.fill" : "flag.fill")
-                    .foregroundStyle(.green)
+                DynamicIslandCatIcon(size: context.state.trackingPhase == .awaitingFinish ? 18 : 17)
             } compactTrailing: {
                 Text("\(context.state.shotCount)")
                     .font(.caption.weight(.bold))
                     .monospacedDigit()
             } minimal: {
-                Image(systemName: "flag.fill")
-                    .foregroundStyle(.green)
+                DynamicIslandCatIcon(size: 14)
             }
             .widgetURL(CaddieCatLiveActivityDeepLink.openDistance.url(roundID: context.attributes.roundID))
             .keylineTint(.green)
         }
+    }
+}
+
+private struct DynamicIslandCatIcon: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image("DynamicIslandCatIcon")
+            .renderingMode(.original)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size * 1.58, height: size)
+            .accessibilityHidden(true)
     }
 }
 
@@ -116,40 +127,48 @@ private struct CaddieCatLockScreenActivityView: View {
         VStack(alignment: .leading, spacing: 8) {
             liveActivityHeader
 
-            Link(destination: CaddieCatLiveActivityDeepLink.openDistance.url(roundID: context.attributes.roundID)) {
-                Label("Open Distance", systemImage: "arrow.up.forward.app.fill")
-                    .frame(maxWidth: .infinity)
+            HStack(spacing: 8) {
+                ProgressView()
+                    .tint(.green)
+                Text(statusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.bordered)
-            .tint(.green)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
         }
     }
 
     private var awaitingFinishContent: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text("Step \(currentStep.stepNumber)/6")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+            liveActivityHeader
+            awaitingFinishActions
+        }
+    }
 
-                Text(stepPrompt)
-                    .font(.subheadline.weight(.semibold))
+    private var awaitingFinishActions: some View {
+        HStack(spacing: 6) {
+            Link(destination: CaddieCatLiveActivityDeepLink.prefillShotDetails.url(roundID: context.attributes.roundID)) {
+                Label("Prefill", systemImage: "square.and.pencil")
+                    .font(.caption.weight(.bold))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-
-                Spacer(minLength: 4)
-
-                Link(destination: CaddieCatLiveActivityDeepLink.openFinish.url(roundID: context.attributes.roundID)) {
-                    Image(systemName: "square.and.pencil")
-                        .font(.caption.weight(.bold))
-                        .frame(width: 28, height: 24)
-                        .background(Color.green.opacity(0.22), in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Open Shot Details in App")
+                    .minimumScaleFactor(0.78)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 30)
             }
+            .buttonStyle(.bordered)
+            .tint(.green)
 
-            stepPicker
+            Link(destination: CaddieCatLiveActivityDeepLink.openFinish.url(roundID: context.attributes.roundID)) {
+                Label("Track Shot (Finish)", systemImage: "flag.checkered")
+                    .font(.caption.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 30)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
         }
     }
 
@@ -364,7 +383,7 @@ private struct CaddieCatLockScreenActivityView: View {
         case .measuringStart:
             "Measuring start"
         case .awaitingFinish:
-            "Set details while you walk"
+            "Set shot details while you walk"
         case .measuringFinish:
             "Measuring finish"
         }
@@ -401,7 +420,7 @@ private struct CaddieCatExpandedIslandAction: View {
 
                 Spacer(minLength: 6)
 
-                Link(destination: CaddieCatLiveActivityDeepLink.openFinish.url(roundID: context.attributes.roundID)) {
+                Link(destination: CaddieCatLiveActivityDeepLink.prefillShotDetails.url(roundID: context.attributes.roundID)) {
                     Text("Details")
                         .font(.caption.weight(.bold))
                 }

@@ -4,6 +4,7 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var name: String
     public var shotTrackingMode: ShotTrackingMode
+    public var analysisDateRange: AnalysisDateRange
     public var homeBaseCity: String
     public var homeBaseAltitudeFeet: Double
     public var altitudeCalculationMode: AltitudeCalculationMode
@@ -14,6 +15,7 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         case id
         case name
         case shotTrackingMode
+        case analysisDateRange
         case homeBaseCity
         case homeBaseAltitudeFeet
         case altitudeCalculationMode
@@ -25,6 +27,7 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         id: UUID = UUID(),
         name: String,
         shotTrackingMode: ShotTrackingMode = .gps,
+        analysisDateRange: AnalysisDateRange = .allTime,
         homeBaseCity: String = AltitudeDefaults.chicagoCity,
         homeBaseAltitudeFeet: Double = AltitudeDefaults.chicagoFeet,
         altitudeCalculationMode: AltitudeCalculationMode = .adjustForAltitude,
@@ -34,6 +37,7 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         self.id = id
         self.name = name
         self.shotTrackingMode = shotTrackingMode
+        self.analysisDateRange = analysisDateRange
         self.homeBaseCity = homeBaseCity
         self.homeBaseAltitudeFeet = homeBaseAltitudeFeet
         self.altitudeCalculationMode = altitudeCalculationMode
@@ -47,11 +51,85 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         shotTrackingMode = try container.decodeIfPresent(ShotTrackingMode.self, forKey: .shotTrackingMode) ?? .gps
+        analysisDateRange = try container.decodeIfPresent(AnalysisDateRange.self, forKey: .analysisDateRange) ?? .allTime
         homeBaseCity = try container.decodeIfPresent(String.self, forKey: .homeBaseCity) ?? AltitudeDefaults.chicagoCity
         homeBaseAltitudeFeet = try container.decodeIfPresent(Double.self, forKey: .homeBaseAltitudeFeet) ?? AltitudeDefaults.chicagoFeet
         altitudeCalculationMode = try container.decodeIfPresent(AltitudeCalculationMode.self, forKey: .altitudeCalculationMode) ?? .adjustForAltitude
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
+}
+
+public enum AnalysisDateRangeKind: String, CaseIterable, Codable, Equatable, Sendable {
+    case allTime
+    case lastYear
+    case lastMonth
+    case custom
+
+    public var displayName: String {
+        switch self {
+        case .allTime:
+            "All Time"
+        case .lastYear:
+            "Last Year"
+        case .lastMonth:
+            "Last Month"
+        case .custom:
+            "Custom"
+        }
+    }
+}
+
+public struct AnalysisDateRange: Codable, Equatable, Sendable {
+    public var kind: AnalysisDateRangeKind
+    public var customStartDate: Date?
+    public var customEndDate: Date?
+
+    public init(
+        kind: AnalysisDateRangeKind = .allTime,
+        customStartDate: Date? = nil,
+        customEndDate: Date? = nil
+    ) {
+        self.kind = kind
+        self.customStartDate = customStartDate
+        self.customEndDate = customEndDate
+    }
+
+    public static let allTime = AnalysisDateRange(kind: .allTime)
+
+    public func contains(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        switch kind {
+        case .allTime:
+            return true
+        case .lastYear:
+            guard let startDate = calendar.date(byAdding: .year, value: -1, to: now) else {
+                return true
+            }
+
+            return date >= startDate && date <= now
+        case .lastMonth:
+            guard let startDate = calendar.date(byAdding: .month, value: -1, to: now) else {
+                return true
+            }
+
+            return date >= startDate && date <= now
+        case .custom:
+            guard let customStartDate, let customEndDate else {
+                return true
+            }
+
+            let lowerBound = min(customStartDate, customEndDate)
+            let upperBound = max(customStartDate, customEndDate)
+            let startOfLowerBound = calendar.startOfDay(for: lowerBound)
+            let startOfUpperBound = calendar.startOfDay(for: upperBound)
+            let upperBoundEndOfDay = calendar.date(byAdding: .day, value: 1, to: startOfUpperBound) ?? upperBound
+
+            return date >= startOfLowerBound && date < upperBoundEndOfDay
+        }
+    }
+
+    public func filtered(_ records: [ShotRecord], now: Date = Date(), calendar: Calendar = .current) -> [ShotRecord] {
+        records.filter { contains($0.createdAt, now: now, calendar: calendar) }
     }
 }
 

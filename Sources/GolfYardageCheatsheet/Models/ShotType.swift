@@ -453,6 +453,138 @@ public struct ShotStatsCalculator: Sendable {
         }
     }
 
+    public func weightedGrassDistanceModifiers(
+        for records: [ShotRecord],
+        clubID: UUID,
+        category: ShotCategory,
+        adjustmentContext: DistanceAdjustmentContext? = nil
+    ) -> [WeightedGrassDistanceModifier] {
+        [GrassType.rough, .deepRough].compactMap { grassType in
+            let components = powers(for: category).compactMap { power -> GrassDistanceModifierComponent? in
+                guard let fairwayAverage = averageDistance(
+                    for: records,
+                    clubID: clubID,
+                    category: category,
+                    power: power,
+                    grassType: .fairway,
+                    adjustmentContext: adjustmentContext
+                ), let grassAverage = averageDistance(
+                    for: records,
+                    clubID: clubID,
+                    category: category,
+                    power: power,
+                    grassType: grassType,
+                    adjustmentContext: adjustmentContext
+                ) else {
+                    return nil
+                }
+
+                let sampleCount = distanceSampleCount(
+                    for: records,
+                    clubID: clubID,
+                    category: category,
+                    power: power,
+                    grassType: grassType
+                )
+
+                guard sampleCount > 0 else {
+                    return nil
+                }
+
+                return GrassDistanceModifierComponent(
+                    lossYards: fairwayAverage - grassAverage,
+                    sampleCount: sampleCount
+                )
+            }
+
+            let totalSampleCount = components.reduce(0) { $0 + $1.sampleCount }
+            guard totalSampleCount > 0 else {
+                return nil
+            }
+
+            let weightedLoss = components.reduce(0.0) {
+                $0 + ($1.lossYards * Double($1.sampleCount))
+            } / Double(totalSampleCount)
+
+            return WeightedGrassDistanceModifier(
+                grassType: grassType,
+                averageLossYards: weightedLoss,
+                sampleCount: totalSampleCount
+            )
+        }
+    }
+
+    public func overallWeightedGrassDistanceModifiers(
+        for records: [ShotRecord],
+        adjustmentContext: DistanceAdjustmentContext? = nil
+    ) -> [WeightedGrassDistanceModifier] {
+        let groups = Set(records.compactMap { record -> ShotDistanceGroup? in
+            guard record.strikeQuality == .pure, record.distance != nil else {
+                return nil
+            }
+
+            return ShotDistanceGroup(
+                clubID: record.clubID,
+                category: record.category,
+                power: record.power
+            )
+        })
+
+        return [GrassType.rough, .deepRough].compactMap { grassType in
+            let components = groups.compactMap { group -> GrassDistanceModifierComponent? in
+                guard let fairwayAverage = averageDistance(
+                    for: records,
+                    clubID: group.clubID,
+                    category: group.category,
+                    power: group.power,
+                    grassType: .fairway,
+                    adjustmentContext: adjustmentContext
+                ), let grassAverage = averageDistance(
+                    for: records,
+                    clubID: group.clubID,
+                    category: group.category,
+                    power: group.power,
+                    grassType: grassType,
+                    adjustmentContext: adjustmentContext
+                ) else {
+                    return nil
+                }
+
+                let sampleCount = distanceSampleCount(
+                    for: records,
+                    clubID: group.clubID,
+                    category: group.category,
+                    power: group.power,
+                    grassType: grassType
+                )
+
+                guard sampleCount > 0 else {
+                    return nil
+                }
+
+                return GrassDistanceModifierComponent(
+                    lossYards: fairwayAverage - grassAverage,
+                    sampleCount: sampleCount
+                )
+            }
+
+            let totalSampleCount = components.reduce(0) { $0 + $1.sampleCount }
+            guard totalSampleCount > 0 else {
+                return nil
+            }
+
+            let weightedLoss = components.reduce(0.0) {
+                $0 + ($1.lossYards * Double($1.sampleCount))
+            } / Double(totalSampleCount)
+
+            return WeightedGrassDistanceModifier(
+                grassType: grassType,
+                averageLossYards: weightedLoss,
+                sampleCount: totalSampleCount
+            )
+        }
+    }
+
     public func averageDistances(
         for records: [ShotRecord],
         clubID: UUID,
@@ -486,6 +618,14 @@ public struct ShotStatsCalculator: Sendable {
         )
     }
 
+    public func strikeDistributionPercentages(for records: [ShotRecord]) -> [StrikeQuality: Double] {
+        distributionPercentages(
+            for: records,
+            allCases: StrikeQuality.allCases,
+            keyPath: \.strikeQuality
+        )
+    }
+
     public func directionDistributionPercentages(
         for records: [ShotRecord],
         clubID: UUID,
@@ -493,6 +633,14 @@ public struct ShotStatsCalculator: Sendable {
     ) -> [ShotDirection: Double] {
         distributionPercentages(
             for: records.filter { $0.clubID == clubID && $0.category == category },
+            allCases: ShotDirection.allCases,
+            keyPath: \.direction
+        )
+    }
+
+    public func directionDistributionPercentages(for records: [ShotRecord]) -> [ShotDirection: Double] {
+        distributionPercentages(
+            for: records,
             allCases: ShotDirection.allCases,
             keyPath: \.direction
         )
@@ -513,6 +661,32 @@ public struct ShotStatsCalculator: Sendable {
             let matchingCount = records.filter { $0[keyPath: keyPath] == value }.count
             result[value] = Double(matchingCount) / Double(records.count) * 100
         }
+    }
+
+    private func powers(for category: ShotCategory) -> [ShotPower] {
+        switch category {
+        case .normal, .flop:
+            [.full, .threeQuarter, .half, .quarter]
+        case .lowTrajectory:
+            [.stinger, .punch, .softPunch, .chip]
+        }
+    }
+
+    private func distanceSampleCount(
+        for records: [ShotRecord],
+        clubID: UUID,
+        category: ShotCategory,
+        power: ShotPower,
+        grassType: GrassType
+    ) -> Int {
+        records.filter { record in
+            record.clubID == clubID &&
+                record.category == category &&
+                record.power == power &&
+                record.grassType == grassType &&
+                record.strikeQuality == .pure &&
+                record.distance != nil
+        }.count
     }
 }
 
@@ -537,4 +711,31 @@ public struct GrassDistanceModifier: Equatable, Sendable {
     public var deltaYards: Double {
         grassAverageDistance - fairwayAverageDistance
     }
+}
+
+public struct WeightedGrassDistanceModifier: Equatable, Sendable {
+    public var grassType: GrassType
+    public var averageLossYards: Double
+    public var sampleCount: Int
+
+    public init(
+        grassType: GrassType,
+        averageLossYards: Double,
+        sampleCount: Int
+    ) {
+        self.grassType = grassType
+        self.averageLossYards = averageLossYards
+        self.sampleCount = sampleCount
+    }
+}
+
+private struct GrassDistanceModifierComponent {
+    var lossYards: Double
+    var sampleCount: Int
+}
+
+private struct ShotDistanceGroup: Hashable {
+    var clubID: UUID
+    var category: ShotCategory
+    var power: ShotPower
 }
