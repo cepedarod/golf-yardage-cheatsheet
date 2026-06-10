@@ -401,6 +401,111 @@ final class YardageMatcherTests: XCTestCase {
         XCTAssertEqual(entries.first(where: { $0.label == .full })?.resolvedValue(for: DistanceValueMode.real)?.distance, 150)
     }
 
+    func testRealDisplayUsesOnlyProvidedSurfaceFilteredShotRecords() {
+        let clubID = UUID()
+        let club = Club(id: clubID, profileID: profileID, clubType: .sevenIron)
+        let records = [
+            ShotRecord(
+                profileID: profileID,
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 170,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .fairway
+            ),
+            ShotRecord(
+                profileID: profileID,
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                distance: 150,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .rough
+            )
+        ]
+        let resolver = DistanceValueResolver()
+
+        let allSurfaceEntries = resolver.displayEntries(
+            for: club,
+            filter: .normal,
+            mode: .real,
+            shotRecords: records
+        )
+        let fairwayOnlyEntries = resolver.displayEntries(
+            for: club,
+            filter: .normal,
+            mode: .real,
+            shotRecords: records.filter { $0.grassType == .fairway }
+        )
+
+        XCTAssertEqual(allSurfaceEntries.first(where: { $0.label == .full })?.resolvedValue(for: .real)?.distance, 160)
+        XCTAssertEqual(fairwayOnlyEntries.first(where: { $0.label == .full })?.resolvedValue(for: .real)?.distance, 170)
+    }
+
+    func testRealTargetMatchesUseOnlyProvidedSurfaceFilteredShotRecords() {
+        let sevenIronID = UUID()
+        let eightIronID = UUID()
+        let clubs = [
+            Club(id: sevenIronID, profileID: profileID, clubType: .sevenIron),
+            Club(id: eightIronID, profileID: profileID, clubType: .eightIron)
+        ]
+        let records = [
+            ShotRecord(
+                profileID: profileID,
+                clubID: sevenIronID,
+                category: .normal,
+                power: .full,
+                distance: 170,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .fairway
+            ),
+            ShotRecord(
+                profileID: profileID,
+                clubID: sevenIronID,
+                category: .normal,
+                power: .full,
+                distance: 150,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .rough
+            ),
+            ShotRecord(
+                profileID: profileID,
+                clubID: eightIronID,
+                category: .normal,
+                power: .full,
+                distance: 156,
+                strikeQuality: .pure,
+                direction: .straight,
+                grassType: .fairway
+            )
+        ]
+
+        let allSurfaceMatches = matcher.closestMatches(
+            targetYardage: 165,
+            clubs: clubs,
+            filter: .normal,
+            valueMode: .real,
+            shotRecords: records
+        )
+        let fairwayOnlyMatches = matcher.closestMatches(
+            targetYardage: 165,
+            clubs: clubs,
+            filter: .normal,
+            valueMode: .real,
+            shotRecords: records.filter { $0.grassType == .fairway }
+        )
+
+        XCTAssertEqual(allSurfaceMatches.first?.club.id, sevenIronID)
+        XCTAssertEqual(allSurfaceMatches.first?.distance, 160)
+        XCTAssertEqual(fairwayOnlyMatches.first?.club.id, sevenIronID)
+        XCTAssertEqual(fairwayOnlyMatches.first?.distance, 170)
+    }
+
     func testFlopOnlyWedgeDisplaysNormalPlaceholderAndFlopSection() {
         let club = Club(
             profileID: profileID,

@@ -400,7 +400,7 @@ struct YardageDashboardView: View {
                 title: Text(guide.title),
                 message: Text(guide.message),
                 dismissButton: .default(Text("Got it")) {
-                    acknowledgePendingOnboardingGuide()
+                    acknowledgeOnboardingGuide(guide)
                 }
             )
         }
@@ -906,12 +906,11 @@ struct YardageDashboardView: View {
         pendingOnboardingGuide = guide
     }
 
-    private func acknowledgePendingOnboardingGuide() {
-        guard let guide = pendingOnboardingGuide else {
-            return
+    private func acknowledgeOnboardingGuide(_ guide: ProfileOnboardingGuide) {
+        if pendingOnboardingGuide == guide {
+            pendingOnboardingGuide = nil
         }
 
-        pendingOnboardingGuide = nil
         viewModel.acknowledgeOnboardingGuide(guide)
     }
 

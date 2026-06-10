@@ -757,17 +757,21 @@ private final class ProfileDashboardViewModel: ObservableObject {
     }
 
     func setAverageDistanceGrassType(_ grassType: GrassType, isIncluded: Bool) {
+        var updatedGrassTypes = averageDistanceGrassTypes
         if isIncluded {
-            averageDistanceGrassTypes.insert(grassType)
+            updatedGrassTypes.insert(grassType)
         } else {
-            averageDistanceGrassTypes.remove(grassType)
+            updatedGrassTypes.remove(grassType)
         }
+
+        averageDistanceGrassTypes = updatedGrassTypes
 
         do {
             try repository.updateProfileAverageDistanceGrassTypes(
                 profileID: profileID,
-                grassTypes: averageDistanceGrassTypes
+                grassTypes: updatedGrassTypes
             )
+            load()
             errorMessage = nil
             NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
         } catch {
@@ -1754,7 +1758,7 @@ private struct ProfileView: View {
             Section {
                 ForEach(GrassType.allCases, id: \.self) { grassType in
                     Toggle(
-                        grassType.displayName,
+                        averageDistanceLabel(for: grassType),
                         isOn: Binding(
                             get: {
                                 viewModel.averageDistanceGrassTypes.contains(grassType)
@@ -1767,7 +1771,7 @@ private struct ProfileView: View {
                     .accessibilityIdentifier("average-distance-grass-\(grassType.rawValue)-toggle")
                 }
             } header: {
-                Text("Count Surfaces")
+                Text("Included in shot distance average")
             } footer: {
                 Text(viewModel.averageDistanceGrassTypeSummary)
             }
@@ -1951,7 +1955,7 @@ private struct ProfileView: View {
                 title: Text(guide.title),
                 message: Text(guide.message),
                 dismissButton: .default(Text("Got it")) {
-                    acknowledgePendingOnboardingGuide()
+                    acknowledgeOnboardingGuide(guide)
                 }
             )
         }
@@ -1966,13 +1970,23 @@ private struct ProfileView: View {
         pendingOnboardingGuide = guide
     }
 
-    private func acknowledgePendingOnboardingGuide() {
-        guard let guide = pendingOnboardingGuide else {
-            return
+    private func acknowledgeOnboardingGuide(_ guide: ProfileOnboardingGuide) {
+        if pendingOnboardingGuide == guide {
+            pendingOnboardingGuide = nil
         }
 
-        pendingOnboardingGuide = nil
         viewModel.acknowledgeOnboardingGuide(guide)
+    }
+
+    private func averageDistanceLabel(for grassType: GrassType) -> String {
+        switch grassType {
+        case .fairway:
+            "Fairway Shots"
+        case .rough:
+            "Rough Shots"
+        case .deepRough:
+            "Deep Rough Shots"
+        }
     }
 }
 
@@ -4181,6 +4195,12 @@ private struct ComparisonValue: View {
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
                     .accessibilityIdentifier("tracked-average-sample-count")
+            } else {
+                Text("0 shots")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .opacity(0)
             }
         }
         .frame(maxWidth: .infinity)

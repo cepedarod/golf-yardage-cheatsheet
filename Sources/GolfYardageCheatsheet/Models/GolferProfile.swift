@@ -93,11 +93,11 @@ public enum ProfileOnboardingGuide: String, CaseIterable, Codable, Hashable, Ide
     public var message: String {
         switch self {
         case .distance:
-            "Use Distance as your on-course cheat sheet. Enter a target, switch between Static Values and App Calculated, and use Track Shot during a round."
+            "This is the distance tab, use it as your on-course cheat sheet. Enter the distance you need to hit as a target and the app will show you your best options."
         case .addClub:
-            "Start each club with any static yardages you know. You only need one distance to save, and Caddie Cat can fill in app-calculated averages as you record shots."
+            "Add baseline hit distances you know for each swing type. Every distance field is optional, and you can add or edit values later."
         case .profile:
-            "Profile controls how Caddie Cat learns: GPS or manual tracking, which dates and grass surfaces feed app-calculated distances, and altitude settings."
+            "The profile tab is where you can set how Caddie Cat processes and displays shot data. Changes here will update other pages real time."
         }
     }
 }
