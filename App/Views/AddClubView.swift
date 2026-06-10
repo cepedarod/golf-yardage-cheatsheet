@@ -33,7 +33,6 @@ struct AddClubView: View {
     @State private var shortPutterDistance = ""
     @State private var errorMessage: String?
     @State private var pendingOnboardingGuide: ProfileOnboardingGuide?
-    @State private var didPresentOnboardingGuide = false
 
     init(
         profile: GolferProfile,
@@ -71,6 +70,36 @@ struct AddClubView: View {
 
     var body: some View {
         Form {
+            if let pendingOnboardingGuide {
+                Section {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.yellow)
+                            .padding(.top, 1)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(pendingOnboardingGuide.title)
+                                .font(.headline)
+
+                            Text(pendingOnboardingGuide.message)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+
+                            Button("Got it") {
+                                acknowledgeOnboardingGuide(pendingOnboardingGuide)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("add-club-onboarding-dismiss-button")
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("add-club-onboarding-message")
+                }
+                .listRowBackground(Color.yellow.opacity(0.16))
+            }
+
             Section("Club") {
                 Picker("Type", selection: $clubType) {
                     ForEach(ClubType.allCases, id: \.self) { clubType in
@@ -189,50 +218,15 @@ struct AddClubView: View {
                 wedgeLoft = ""
             }
         }
-        .onAppear {
+        .task(id: onboardingGuide?.id) {
             scheduleOnboardingGuideIfNeeded()
-        }
-        .alert(item: $pendingOnboardingGuide) { guide in
-            Alert(
-                title: Text(guide.title),
-                message: Text(guide.message),
-                dismissButton: .default(Text("Got it")) {
-                    acknowledgeOnboardingGuide(guide)
-                }
-            )
         }
     }
 
     private func scheduleOnboardingGuideIfNeeded() {
         guard existingClub == nil,
               pendingOnboardingGuide == nil,
-              didPresentOnboardingGuide == false,
-              onboardingGuide != nil else {
-            return
-        }
-
-        didPresentOnboardingGuide = true
-
-        Task {
-            await presentOnboardingGuideAfterSheetSettles()
-        }
-    }
-
-    @MainActor
-    private func presentOnboardingGuideAfterSheetSettles() async {
-        guard didPresentOnboardingGuide,
-              pendingOnboardingGuide == nil,
               let onboardingGuide else {
-            return
-        }
-
-        do {
-            try await Task.sleep(nanoseconds: 350_000_000)
-        } catch {
-            return
-        }
-
-        guard pendingOnboardingGuide == nil else {
             return
         }
 

@@ -312,13 +312,16 @@ struct YardageDashboardView: View {
         }
         .task {
             viewModel.loadClubs()
-            offerInitialBagSetupIfNeeded()
-            presentOnboardingGuideIfNeeded(.distance)
+            if offerInitialBagSetupIfNeeded() == false {
+                presentOnboardingGuideIfNeeded(.distance)
+            }
         }
         .onAppear {
             viewModel.loadClubs()
             syncLocationWarmup()
-            presentOnboardingGuideIfNeeded(.distance)
+            if offerInitialBagSetupIfNeeded() == false {
+                presentOnboardingGuideIfNeeded(.distance)
+            }
         }
         .onDisappear {
             shotTracker.stopLocationWarmup()
@@ -888,16 +891,18 @@ struct YardageDashboardView: View {
         viewModel.needsOnboardingGuide(.addClub) ? .addClub : nil
     }
 
-    private func offerInitialBagSetupIfNeeded() {
+    @discardableResult
+    private func offerInitialBagSetupIfNeeded() -> Bool {
         guard didOfferInitialBagSetup == false,
               viewModel.activeClubs.isEmpty,
               viewModel.inactiveClubs.isEmpty,
               viewModel.errorMessage == nil else {
-            return
+            return false
         }
 
         didOfferInitialBagSetup = true
         clubForm = .add(onboardingGuide: addClubOnboardingGuide)
+        return true
     }
 
     private func presentOnboardingGuideIfNeeded(_ guide: ProfileOnboardingGuide) {

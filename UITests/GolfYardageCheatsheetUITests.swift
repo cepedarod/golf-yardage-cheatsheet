@@ -24,10 +24,32 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         createProfile(named: "Rod", dismissAddClubGuide: false, in: app)
 
         XCTAssertTrue(app.navigationBars["Add Club"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.alerts["Adding Clubs"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.alerts.staticTexts["Add baseline hit distances you know for each swing type. Every distance field is optional, and you can add or edit values later."].exists)
-        app.alerts.buttons["Got it"].tap()
-        XCTAssertFalse(app.alerts["Adding Clubs"].exists)
+        let addClubGuide = app.descendants(matching: .any)["add-club-onboarding-message"]
+        XCTAssertTrue(addClubGuide.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Add baseline hit distances you know for each swing type. Every distance field is optional, and you can add or edit values later."].exists)
+        app.buttons["add-club-onboarding-dismiss-button"].tap()
+        XCTAssertFalse(addClubGuide.exists)
+    }
+
+    func testNewProfileFromProfileListShowsAddClubGuideOnAutomaticallyOpenedAddClubFlow() {
+        let app = launchFreshApp()
+
+        createProfile(named: "Rod", in: app)
+
+        XCTAssertTrue(app.navigationBars["Add Club"].waitForExistence(timeout: 5))
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Distance"].waitForExistence(timeout: 5))
+        app.buttons["Switch Profile"].tap()
+
+        XCTAssertTrue(app.navigationBars["Profiles"].waitForExistence(timeout: 5))
+        app.buttons["Add Profile"].tap()
+        createAdditionalProfile(named: "Friend", in: app)
+
+        XCTAssertTrue(app.navigationBars["Add Club"].waitForExistence(timeout: 5))
+        let addClubGuide = app.descendants(matching: .any)["add-club-onboarding-message"]
+        XCTAssertTrue(addClubGuide.waitForExistence(timeout: 5))
+        app.buttons["add-club-onboarding-dismiss-button"].tap()
+        XCTAssertFalse(addClubGuide.exists)
     }
 
     func testNicknameKeyboardCanBeDismissedWhenAddingClub() {
@@ -706,10 +728,26 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         }
     }
 
+    private func createAdditionalProfile(named name: String, in app: XCUIApplication) {
+        XCTAssertTrue(app.navigationBars["New Profile"].waitForExistence(timeout: 5))
+
+        let nameField = app.textFields["profile-name-field"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 2))
+
+        let createButton = app.buttons["create-profile-button"]
+        XCTAssertTrue(createButton.waitForExistence(timeout: 2))
+        XCTAssertFalse(createButton.isEnabled)
+
+        nameField.tap()
+        nameField.typeText(name)
+        XCTAssertTrue(createButton.isEnabled)
+        createButton.tap()
+    }
+
     private func dismissAddClubGuideIfNeeded(in app: XCUIApplication) {
-        let addClubGuide = app.alerts["Adding Clubs"]
+        let addClubGuide = app.descendants(matching: .any)["add-club-onboarding-message"]
         if addClubGuide.waitForExistence(timeout: 5) {
-            addClubGuide.buttons["Got it"].tap()
+            app.buttons["add-club-onboarding-dismiss-button"].tap()
         }
     }
 
