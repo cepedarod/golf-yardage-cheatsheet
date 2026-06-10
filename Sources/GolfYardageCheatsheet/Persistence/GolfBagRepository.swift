@@ -101,7 +101,9 @@ public final class GolfBagRepository {
             throw GolfBagRepositoryError.profileNotFound
         }
 
-        data.profiles[index].averageDistanceGrassTypes = grassTypes
+        data.profiles[index].averageDistanceGrassTypes = grassTypes.isEmpty
+            ? GolferProfile.defaultAverageDistanceGrassTypes
+            : grassTypes
         data.profiles[index].updatedAt = now
         try store.save(data)
     }

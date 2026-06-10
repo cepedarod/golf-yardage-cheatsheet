@@ -761,6 +761,10 @@ private final class ProfileDashboardViewModel: ObservableObject {
         if isIncluded {
             updatedGrassTypes.insert(grassType)
         } else {
+            guard updatedGrassTypes.count > 1 else {
+                return
+            }
+
             updatedGrassTypes.remove(grassType)
         }
 
@@ -803,6 +807,10 @@ private final class ProfileDashboardViewModel: ObservableObject {
             .map(\.displayName)
 
         return "\(Self.formattedList(selectedNames)) shots count toward App Calculated distances and Tracked Avg values. Grass Modifier calculations still compare fairway, rough, and deep rough separately."
+    }
+
+    func isOnlyAverageDistanceGrassType(_ grassType: GrassType) -> Bool {
+        averageDistanceGrassTypes == [grassType]
     }
 
     func needsOnboardingGuide(_ guide: ProfileOnboardingGuide) -> Bool {
@@ -1768,6 +1776,7 @@ private struct ProfileView: View {
                             }
                         )
                     )
+                    .disabled(viewModel.isOnlyAverageDistanceGrassType(grassType))
                     .accessibilityIdentifier("average-distance-grass-\(grassType.rawValue)-toggle")
                 }
             } header: {

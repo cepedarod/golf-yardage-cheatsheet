@@ -1,6 +1,8 @@
 import Foundation
 
 public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
+    public static let defaultAverageDistanceGrassTypes: Set<GrassType> = [.fairway]
+
     public var id: UUID
     public var name: String
     public var shotTrackingMode: ShotTrackingMode
@@ -32,7 +34,7 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         name: String,
         shotTrackingMode: ShotTrackingMode = .gps,
         analysisDateRange: AnalysisDateRange = .allTime,
-        averageDistanceGrassTypes: Set<GrassType> = Set(GrassType.allCases),
+        averageDistanceGrassTypes: Set<GrassType> = GolferProfile.defaultAverageDistanceGrassTypes,
         acknowledgedOnboardingGuides: Set<ProfileOnboardingGuide> = [],
         homeBaseCity: String = AltitudeDefaults.chicagoCity,
         homeBaseAltitudeFeet: Double = AltitudeDefaults.chicagoFeet,
@@ -60,7 +62,10 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         name = try container.decode(String.self, forKey: .name)
         shotTrackingMode = try container.decodeIfPresent(ShotTrackingMode.self, forKey: .shotTrackingMode) ?? .gps
         analysisDateRange = try container.decodeIfPresent(AnalysisDateRange.self, forKey: .analysisDateRange) ?? .allTime
-        averageDistanceGrassTypes = try container.decodeIfPresent(Set<GrassType>.self, forKey: .averageDistanceGrassTypes) ?? Set(GrassType.allCases)
+        let decodedAverageDistanceGrassTypes = try container.decodeIfPresent(Set<GrassType>.self, forKey: .averageDistanceGrassTypes) ?? GolferProfile.defaultAverageDistanceGrassTypes
+        averageDistanceGrassTypes = decodedAverageDistanceGrassTypes.isEmpty
+            ? GolferProfile.defaultAverageDistanceGrassTypes
+            : decodedAverageDistanceGrassTypes
         acknowledgedOnboardingGuides = try container.decodeIfPresent(Set<ProfileOnboardingGuide>.self, forKey: .acknowledgedOnboardingGuides) ?? Set(ProfileOnboardingGuide.allCases)
         homeBaseCity = try container.decodeIfPresent(String.self, forKey: .homeBaseCity) ?? AltitudeDefaults.chicagoCity
         homeBaseAltitudeFeet = try container.decodeIfPresent(Double.self, forKey: .homeBaseAltitudeFeet) ?? AltitudeDefaults.chicagoFeet

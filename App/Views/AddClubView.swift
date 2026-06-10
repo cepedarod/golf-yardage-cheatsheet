@@ -190,14 +190,7 @@ struct AddClubView: View {
             }
         }
         .onAppear {
-            guard existingClub == nil,
-                  pendingOnboardingGuide == nil,
-                  didPresentOnboardingGuide == false else {
-                return
-            }
-
-            pendingOnboardingGuide = onboardingGuide
-            didPresentOnboardingGuide = onboardingGuide != nil
+            scheduleOnboardingGuideIfNeeded()
         }
         .alert(item: $pendingOnboardingGuide) { guide in
             Alert(
@@ -208,6 +201,42 @@ struct AddClubView: View {
                 }
             )
         }
+    }
+
+    private func scheduleOnboardingGuideIfNeeded() {
+        guard existingClub == nil,
+              pendingOnboardingGuide == nil,
+              didPresentOnboardingGuide == false,
+              onboardingGuide != nil else {
+            return
+        }
+
+        didPresentOnboardingGuide = true
+
+        Task {
+            await presentOnboardingGuideAfterSheetSettles()
+        }
+    }
+
+    @MainActor
+    private func presentOnboardingGuideAfterSheetSettles() async {
+        guard didPresentOnboardingGuide,
+              pendingOnboardingGuide == nil,
+              let onboardingGuide else {
+            return
+        }
+
+        do {
+            try await Task.sleep(nanoseconds: 350_000_000)
+        } catch {
+            return
+        }
+
+        guard pendingOnboardingGuide == nil else {
+            return
+        }
+
+        pendingOnboardingGuide = onboardingGuide
     }
 
     private var availableDistanceCategories: [ClubDistanceCategory] {

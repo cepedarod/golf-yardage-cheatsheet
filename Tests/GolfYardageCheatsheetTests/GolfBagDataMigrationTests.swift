@@ -156,7 +156,7 @@ final class GolfBagDataMigrationTests: XCTestCase {
         XCTAssertEqual(decoded.schemaVersion, GolfBagData.currentSchemaVersion)
         XCTAssertEqual(decoded.profiles.first?.shotTrackingMode, .gps)
         XCTAssertEqual(decoded.profiles.first?.analysisDateRange, .allTime)
-        XCTAssertEqual(decoded.profiles.first?.averageDistanceGrassTypes, Set(GrassType.allCases))
+        XCTAssertEqual(decoded.profiles.first?.averageDistanceGrassTypes, GolferProfile.defaultAverageDistanceGrassTypes)
         XCTAssertEqual(decoded.profiles.first?.acknowledgedOnboardingGuides, Set(ProfileOnboardingGuide.allCases))
         XCTAssertEqual(decoded.profiles.first?.homeBaseCity, AltitudeDefaults.chicagoCity)
         XCTAssertEqual(decoded.profiles.first?.homeBaseAltitudeFeet, AltitudeDefaults.chicagoFeet)

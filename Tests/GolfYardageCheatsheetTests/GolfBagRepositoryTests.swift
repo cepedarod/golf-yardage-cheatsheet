@@ -10,6 +10,7 @@ final class GolfBagRepositoryTests: XCTestCase {
         let data = try repository.loadData()
 
         XCTAssertEqual(profile.name, "Rod")
+        XCTAssertEqual(profile.averageDistanceGrassTypes, GolferProfile.defaultAverageDistanceGrassTypes)
         XCTAssertEqual(data.selectedProfileID, profile.id)
         XCTAssertEqual(data.profiles, [profile])
     }
@@ -124,6 +125,23 @@ final class GolfBagRepositoryTests: XCTestCase {
 
         let updatedProfile = try XCTUnwrap(try repository.profiles().first)
         XCTAssertEqual(updatedProfile.averageDistanceGrassTypes, [.fairway, .rough])
+        XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
+    }
+
+    func testUpdateProfileAverageDistanceGrassTypesFallsBackToDefaultWhenEmpty() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let updatedAt = Date(timeIntervalSince1970: 3_150)
+
+        try repository.updateProfileAverageDistanceGrassTypes(
+            profileID: profile.id,
+            grassTypes: [],
+            now: updatedAt
+        )
+
+        let updatedProfile = try XCTUnwrap(try repository.profiles().first)
+        XCTAssertEqual(updatedProfile.averageDistanceGrassTypes, GolferProfile.defaultAverageDistanceGrassTypes)
         XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
     }
 
