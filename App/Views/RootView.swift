@@ -614,6 +614,7 @@ private final class ProfileDashboardViewModel: ObservableObject {
     @Published var analysisDateRangeKind: AnalysisDateRangeKind
     @Published var customAnalysisStartDate: Date
     @Published var customAnalysisEndDate: Date
+    @Published var averageDistanceGrassTypes: Set<GrassType>
     @Published var homeBaseCity: String
     @Published var homeBaseAltitudeText: String
     @Published var altitudeCalculationMode: AltitudeCalculationMode
@@ -624,6 +625,7 @@ private final class ProfileDashboardViewModel: ObservableObject {
     @Published private(set) var completedRounds: [GolfRound] = []
     @Published private(set) var shotCountsByRoundID: [UUID: Int] = [:]
     @Published private(set) var clubStrikeRows: [ProfileClubStrikeRow] = []
+    @Published private(set) var acknowledgedOnboardingGuides: Set<ProfileOnboardingGuide>
     @Published var errorMessage: String?
 
     private let profileID: UUID
@@ -643,9 +645,11 @@ private final class ProfileDashboardViewModel: ObservableObject {
         analysisDateRangeKind = profile.analysisDateRange.kind
         customAnalysisStartDate = profile.analysisDateRange.customStartDate ?? Self.defaultCustomAnalysisStartDate()
         customAnalysisEndDate = profile.analysisDateRange.customEndDate ?? Self.defaultCustomAnalysisEndDate()
+        averageDistanceGrassTypes = profile.averageDistanceGrassTypes
         homeBaseCity = profile.homeBaseCity
         homeBaseAltitudeText = Self.formattedAltitude(profile.homeBaseAltitudeFeet)
         altitudeCalculationMode = profile.altitudeCalculationMode
+        acknowledgedOnboardingGuides = profile.acknowledgedOnboardingGuides
         self.repository = repository
         self.homeBaseAltitudeResolver = homeBaseAltitudeResolver
     }
@@ -663,9 +667,11 @@ private final class ProfileDashboardViewModel: ObservableObject {
             profileName = profile.name
             shotTrackingMode = profile.shotTrackingMode
             applyAnalysisDateRange(profile.analysisDateRange)
+            averageDistanceGrassTypes = profile.averageDistanceGrassTypes
             homeBaseCity = profile.homeBaseCity
             homeBaseAltitudeText = Self.formattedAltitude(profile.homeBaseAltitudeFeet)
             altitudeCalculationMode = profile.altitudeCalculationMode
+            acknowledgedOnboardingGuides = profile.acknowledgedOnboardingGuides
             shotRows = data.shotRecords
                 .filter { $0.profileID == profileID }
                 .sorted(by: newestShotFirst)
@@ -750,6 +756,26 @@ private final class ProfileDashboardViewModel: ObservableObject {
         persistAnalysisDateRange()
     }
 
+    func setAverageDistanceGrassType(_ grassType: GrassType, isIncluded: Bool) {
+        if isIncluded {
+            averageDistanceGrassTypes.insert(grassType)
+        } else {
+            averageDistanceGrassTypes.remove(grassType)
+        }
+
+        do {
+            try repository.updateProfileAverageDistanceGrassTypes(
+                profileID: profileID,
+                grassTypes: averageDistanceGrassTypes
+            )
+            errorMessage = nil
+            NotificationCenter.default.post(name: .roundDataDidChange, object: nil)
+        } catch {
+            errorMessage = "Unable to update app-calculated surfaces."
+            load()
+        }
+    }
+
     var analysisDateRangeSummary: String {
         switch analysisDateRangeKind {
         case .allTime:
@@ -760,6 +786,36 @@ private final class ProfileDashboardViewModel: ObservableObject {
             return "Only shots from the last month feed app-calculated distances and analysis."
         case .custom:
             return "Only shots from \(Self.formattedDate(customAnalysisStartDate)) through \(Self.formattedDate(customAnalysisEndDate)) feed app-calculated distances and analysis."
+        }
+    }
+
+    var averageDistanceGrassTypeSummary: String {
+        guard averageDistanceGrassTypes.isEmpty == false else {
+            return "No surfaces are selected, so App Calculated distances and tracked averages will be blank until at least one surface is enabled."
+        }
+
+        let selectedNames = GrassType.allCases
+            .filter { averageDistanceGrassTypes.contains($0) }
+            .map(\.displayName)
+
+        return "\(Self.formattedList(selectedNames)) shots count toward App Calculated distances and Tracked Avg values. Grass Modifier calculations still compare fairway, rough, and deep rough separately."
+    }
+
+    func needsOnboardingGuide(_ guide: ProfileOnboardingGuide) -> Bool {
+        acknowledgedOnboardingGuides.contains(guide) == false
+    }
+
+    func acknowledgeOnboardingGuide(_ guide: ProfileOnboardingGuide) {
+        guard needsOnboardingGuide(guide) else {
+            return
+        }
+
+        do {
+            try repository.acknowledgeProfileOnboardingGuide(profileID: profileID, guide: guide)
+            acknowledgedOnboardingGuides.insert(guide)
+            errorMessage = nil
+        } catch {
+            errorMessage = "Unable to save instruction preference."
         }
     }
 
@@ -886,6 +942,15 @@ private final class ProfileDashboardViewModel: ObservableObject {
 
     private static func formattedDate(_ date: Date) -> String {
         date.formatted(.dateTime.month(.abbreviated).day().year())
+    }
+
+    private static func formattedList(_ values: [String]) -> String {
+        let formatted = ListFormatter.localizedString(byJoining: values)
+        guard formatted.isEmpty == false else {
+            return "Selected"
+        }
+
+        return formatted
     }
 
     private func applyAnalysisDateRange(_ range: AnalysisDateRange) {
@@ -1617,6 +1682,7 @@ private struct ProfileView: View {
     @StateObject private var viewModel: ProfileDashboardViewModel
     @State private var isShowingInstructionManual = false
     @State private var isShowingPrivacyPolicy = false
+    @State private var pendingOnboardingGuide: ProfileOnboardingGuide?
     @FocusState private var focusedAltitudeField: AltitudeField?
 
     private enum AltitudeField: Hashable {
@@ -1683,6 +1749,27 @@ private struct ProfileView: View {
                 Text("Distance Tracking")
             } footer: {
                 Text(viewModel.analysisDateRangeSummary)
+            }
+
+            Section {
+                ForEach(GrassType.allCases, id: \.self) { grassType in
+                    Toggle(
+                        grassType.displayName,
+                        isOn: Binding(
+                            get: {
+                                viewModel.averageDistanceGrassTypes.contains(grassType)
+                            },
+                            set: { isIncluded in
+                                viewModel.setAverageDistanceGrassType(grassType, isIncluded: isIncluded)
+                            }
+                        )
+                    )
+                    .accessibilityIdentifier("average-distance-grass-\(grassType.rawValue)-toggle")
+                }
+            } header: {
+                Text("Count Surfaces")
+            } footer: {
+                Text(viewModel.averageDistanceGrassTypeSummary)
             }
 
             Section {
@@ -1844,6 +1931,7 @@ private struct ProfileView: View {
         }
         .task {
             viewModel.load()
+            presentOnboardingGuideIfNeeded(.profile)
         }
         .onReceive(NotificationCenter.default.publisher(for: .roundDataDidChange)) { _ in
             viewModel.load()
@@ -1858,6 +1946,33 @@ private struct ProfileView: View {
                 InstructionManualView()
             }
         }
+        .alert(item: $pendingOnboardingGuide) { guide in
+            Alert(
+                title: Text(guide.title),
+                message: Text(guide.message),
+                dismissButton: .default(Text("Got it")) {
+                    acknowledgePendingOnboardingGuide()
+                }
+            )
+        }
+    }
+
+    private func presentOnboardingGuideIfNeeded(_ guide: ProfileOnboardingGuide) {
+        guard pendingOnboardingGuide == nil,
+              viewModel.needsOnboardingGuide(guide) else {
+            return
+        }
+
+        pendingOnboardingGuide = guide
+    }
+
+    private func acknowledgePendingOnboardingGuide() {
+        guard let guide = pendingOnboardingGuide else {
+            return
+        }
+
+        pendingOnboardingGuide = nil
+        viewModel.acknowledgeOnboardingGuide(guide)
     }
 }
 
@@ -2647,6 +2762,7 @@ private struct AnalysisView: View {
                             clubs: clubs,
                             selectedClubID: club.id,
                             shotRecords: viewModel.shotRecords,
+                            averageDistanceShotRecords: viewModel.appCalculatedShotRecords,
                             adjustmentContext: viewModel.homeBaseDistanceAdjustmentContext,
                             onSaveClub: viewModel.saveClub,
                             onSaveShotRecord: viewModel.saveShotRecord,
@@ -2656,6 +2772,7 @@ private struct AnalysisView: View {
                         ClubAnalysisDetailView(
                             club: club,
                             shotRecords: viewModel.shotRecords,
+                            averageDistanceShotRecords: viewModel.appCalculatedShotRecords,
                             adjustmentContext: viewModel.homeBaseDistanceAdjustmentContext,
                             onSaveClub: viewModel.saveClub,
                             onSaveShotRecord: viewModel.saveShotRecord,
@@ -2846,6 +2963,7 @@ private struct ClubAnalysisPagerView: View {
 
     let clubs: [Club]
     let shotRecords: [ShotRecord]
+    let averageDistanceShotRecords: [ShotRecord]
     let adjustmentContext: DistanceAdjustmentContext?
     let onSaveClub: (Club) throws -> Void
     let onSaveShotRecord: (ShotRecord) throws -> Void
@@ -2859,6 +2977,7 @@ private struct ClubAnalysisPagerView: View {
         clubs: [Club],
         selectedClubID: UUID,
         shotRecords: [ShotRecord],
+        averageDistanceShotRecords: [ShotRecord],
         adjustmentContext: DistanceAdjustmentContext?,
         onSaveClub: @escaping (Club) throws -> Void,
         onSaveShotRecord: @escaping (ShotRecord) throws -> Void,
@@ -2866,6 +2985,7 @@ private struct ClubAnalysisPagerView: View {
     ) {
         self.clubs = clubs
         self.shotRecords = shotRecords
+        self.averageDistanceShotRecords = averageDistanceShotRecords
         self.adjustmentContext = adjustmentContext
         self.onSaveClub = onSaveClub
         self.onSaveShotRecord = onSaveShotRecord
@@ -2879,6 +2999,7 @@ private struct ClubAnalysisPagerView: View {
                 ClubAnalysisDetailView(
                     club: currentClub,
                     shotRecords: shotRecords,
+                    averageDistanceShotRecords: averageDistanceShotRecords,
                     adjustmentContext: adjustmentContext,
                     onSaveClub: onSaveClub,
                     onSaveShotRecord: onSaveShotRecord,
@@ -2973,6 +3094,7 @@ private struct ClubAnalysisDetailView: View {
     @State private var club: Club
 
     let shotRecords: [ShotRecord]
+    let averageDistanceShotRecords: [ShotRecord]
     let adjustmentContext: DistanceAdjustmentContext?
     let onSaveClub: (Club) throws -> Void
     let onSaveShotRecord: (ShotRecord) throws -> Void
@@ -2988,6 +3110,7 @@ private struct ClubAnalysisDetailView: View {
     init(
         club: Club,
         shotRecords: [ShotRecord],
+        averageDistanceShotRecords: [ShotRecord],
         adjustmentContext: DistanceAdjustmentContext? = nil,
         onSaveClub: @escaping (Club) throws -> Void,
         onSaveShotRecord: @escaping (ShotRecord) throws -> Void,
@@ -2996,6 +3119,7 @@ private struct ClubAnalysisDetailView: View {
     ) {
         _club = State(initialValue: club)
         self.shotRecords = shotRecords
+        self.averageDistanceShotRecords = averageDistanceShotRecords
         self.adjustmentContext = adjustmentContext
         self.onSaveClub = onSaveClub
         self.onSaveShotRecord = onSaveShotRecord
@@ -3175,7 +3299,8 @@ private struct ClubAnalysisDetailView: View {
                 power: power,
                 label: power.displayName,
                 manualDistance: manualDistance(for: selectedCategory, power: power),
-                averageDistance: roundedAverage(for: power)
+                averageDistance: roundedAverage(for: power),
+                averageSampleCount: averageSampleCount(for: power)
             )
         }
     }
@@ -3351,7 +3476,7 @@ private struct ClubAnalysisDetailView: View {
 
     private func roundedAverage(for power: ShotPower) -> Int? {
         guard let average = statsCalculator.averageDistance(
-            for: shotRecords,
+            for: averageDistanceShotRecords,
             clubID: club.id,
             category: selectedCategory,
             power: power,
@@ -3361,6 +3486,15 @@ private struct ClubAnalysisDetailView: View {
         }
 
         return Int(average.rounded())
+    }
+
+    private func averageSampleCount(for power: ShotPower) -> Int {
+        statsCalculator.distanceSampleCount(
+            for: averageDistanceShotRecords,
+            clubID: club.id,
+            category: selectedCategory,
+            power: power
+        )
     }
 
     private func adoptAverage(for row: DistanceComparisonRow) {
@@ -3812,6 +3946,7 @@ private struct DistanceComparisonRow {
     let label: String
     let manualDistance: Int?
     let averageDistance: Int?
+    let averageSampleCount: Int
 
     var delta: Int? {
         guard let manualDistance, let averageDistance else {
@@ -3839,6 +3974,14 @@ private struct DistanceComparisonRow {
         }
 
         return "Sets Static Value: \(averageDistance) yds"
+    }
+
+    var averageSampleText: String? {
+        guard averageDistance != nil else {
+            return nil
+        }
+
+        return averageSampleCount == 1 ? "1 shot" : "\(averageSampleCount) shots"
     }
 }
 
@@ -3934,7 +4077,11 @@ private struct DistanceComparisonRowView: View {
                 Divider()
                     .padding(.vertical, 3)
 
-                ComparisonValue(title: "Tracked Avg", distance: row.averageDistance)
+                ComparisonValue(
+                    title: "Tracked Avg",
+                    distance: row.averageDistance,
+                    footnote: row.averageSampleText
+                )
             }
         }
         .padding(.vertical, 4)
@@ -4006,6 +4153,7 @@ private struct AdoptTrackedAverageLabel: View {
 private struct ComparisonValue: View {
     let title: String
     let distance: Int?
+    var footnote: String? = nil
 
     var body: some View {
         VStack(spacing: 4) {
@@ -4026,6 +4174,14 @@ private struct ComparisonValue: View {
             }
             .lineLimit(1)
             .minimumScaleFactor(0.8)
+
+            if let footnote {
+                Text(footnote)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .accessibilityIdentifier("tracked-average-sample-count")
+            }
         }
         .frame(maxWidth: .infinity)
     }

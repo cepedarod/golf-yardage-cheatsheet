@@ -5,6 +5,7 @@ final class YardageDashboardViewModel: ObservableObject {
     @Published private(set) var activeClubs: [Club] = []
     @Published private(set) var inactiveClubs: [Club] = []
     @Published private(set) var shotRecords: [ShotRecord] = []
+    @Published private(set) var appCalculatedShotRecords: [ShotRecord] = []
     @Published private(set) var activeRound: GolfRound?
     @Published private(set) var activeRoundID: UUID?
     @Published private(set) var shotTrackingMode: ShotTrackingMode
@@ -75,6 +76,9 @@ final class YardageDashboardViewModel: ObservableObject {
                 .filter { $0.profileID == profile.id }
                 .sorted(by: oldestShotFirst)
             let analysisShotRecords = currentProfile.analysisDateRange.filtered(profileShotRecords)
+            let appCalculatedShotRecords = analysisShotRecords.filter {
+                currentProfile.averageDistanceGrassTypes.contains($0.grassType)
+            }
             let activeRound = data.rounds
                 .filter { $0.profileID == profile.id && $0.isCompleted == false }
                 .sorted(by: newestRoundFirst)
@@ -82,6 +86,7 @@ final class YardageDashboardViewModel: ObservableObject {
             activeClubs = clubs.filter(\.isActive)
             inactiveClubs = clubs.filter { $0.isActive == false }
             shotRecords = analysisShotRecords
+            self.appCalculatedShotRecords = appCalculatedShotRecords
             self.activeRound = activeRound
             activeRoundID = activeRound?.id
             if let activeRound, roundReminderScheduler.isStale(activeRound) == false {
@@ -97,6 +102,7 @@ final class YardageDashboardViewModel: ObservableObject {
             activeClubs = []
             inactiveClubs = []
             shotRecords = []
+            appCalculatedShotRecords = []
             activeRound = nil
             activeRoundID = nil
             shotTrackingMode = profile.shotTrackingMode
@@ -143,7 +149,7 @@ final class YardageDashboardViewModel: ObservableObject {
                 for: $0,
                 filter: shotFilter,
                 mode: valueMode,
-                shotRecords: shotRecords,
+                shotRecords: appCalculatedShotRecords,
                 adjustmentContext: distanceAdjustmentContext
             )
         }
@@ -257,6 +263,24 @@ final class YardageDashboardViewModel: ObservableObject {
         }
     }
 
+    func needsOnboardingGuide(_ guide: ProfileOnboardingGuide) -> Bool {
+        loadedProfile.acknowledgedOnboardingGuides.contains(guide) == false
+    }
+
+    func acknowledgeOnboardingGuide(_ guide: ProfileOnboardingGuide) {
+        guard needsOnboardingGuide(guide) else {
+            return
+        }
+
+        do {
+            try repository.acknowledgeProfileOnboardingGuide(profileID: profile.id, guide: guide)
+            loadedProfile.acknowledgedOnboardingGuides.insert(guide)
+            errorMessage = nil
+        } catch {
+            errorMessage = "Unable to save instruction preference."
+        }
+    }
+
     private var targetYardage: Int? {
         guard let targetYardage = Int(targetYardageText), targetYardage > 0 else {
             return nil
@@ -276,7 +300,7 @@ final class YardageDashboardViewModel: ObservableObject {
             clubs: activeClubs,
             filter: shotFilter,
             valueMode: valueMode,
-            shotRecords: shotRecords,
+            shotRecords: appCalculatedShotRecords,
             adjustmentContext: distanceAdjustmentContext
         )
     }

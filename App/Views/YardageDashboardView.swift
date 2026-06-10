@@ -19,6 +19,7 @@ struct YardageDashboardView: View {
     @State private var gpsFallbackAlert: GPSFallbackAlert?
     @State private var targetYardageText = ""
     @State private var shotTrackingProgress = 0.0
+    @State private var pendingOnboardingGuide: ProfileOnboardingGuide?
     @FocusState private var isTargetYardageFocused: Bool
 
     private let formatter = ClubDisplayNameFormatter()
@@ -189,7 +190,7 @@ struct YardageDashboardView: View {
                                 club: club,
                                 shotFilter: viewModel.shotFilter,
                                 valueMode: viewModel.valueMode,
-                                shotRecords: viewModel.shotRecords,
+                                shotRecords: viewModel.appCalculatedShotRecords,
                                 adjustmentContext: viewModel.distanceAdjustmentContext
                             )
                                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -259,11 +260,18 @@ struct YardageDashboardView: View {
                 }
             }
         }
-        .sheet(item: $clubForm) { form in
+        .sheet(item: $clubForm, onDismiss: {
+            presentOnboardingGuideIfNeeded(.distance)
+        }) { form in
             NavigationStack {
                 switch form {
                 case .add:
-                    AddClubView(profile: profile, onSave: viewModel.saveClub)
+                    AddClubView(
+                        profile: profile,
+                        onboardingGuide: viewModel.needsOnboardingGuide(.addClub) ? .addClub : nil,
+                        onAcknowledgeOnboardingGuide: viewModel.acknowledgeOnboardingGuide,
+                        onSave: viewModel.saveClub
+                    )
                 case .edit(let club):
                     AddClubView(profile: profile, club: club, onSave: viewModel.saveClub)
                 }
@@ -305,10 +313,12 @@ struct YardageDashboardView: View {
         .task {
             viewModel.loadClubs()
             offerInitialBagSetupIfNeeded()
+            presentOnboardingGuideIfNeeded(.distance)
         }
         .onAppear {
             viewModel.loadClubs()
             syncLocationWarmup()
+            presentOnboardingGuideIfNeeded(.distance)
         }
         .onDisappear {
             shotTracker.stopLocationWarmup()
@@ -382,6 +392,15 @@ struct YardageDashboardView: View {
                 },
                 secondaryButton: .default(Text("Retry Location")) {
                     retryGPSCapture()
+                }
+            )
+        }
+        .alert(item: $pendingOnboardingGuide) { guide in
+            Alert(
+                title: Text(guide.title),
+                message: Text(guide.message),
+                dismissButton: .default(Text("Got it")) {
+                    acknowledgePendingOnboardingGuide()
                 }
             )
         }
@@ -875,6 +894,25 @@ struct YardageDashboardView: View {
 
         didOfferInitialBagSetup = true
         clubForm = .add
+    }
+
+    private func presentOnboardingGuideIfNeeded(_ guide: ProfileOnboardingGuide) {
+        guard clubForm == nil,
+              pendingOnboardingGuide == nil,
+              viewModel.needsOnboardingGuide(guide) else {
+            return
+        }
+
+        pendingOnboardingGuide = guide
+    }
+
+    private func acknowledgePendingOnboardingGuide() {
+        guard let guide = pendingOnboardingGuide else {
+            return
+        }
+
+        pendingOnboardingGuide = nil
+        viewModel.acknowledgeOnboardingGuide(guide)
     }
 
     private enum ClubForm: Identifiable {

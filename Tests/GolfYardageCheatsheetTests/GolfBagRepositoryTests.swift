@@ -110,6 +110,40 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
     }
 
+    func testUpdateProfileAverageDistanceGrassTypesPersistsPreference() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let updatedAt = Date(timeIntervalSince1970: 3_100)
+
+        try repository.updateProfileAverageDistanceGrassTypes(
+            profileID: profile.id,
+            grassTypes: [.fairway, .rough],
+            now: updatedAt
+        )
+
+        let updatedProfile = try XCTUnwrap(try repository.profiles().first)
+        XCTAssertEqual(updatedProfile.averageDistanceGrassTypes, [.fairway, .rough])
+        XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
+    }
+
+    func testAcknowledgeProfileOnboardingGuidePersistsPreference() throws {
+        let store = InMemoryGolfBagStore()
+        let repository = GolfBagRepository(store: store)
+        let profile = try repository.createProfile(name: "Rod")
+        let updatedAt = Date(timeIntervalSince1970: 3_200)
+
+        try repository.acknowledgeProfileOnboardingGuide(
+            profileID: profile.id,
+            guide: .distance,
+            now: updatedAt
+        )
+
+        let updatedProfile = try XCTUnwrap(try repository.profiles().first)
+        XCTAssertEqual(updatedProfile.acknowledgedOnboardingGuides, [.distance])
+        XCTAssertEqual(updatedProfile.updatedAt, updatedAt)
+    }
+
     func testUpdateProfileAltitudeSettingsPersistsPreference() throws {
         let store = InMemoryGolfBagStore()
         let repository = GolfBagRepository(store: store)
@@ -641,6 +675,16 @@ final class GolfBagRepositoryTests: XCTestCase {
         XCTAssertEqual(
             calculator.averageDistance(for: records, clubID: clubID, category: .normal, power: .full),
             110
+        )
+        XCTAssertEqual(
+            calculator.distanceSampleCount(
+                for: records,
+                clubID: clubID,
+                category: .normal,
+                power: .full,
+                grassTypes: [.fairway]
+            ),
+            2
         )
     }
 

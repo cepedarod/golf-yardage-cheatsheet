@@ -5,6 +5,8 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
     public var name: String
     public var shotTrackingMode: ShotTrackingMode
     public var analysisDateRange: AnalysisDateRange
+    public var averageDistanceGrassTypes: Set<GrassType>
+    public var acknowledgedOnboardingGuides: Set<ProfileOnboardingGuide>
     public var homeBaseCity: String
     public var homeBaseAltitudeFeet: Double
     public var altitudeCalculationMode: AltitudeCalculationMode
@@ -16,6 +18,8 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         case name
         case shotTrackingMode
         case analysisDateRange
+        case averageDistanceGrassTypes
+        case acknowledgedOnboardingGuides
         case homeBaseCity
         case homeBaseAltitudeFeet
         case altitudeCalculationMode
@@ -28,6 +32,8 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         name: String,
         shotTrackingMode: ShotTrackingMode = .gps,
         analysisDateRange: AnalysisDateRange = .allTime,
+        averageDistanceGrassTypes: Set<GrassType> = Set(GrassType.allCases),
+        acknowledgedOnboardingGuides: Set<ProfileOnboardingGuide> = [],
         homeBaseCity: String = AltitudeDefaults.chicagoCity,
         homeBaseAltitudeFeet: Double = AltitudeDefaults.chicagoFeet,
         altitudeCalculationMode: AltitudeCalculationMode = .adjustForAltitude,
@@ -38,6 +44,8 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         self.name = name
         self.shotTrackingMode = shotTrackingMode
         self.analysisDateRange = analysisDateRange
+        self.averageDistanceGrassTypes = averageDistanceGrassTypes
+        self.acknowledgedOnboardingGuides = acknowledgedOnboardingGuides
         self.homeBaseCity = homeBaseCity
         self.homeBaseAltitudeFeet = homeBaseAltitudeFeet
         self.altitudeCalculationMode = altitudeCalculationMode
@@ -52,11 +60,45 @@ public struct GolferProfile: Codable, Equatable, Identifiable, Sendable {
         name = try container.decode(String.self, forKey: .name)
         shotTrackingMode = try container.decodeIfPresent(ShotTrackingMode.self, forKey: .shotTrackingMode) ?? .gps
         analysisDateRange = try container.decodeIfPresent(AnalysisDateRange.self, forKey: .analysisDateRange) ?? .allTime
+        averageDistanceGrassTypes = try container.decodeIfPresent(Set<GrassType>.self, forKey: .averageDistanceGrassTypes) ?? Set(GrassType.allCases)
+        acknowledgedOnboardingGuides = try container.decodeIfPresent(Set<ProfileOnboardingGuide>.self, forKey: .acknowledgedOnboardingGuides) ?? Set(ProfileOnboardingGuide.allCases)
         homeBaseCity = try container.decodeIfPresent(String.self, forKey: .homeBaseCity) ?? AltitudeDefaults.chicagoCity
         homeBaseAltitudeFeet = try container.decodeIfPresent(Double.self, forKey: .homeBaseAltitudeFeet) ?? AltitudeDefaults.chicagoFeet
         altitudeCalculationMode = try container.decodeIfPresent(AltitudeCalculationMode.self, forKey: .altitudeCalculationMode) ?? .adjustForAltitude
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
+}
+
+public enum ProfileOnboardingGuide: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
+    case distance
+    case addClub
+    case profile
+
+    public var id: String {
+        rawValue
+    }
+
+    public var title: String {
+        switch self {
+        case .distance:
+            "Distance Tab"
+        case .addClub:
+            "Adding Clubs"
+        case .profile:
+            "Profile Controls"
+        }
+    }
+
+    public var message: String {
+        switch self {
+        case .distance:
+            "Use Distance as your on-course cheat sheet. Enter a target, switch between Static Values and App Calculated, and use Track Shot during a round."
+        case .addClub:
+            "Start each club with any static yardages you know. You only need one distance to save, and Caddie Cat can fill in app-calculated averages as you record shots."
+        case .profile:
+            "Profile controls how Caddie Cat learns: GPS or manual tracking, which dates and grass surfaces feed app-calculated distances, and altitude settings."
+        }
     }
 }
 

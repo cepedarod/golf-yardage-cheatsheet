@@ -417,6 +417,23 @@ public struct ShotStatsCalculator: Sendable {
         return distances.reduce(0, +) / Double(distances.count)
     }
 
+    public func distanceSampleCount(
+        for records: [ShotRecord],
+        clubID: UUID,
+        category: ShotCategory,
+        power: ShotPower,
+        grassTypes: Set<GrassType>? = nil
+    ) -> Int {
+        records.filter { record in
+            record.clubID == clubID &&
+                record.category == category &&
+                record.power == power &&
+                (grassTypes.map { $0.contains(record.grassType) } ?? true) &&
+                record.strikeQuality == .pure &&
+                record.distance != nil
+        }.count
+    }
+
     public func grassDistanceModifiers(
         for records: [ShotRecord],
         clubID: UUID,

@@ -3,5 +3,6 @@
 .DS_Store
 DerivedData/
 *.xcuserdata/
+xcuserdata/
 *.xcuserstate
 qa/screenshots/

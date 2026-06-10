@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AddClubView: View {
     let profile: GolferProfile
+    let onboardingGuide: ProfileOnboardingGuide?
+    let onAcknowledgeOnboardingGuide: ((ProfileOnboardingGuide) -> Void)?
     let onSave: (Club) throws -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -30,10 +32,20 @@ struct AddClubView: View {
     @State private var mediumPutterDistance = ""
     @State private var shortPutterDistance = ""
     @State private var errorMessage: String?
+    @State private var pendingOnboardingGuide: ProfileOnboardingGuide?
+    @State private var didPresentOnboardingGuide = false
 
-    init(profile: GolferProfile, club: Club? = nil, onSave: @escaping (Club) throws -> Void) {
+    init(
+        profile: GolferProfile,
+        club: Club? = nil,
+        onboardingGuide: ProfileOnboardingGuide? = nil,
+        onAcknowledgeOnboardingGuide: ((ProfileOnboardingGuide) -> Void)? = nil,
+        onSave: @escaping (Club) throws -> Void
+    ) {
         self.profile = profile
         self.existingClub = club
+        self.onboardingGuide = onboardingGuide
+        self.onAcknowledgeOnboardingGuide = onAcknowledgeOnboardingGuide
         self.onSave = onSave
 
         _clubType = State(initialValue: club?.clubType ?? .driver)
@@ -177,6 +189,25 @@ struct AddClubView: View {
                 wedgeLoft = ""
             }
         }
+        .onAppear {
+            guard existingClub == nil,
+                  pendingOnboardingGuide == nil,
+                  didPresentOnboardingGuide == false else {
+                return
+            }
+
+            pendingOnboardingGuide = onboardingGuide
+            didPresentOnboardingGuide = onboardingGuide != nil
+        }
+        .alert(item: $pendingOnboardingGuide) { guide in
+            Alert(
+                title: Text(guide.title),
+                message: Text(guide.message),
+                dismissButton: .default(Text("Got it")) {
+                    acknowledgePendingOnboardingGuide()
+                }
+            )
+        }
     }
 
     private var availableDistanceCategories: [ClubDistanceCategory] {
@@ -214,6 +245,15 @@ struct AddClubView: View {
 
     private func saveAndAddAnother() {
         save(shouldDismiss: false)
+    }
+
+    private func acknowledgePendingOnboardingGuide() {
+        guard let guide = pendingOnboardingGuide else {
+            return
+        }
+
+        pendingOnboardingGuide = nil
+        onAcknowledgeOnboardingGuide?(guide)
     }
 
     private func save(shouldDismiss: Bool) {

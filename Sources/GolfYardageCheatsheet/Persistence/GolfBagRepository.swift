@@ -90,6 +90,38 @@ public final class GolfBagRepository {
         try store.save(data)
     }
 
+    public func updateProfileAverageDistanceGrassTypes(
+        profileID: UUID,
+        grassTypes: Set<GrassType>,
+        now: Date = Date()
+    ) throws {
+        var data = try store.load()
+
+        guard let index = data.profiles.firstIndex(where: { $0.id == profileID }) else {
+            throw GolfBagRepositoryError.profileNotFound
+        }
+
+        data.profiles[index].averageDistanceGrassTypes = grassTypes
+        data.profiles[index].updatedAt = now
+        try store.save(data)
+    }
+
+    public func acknowledgeProfileOnboardingGuide(
+        profileID: UUID,
+        guide: ProfileOnboardingGuide,
+        now: Date = Date()
+    ) throws {
+        var data = try store.load()
+
+        guard let index = data.profiles.firstIndex(where: { $0.id == profileID }) else {
+            throw GolfBagRepositoryError.profileNotFound
+        }
+
+        data.profiles[index].acknowledgedOnboardingGuides.insert(guide)
+        data.profiles[index].updatedAt = now
+        try store.save(data)
+    }
+
     public func updateProfileAltitudeSettings(
         profileID: UUID,
         homeBaseCity: String,
