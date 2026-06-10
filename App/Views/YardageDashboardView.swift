@@ -175,7 +175,7 @@ struct YardageDashboardView: View {
                             )
 
                             Button {
-                                clubForm = .add
+                                clubForm = .add(onboardingGuide: addClubOnboardingGuide)
                             } label: {
                                 Label(emptyClubsActionTitle, systemImage: "plus.circle.fill")
                             }
@@ -242,7 +242,7 @@ struct YardageDashboardView: View {
                     .accessibilityLabel("Inactive Clubs")
 
                     Button {
-                        clubForm = .add
+                        clubForm = .add(onboardingGuide: addClubOnboardingGuide)
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -265,10 +265,10 @@ struct YardageDashboardView: View {
         }) { form in
             NavigationStack {
                 switch form {
-                case .add:
+                case .add(let onboardingGuide):
                     AddClubView(
                         profile: profile,
-                        onboardingGuide: viewModel.needsOnboardingGuide(.addClub) ? .addClub : nil,
+                        onboardingGuide: onboardingGuide,
                         onAcknowledgeOnboardingGuide: viewModel.acknowledgeOnboardingGuide,
                         onSave: viewModel.saveClub
                     )
@@ -884,6 +884,10 @@ struct YardageDashboardView: View {
         }
     }
 
+    private var addClubOnboardingGuide: ProfileOnboardingGuide? {
+        viewModel.needsOnboardingGuide(.addClub) ? .addClub : nil
+    }
+
     private func offerInitialBagSetupIfNeeded() {
         guard didOfferInitialBagSetup == false,
               viewModel.activeClubs.isEmpty,
@@ -893,7 +897,7 @@ struct YardageDashboardView: View {
         }
 
         didOfferInitialBagSetup = true
-        clubForm = .add
+        clubForm = .add(onboardingGuide: addClubOnboardingGuide)
     }
 
     private func presentOnboardingGuideIfNeeded(_ guide: ProfileOnboardingGuide) {
@@ -915,13 +919,13 @@ struct YardageDashboardView: View {
     }
 
     private enum ClubForm: Identifiable {
-        case add
+        case add(onboardingGuide: ProfileOnboardingGuide?)
         case edit(Club)
 
         var id: String {
             switch self {
-            case .add:
-                return "add"
+            case .add(let onboardingGuide):
+                return "add-\(onboardingGuide?.rawValue ?? "none")"
             case .edit(let club):
                 return club.id.uuidString
             }

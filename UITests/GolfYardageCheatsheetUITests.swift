@@ -18,6 +18,18 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.buttons["save-and-add-another-button"].exists)
     }
 
+    func testFirstLaunchShowsAddClubGuideOnAutomaticallyOpenedAddClubFlow() {
+        let app = launchFreshApp()
+
+        createProfile(named: "Rod", dismissAddClubGuide: false, in: app)
+
+        XCTAssertTrue(app.navigationBars["Add Club"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.alerts["Adding Clubs"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.alerts.staticTexts["Add baseline hit distances you know for each swing type. Every distance field is optional, and you can add or edit values later."].exists)
+        app.alerts.buttons["Got it"].tap()
+        XCTAssertFalse(app.alerts["Adding Clubs"].exists)
+    }
+
     func testNicknameKeyboardCanBeDismissedWhenAddingClub() {
         let app = launchFreshApp()
         createProfile(named: "Rod", in: app)
@@ -176,7 +188,6 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.buttons["record-shot-club-tile-Driver"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["grass-type-Fairway"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["grass-type-Rough"].exists)
-        app.buttons["grass-type-Rough"].tap()
 
         let shotDistanceField = app.textFields["record-shot-distance-field"]
         enterNumberPadValue("250", into: shotDistanceField, in: app)
@@ -380,13 +391,20 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         app.tabBars.buttons["Profile"].tap()
 
         XCTAssertTrue(app.navigationBars["Rod"].waitForExistence(timeout: 5))
+        dismissProfileGuideIfNeeded(in: app)
         XCTAssertTrue(app.descendants(matching: .any)["shot-tracking-mode-picker"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["All Shots"].exists)
+        XCTAssertTrue(app.staticTexts["Included in shot distance average"].exists)
+        XCTAssertTrue(app.staticTexts["Fairway Shots"].exists)
+        XCTAssertTrue(app.staticTexts["Rough Shots"].exists)
+        XCTAssertTrue(app.staticTexts["Deep Rough Shots"].exists)
+
+        app.buttons["Manual"].tap()
+
+        scrollToProfileOverviewIfNeeded(in: app)
+        XCTAssertTrue(app.staticTexts["All Shots"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.staticTexts["profile-all-shots-count"].label, "1")
         XCTAssertTrue(app.staticTexts["Number of Rounds"].exists)
         XCTAssertEqual(app.staticTexts["profile-rounds-count"].label, "0")
-
-        app.buttons["Manual"].tap()
 
         let allShotsRow = app.descendants(matching: .any)["profile-all-shots-row"]
         XCTAssertTrue(allShotsRow.waitForExistence(timeout: 2))
@@ -451,6 +469,8 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         XCTAssertTrue(app.buttons["start-round-button"].waitForExistence(timeout: 2))
         app.tabBars.buttons["Profile"].tap()
         XCTAssertTrue(app.navigationBars["Rod"].waitForExistence(timeout: 5))
+        dismissProfileGuideIfNeeded(in: app)
+        scrollToProfileOverviewIfNeeded(in: app)
         XCTAssertEqual(app.staticTexts["profile-rounds-count"].label, "1")
     }
 
@@ -666,7 +686,7 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         return environment
     }
 
-    private func createProfile(named name: String, in app: XCUIApplication) {
+    private func createProfile(named name: String, dismissAddClubGuide: Bool = true, in app: XCUIApplication) {
         XCTAssertTrue(app.navigationBars["Create Profile"].waitForExistence(timeout: 5))
 
         let nameField = app.textFields["profile-name-field"]
@@ -680,6 +700,32 @@ final class GolfYardageCheatsheetUITests: XCTestCase {
         nameField.typeText(name)
         XCTAssertTrue(createButton.isEnabled)
         createButton.tap()
+
+        if dismissAddClubGuide {
+            dismissAddClubGuideIfNeeded(in: app)
+        }
+    }
+
+    private func dismissAddClubGuideIfNeeded(in app: XCUIApplication) {
+        let addClubGuide = app.alerts["Adding Clubs"]
+        if addClubGuide.waitForExistence(timeout: 5) {
+            addClubGuide.buttons["Got it"].tap()
+        }
+    }
+
+    private func dismissProfileGuideIfNeeded(in app: XCUIApplication) {
+        let profileGuide = app.alerts["Profile Controls"]
+        if profileGuide.waitForExistence(timeout: 1) {
+            profileGuide.buttons["Got it"].tap()
+        }
+    }
+
+    private func scrollToProfileOverviewIfNeeded(in app: XCUIApplication) {
+        let allShotsRow = app.descendants(matching: .any)["profile-all-shots-row"]
+        for _ in 0..<3 where allShotsRow.exists == false {
+            app.swipeUp()
+        }
+        XCTAssertTrue(allShotsRow.waitForExistence(timeout: 2))
     }
 
     private func enterFullDistance(_ distance: String, in app: XCUIApplication) {
